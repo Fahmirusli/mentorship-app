@@ -1,0 +1,162 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Str;
+
+class SocialAuthController extends Controller
+{
+    /**
+     * Redirect to Google OAuth
+     */
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->stateless()->redirect();
+    }
+
+    /**
+     * Handle Google OAuth callback
+     */
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = Socialite::driver('google')->stateless()->user();
+            
+            $user = User::where('email', $googleUser->email)->first();
+
+            if ($user) {
+                // Update existing user
+                $user->update([
+                    'google_id' => $googleUser->id,
+                    'avatar' => $googleUser->avatar,
+                    'email_verified_at' => now()
+                ]);
+            } else {
+                // Create new user
+                $user = User::create([
+                    'name' => $googleUser->name,
+                    'email' => $googleUser->email,
+                    'google_id' => $googleUser->id,
+                    'avatar' => $googleUser->avatar,
+                    'password' => Hash::make(Str::random(24)),
+                    'role' => request()->get('role', 'mentee'), // Default to mentee
+                    'email_verified_at' => now()
+                ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
+            
+            return redirect($redirectUrl);
+            
+        } catch (\Exception $e) {
+            \Log::error('Google OAuth error: ' . $e->getMessage());
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
+        }
+    }
+
+    /**
+     * Redirect to LinkedIn OAuth
+     */
+    public function redirectToLinkedIn()
+    {
+        return Socialite::driver('linkedin')->redirect();
+    }
+
+    /**
+     * Handle LinkedIn OAuth callback
+     */
+    public function handleLinkedInCallback()
+    {
+        try {
+            $linkedinUser = Socialite::driver('linkedin')->user();
+            
+            $user = User::where('email', $linkedinUser->email)->first();
+
+            if ($user) {
+                // Update existing user
+                $user->update([
+                    'linkedin_id' => $linkedinUser->id,
+                    'avatar' => $linkedinUser->avatar,
+                    'email_verified_at' => now()
+                ]);
+            } else {
+                // Create new user
+                $user = User::create([
+                    'name' => $linkedinUser->name,
+                    'email' => $linkedinUser->email,
+                    'linkedin_id' => $linkedinUser->id,
+                    'avatar' => $linkedinUser->avatar,
+                    'password' => Hash::make(Str::random(24)),
+                    'role' => request()->get('role', 'mentee'),
+                    'email_verified_at' => now()
+                ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
+            
+            return redirect($redirectUrl);
+            
+        } catch (\Exception $e) {
+            \Log::error('LinkedIn OAuth error: ' . $e->getMessage());
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
+        }
+    }
+    public function redirectToGithub()
+    {
+        return Socialite::driver('github')->stateless()->redirect();
+    }
+
+    public function handleGithubCallback()
+    {
+        try {
+            $githubUser = Socialite::driver('github')->stateless()->user();
+            
+            $user = User::where('email', $githubUser->email)->first();
+
+            if ($user) {
+                // Update existing user
+                $user->update([
+                    'github_id' => $githubUser->id,
+                    'avatar' => $githubUser->avatar, // Priority to latest social login avatar
+                    'email_verified_at' => now()
+                ]);
+            } else {
+                // Create new user
+                $user = User::create([
+                    'name' => $githubUser->name ?? $githubUser->nickname, 
+                    'email' => $githubUser->email,
+                    'github_id' => $githubUser->id,
+                    'avatar' => $githubUser->avatar,
+                    'password' => Hash::make(Str::random(24)),
+                    'role' => request()->get('role', 'mentee'),
+                    'email_verified_at' => now()
+                ]);
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
+            
+            return redirect($redirectUrl);
+            
+        } catch (\Exception $e) {
+            \Log::error('GitHub OAuth error: ' . $e->getMessage());
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
+        }
+    }
+}
