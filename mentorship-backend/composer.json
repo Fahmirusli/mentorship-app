@@ -2,7 +2,10 @@
     "name": "laravel/laravel",
     "type": "project",
     "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "keywords": [
+        "framework",
+        "laravel"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -15,11 +18,11 @@
         "laravel/tinker": "^2.8",
         "laravel/ui": "^4.6",
         "symfony/css-selector": "6.4",
-        "symfony/dom-crawler": "6.4"
+        "symfony/dom-crawler": "6.4",
+        "knuckleswtf/scribe": "^5.6"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
-        "knuckleswtf/scribe": "^5.6",
         "laravel/pint": "^1.0",
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
