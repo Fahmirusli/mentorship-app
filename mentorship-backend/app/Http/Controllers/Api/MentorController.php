@@ -36,8 +36,8 @@ class MentorController extends Controller
         if ($request->has('rating')) {
             $minRating = (float) $request->rating;
             $query->whereHas('feedbackReceived', function($q) use ($minRating) {
-                $q->selectRaw('AVG(rating) as avg_rating')
-                  ->havingRaw('AVG(rating) >= ?', [$minRating]);
+                // This will filter users who have at least one feedback with rating >= minRating
+                $q->where('rating', '>=', $minRating);
             });
         }
 
@@ -66,9 +66,14 @@ class MentorController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('bio', 'like', "%{$search}%")
-                  ->orWhereJsonContains('skills', $search)
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere(function($q2) use ($search) {
+                      // Search in JSON skills array
+                      $q2->whereRaw('JSON_SEARCH(skills, "one", ?) IS NOT NULL', ["%{$search}%"]);
+                  })
                   ->orWhereHas('mentorProfile', function ($q2) use ($search) {
-                      $q2->where('industry', 'like', "%{$search}%")
+                      $q2->where('expertise_areas', 'like', "%{$search}%")
+                         ->orWhere('industry', 'like', "%{$search}%")
                          ->orWhere('job_title', 'like', "%{$search}%")
                          ->orWhere('company', 'like', "%{$search}%");
                   });
@@ -101,7 +106,17 @@ class MentorController extends Controller
             }
         }
 
-        $mentors = $query->paginate($request->per_page ?? 12);
+        // Get paginated results
+        $perPage = $request->per_page ?? 12;
+        $mentors = $query->paginate($perPage);
+        
+        // Add rating to each mentor
+        $mentors->getCollection()->transform(function ($mentor) {
+            $avgRating = $mentor->feedbackReceived()->avg('rating');
+            $mentor->rating = $avgRating ? round($avgRating, 2) : null;
+            $mentor->total_reviews = $mentor->feedbackReceived()->count();
+            return $mentor;
+        });
 
         return response()->json($mentors);
     }
@@ -111,6 +126,11 @@ class MentorController extends Controller
         $mentor = User::where('role', 'mentor')
             ->with(['mentorProfile', 'feedbackReceived.fromUser'])
             ->findOrFail($id);
+
+        // Calculate average rating
+        $avgRating = $mentor->feedbackReceived()->avg('rating');
+        $mentor->rating = $avgRating ? round($avgRating, 2) : null;
+        $mentor->total_reviews = $mentor->feedbackReceived()->count();
 
         // Get available schedules for next 14 days
         $availableSchedules = \App\Models\Schedule::where('mentor_id', $id)
@@ -128,6 +148,13 @@ class MentorController extends Controller
         $mentor->total_available_slots = \App\Models\Schedule::where('mentor_id', $id)
             ->where('is_available', true)
             ->where('date', '>=', now()->format('Y-m-d'))
+            ->count();
+
+        // Calculate stats
+        $mentor->total_mentees = $mentor->mentorships()->distinct('mentee_id')->count();
+        $mentor->completed_sessions = $mentor->mentorships()
+            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
+            ->where('appointments.status', 'completed')
             ->count();
 
         return response()->json($mentor);

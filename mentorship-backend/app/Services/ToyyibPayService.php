@@ -13,10 +13,15 @@ class ToyyibPayService
 
     public function __construct()
     {
-        // Use Sandbox by default if not specified
+        // Use environment configuration
         $this->url = env('TOYYIBPAY_URL', 'https://dev.toyyibpay.com'); 
-        $this->secretKey = env('TOYYIBPAY_SECRET_KEY', 'default-secret-key-for-dev');
-        $this->categoryCode = env('TOYYIBPAY_CATEGORY_CODE', 'default-category-code');
+        $this->secretKey = env('TOYYIBPAY_SECRET_KEY');
+        $this->categoryCode = env('TOYYIBPAY_CATEGORY_CODE');
+        
+        // Validate configuration
+        if (!$this->secretKey || !$this->categoryCode) {
+            Log::warning('ToyyibPay configuration incomplete. Check TOYYIBPAY_SECRET_KEY and TOYYIBPAY_CATEGORY_CODE in .env file');
+        }
     }
 
     public function createBill($title, $description, $amount, $refId, $email, $name, $phone)
