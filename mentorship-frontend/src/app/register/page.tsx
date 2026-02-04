@@ -85,11 +85,11 @@ export default function Register() {
     };
 
     const handleGoogleSignup = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google?register=true`;
+        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google?register=true`;
     };
 
     const handleLinkedInSignup = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/linkedin?register=true`;
+        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/linkedin?register=true`;
     };
 
     if (step === 'verify') {
@@ -316,7 +316,7 @@ export default function Register() {
 
                     {/* GitHub Signup */}
                     <button
-                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/github`}
+                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/github`}
                         className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center transition"
                     >
                         <Github className="w-5 h-5 text-gray-900" />

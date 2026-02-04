@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Job;
 use App\Services\JobMatchingService;
+use App\Services\JobScraperService;
 use Illuminate\Http\Request;
 
 class JobController extends Controller

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 
@@ -16,7 +17,10 @@ class SocialAuthController extends Controller
      */
     public function redirectToGoogle()
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        if (!env('GOOGLE_CLIENT_ID') || !env('GOOGLE_CLIENT_SECRET')) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
+        }
+        return Socialite::driver('google')->redirect();
     }
 
     /**
@@ -25,7 +29,7 @@ class SocialAuthController extends Controller
     public function handleGoogleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
+            $googleUser = Socialite::driver('google')->user();
             
             $user = User::where('email', $googleUser->email)->first();
 
@@ -58,7 +62,7 @@ class SocialAuthController extends Controller
             return redirect($redirectUrl);
             
         } catch (\Exception $e) {
-            \Log::error('Google OAuth error: ' . $e->getMessage());
+            Log::error('Google OAuth error: ' . $e->getMessage());
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
         }
     }
@@ -68,6 +72,9 @@ class SocialAuthController extends Controller
      */
     public function redirectToLinkedIn()
     {
+        if (!env('LINKEDIN_CLIENT_ID') || !env('LINKEDIN_CLIENT_SECRET')) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
+        }
         return Socialite::driver('linkedin')->redirect();
     }
 
@@ -110,19 +117,22 @@ class SocialAuthController extends Controller
             return redirect($redirectUrl);
             
         } catch (\Exception $e) {
-            \Log::error('LinkedIn OAuth error: ' . $e->getMessage());
+            Log::error('LinkedIn OAuth error: ' . $e->getMessage());
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
         }
     }
     public function redirectToGithub()
     {
-        return Socialite::driver('github')->stateless()->redirect();
+        if (!env('GITHUB_CLIENT_ID') || !env('GITHUB_CLIENT_SECRET')) {
+            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
+        }
+        return Socialite::driver('github')->redirect();
     }
 
     public function handleGithubCallback()
     {
         try {
-            $githubUser = Socialite::driver('github')->stateless()->user();
+            $githubUser = Socialite::driver('github')->user();
             
             $user = User::where('email', $githubUser->email)->first();
 
@@ -155,7 +165,7 @@ class SocialAuthController extends Controller
             return redirect($redirectUrl);
             
         } catch (\Exception $e) {
-            \Log::error('GitHub OAuth error: ' . $e->getMessage());
+            Log::error('GitHub OAuth error: ' . $e->getMessage());
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
         }
     }

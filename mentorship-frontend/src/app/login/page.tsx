@@ -52,7 +52,7 @@ export default function Login() {
 
     const handleGoogleLogin = () => {
         // Redirect to backend Google OAuth
-        window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`;
+        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google`;
     };
 
     return (
@@ -179,7 +179,7 @@ export default function Login() {
                                 </svg>
                             </button>
                             <button
-                                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/github`}
+                                onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/github`}
                                 className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-700 rounded-xl shadow-sm bg-[#1a1c23] text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors duration-200"
                             >
                                 <Github className="h-5 w-5" />

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 
@@ -43,7 +44,7 @@ class AuthController extends Controller
                         ->subject('Email Verification - Uplift Mentorship');
             });
         } catch (\Exception $e) {
-            \Log::error('Failed to send verification email: ' . $e->getMessage());
+            Log::error('Failed to send verification email: ' . $e->getMessage());
         }
 
         return response()->json([
@@ -147,7 +148,7 @@ class AuthController extends Controller
                         ->subject('Password Reset - Uplift Mentorship');
             });
         } catch (\Exception $e) {
-            \Log::error('Failed to send reset email: ' . $e->getMessage());
+            Log::error('Failed to send reset email: ' . $e->getMessage());
         }
 
         return response()->json([
