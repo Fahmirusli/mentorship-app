@@ -124,13 +124,13 @@ class ComprehensiveDummyDataSeeder extends Seeder
         
         foreach ($daysOfWeek as $day) {
             // Check if schedule already exists
-            $exists = Schedule::where('user_id', $mentor->id)
+            $exists = Schedule::where('mentor_id', $mentor->id)
                 ->where('day_of_week', $day)
                 ->exists();
 
             if (!$exists) {
                 Schedule::create([
-                    'user_id' => $mentor->id,
+                    'mentor_id' => $mentor->id,
                     'day_of_week' => $day,
                     'start_time' => '09:00',
                     'end_time' => '17:00',
