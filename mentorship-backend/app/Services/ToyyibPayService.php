@@ -21,6 +21,9 @@ class ToyyibPayService
 
     public function createBill($title, $description, $amount, $refId, $email, $name, $phone)
     {
+        // Format amount to 2 decimal places (ToyyibPay expects amount in cents/sen)
+        $amountInCents = intval($amount * 100);
+        
         $payload = [
             'userSecretKey' => $this->secretKey,
             'categoryCode' => $this->categoryCode,
@@ -28,10 +31,10 @@ class ToyyibPayService
             'billDescription' => $description,
             'billPriceSetting' => 1,
             'billPayorInfo' => 1,
-            'billAmount' => $amount * 100, // ToyyibPay uses cents usually
-            'billReturnUrl' => route('api.payment.return'), // We will create this route
+            'billAmount' => $amountInCents,
+            'billReturnUrl' => route('api.payment.return'),
             'billCallbackUrl' => route('api.payment.callback'),
-            'billExternalReferenceNo' => $refId,
+            'billExternalReferenceNo' => (string)$refId,
             'billTo' => $name,
             'billEmail' => $email,
             'billPhone' => $phone,
@@ -41,35 +44,46 @@ class ToyyibPayService
             'billChargeToCustomer' => 1,
         ];
 
-        // Mock for default key to prevent crash if not configured
-        if (str_starts_with($this->secretKey, 'default-')) {
-            Log::info("ToyyibPay: Using Mock Bill Code for testing.");
-            return 'BILL-' . uniqid();
-        }
-
         try {
-            Log::info("ToyyibPay Create Bill Payload: ", $payload);
+            Log::info("ToyyibPay Create Bill Request", [
+                'payload' => $payload,
+                'url' => $this->url . '/index.php/api/createBill'
+            ]);
             
             $response = Http::asForm()->post($this->url . '/index.php/api/createBill', $payload);
             
-            Log::info("ToyyibPay Response: " . $response->body());
+            Log::info("ToyyibPay Create Bill Response", [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
-                // Returns string (BillCode) or JSON object depending on version? 
-                // Documentation says: [{"BillCode":"..."}]
                 $data = $response->json();
                 
+                // Handle array response: [{"BillCode":"xyz123"}]
                 if (is_array($data) && isset($data[0]['BillCode'])) {
                     return $data[0]['BillCode'];
                 }
                 
-                // Fallback for some error cases
+                // Handle direct object response: {"BillCode":"xyz123"}
+                if (is_array($data) && isset($data['BillCode'])) {
+                    return $data['BillCode'];
+                }
+                
+                Log::error("ToyyibPay: Unexpected response format", ['data' => $data]);
                 return null;
             }
             
+            Log::error("ToyyibPay: API request failed", [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
             return null;
+            
         } catch (\Exception $e) {
-            Log::error("ToyyibPay Error: " . $e->getMessage());
+            Log::error("ToyyibPay Exception: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return null;
         }
     }
