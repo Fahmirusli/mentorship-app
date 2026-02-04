@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             AppointmentSeeder::class,
             ResourceSeeder::class,
             FeedbackSeeder::class,
+            ComprehensiveDummyDataSeeder::class,
         ]);
     }
 }
