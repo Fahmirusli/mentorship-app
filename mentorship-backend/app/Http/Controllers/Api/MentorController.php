@@ -109,8 +109,26 @@ class MentorController extends Controller
     public function show($id)
     {
         $mentor = User::where('role', 'mentor')
-            ->with(['mentorProfile', 'schedules', 'feedbackReceived.fromUser'])
+            ->with(['mentorProfile', 'feedbackReceived.fromUser'])
             ->findOrFail($id);
+
+        // Get available schedules for next 14 days
+        $availableSchedules = \App\Models\Schedule::where('mentor_id', $id)
+            ->where('is_available', true)
+            ->where('date', '>=', now()->format('Y-m-d'))
+            ->where('date', '<=', now()->addDays(14)->format('Y-m-d'))
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get()
+            ->groupBy(function($schedule) {
+                return \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
+            });
+
+        $mentor->available_schedules = $availableSchedules;
+        $mentor->total_available_slots = \App\Models\Schedule::where('mentor_id', $id)
+            ->where('is_available', true)
+            ->where('date', '>=', now()->format('Y-m-d'))
+            ->count();
 
         return response()->json($mentor);
     }

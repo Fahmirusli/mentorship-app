@@ -16,28 +16,26 @@ class ScheduleController extends Controller
         $query = Schedule::where('mentor_id', $mentorId)
             ->where('is_available', true);
 
-        // Filter by date range if provided
-        if ($request->has(['start_date', 'end_date'])) {
-            $query->whereBetween('date', [$request->start_date, $request->end_date])
-                  ->orWhereNull('date'); // Always include recurring weekly schedules
-        }
+        // Filter by date range if provided, default to next 7 days
+        $startDate = $request->input('start_date', now()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->addDays(7)->format('Y-m-d'));
+        
+        $query->whereBetween('date', [$startDate, $endDate]);
 
-        $schedules = $query->orderByRaw('date IS NULL DESC, date ASC')
-            ->orderBy('day_of_week')
+        $schedules = $query->orderBy('date')
             ->orderBy('start_time')
             ->get();
 
-        // Ensure date format is Y-m-d for frontend consistency
-        $schedules->transform(function ($schedule) {
-            if ($schedule->date) {
-                $schedule->date = \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
-            }
-            return $schedule;
+        // Group schedules by date for easier frontend consumption
+        $groupedSchedules = $schedules->groupBy(function($schedule) {
+            return \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
         });
 
         return response()->json([
-            'mentor' => $mentor,
+            'mentor' => $mentor->load('mentorProfile'),
             'schedules' => $schedules,
+            'grouped_schedules' => $groupedSchedules,
+            'total_slots' => $schedules->count(),
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Mentorship;
 use App\Services\TelegramNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AppointmentController extends Controller
 {
