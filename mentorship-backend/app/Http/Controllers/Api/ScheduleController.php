@@ -128,4 +128,38 @@ class ScheduleController extends Controller
             'message' => 'Schedule deleted successfully',
         ]);
     }
+    
+    public function mySchedule(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user->isMentor()) {
+            return response()->json(['message' => 'Only mentors have schedules'], 403);
+        }
+        
+        $query = Schedule::where('mentor_id', $user->id);
+
+        // Filter by date range if provided
+        if ($request->has(['start_date', 'end_date'])) {
+            $query->whereBetween('date', [$request->start_date, $request->end_date])
+                  ->orWhereNull('date'); // Include recurring weekly schedules
+        }
+
+        $schedules = $query->orderByRaw('date IS NULL DESC, date ASC')
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        // Format dates consistently
+        $schedules->transform(function ($schedule) {
+            if ($schedule->date) {
+                $schedule->date = \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
+            }
+            return $schedule;
+        });
+
+        return response()->json([
+            'schedules' => $schedules,
+        ]);
+    }
 }

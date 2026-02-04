@@ -31,36 +31,53 @@ Route::get('/auth/github/callback', [SocialAuthController::class, 'handleGithubC
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user();
-    Route::post('/upload/profile-image', [Api\FileUploadController::class, 'uploadProfileImage']);
-    Route::post('/upload/resume', [Api\FileUploadController::class, 'uploadResume']);
-    Route::put('/user/skills', [Api\FileUploadController::class, 'updateSkills']);
-    Route::get('/jobs/recommended', [Api\FileUploadController::class, 'getRecommendedJobs']);
+        return $request->user()->load(['mentorProfile', 'menteeProfile']);
     });
     
-    // Your other API routes here...
+    // File uploads
+    Route::post('/upload/profile-image', [App\Http\Controllers\Api\FileUploadController::class, 'uploadProfileImage']);
+    Route::post('/upload/resume', [App\Http\Controllers\Api\FileUploadController::class, 'uploadResume']);
+    Route::put('/user/skills', [App\Http\Controllers\Api\FileUploadController::class, 'updateSkills']);
+    
+    // Favorites
+    Route::get('/favorites', [App\Http\Controllers\Api\FavoriteController::class, 'index']);
+    Route::post('/favorites/toggle', [App\Http\Controllers\Api\FavoriteController::class, 'toggle']);
+    
+    // Job recommendations
+    Route::get('/jobs/recommended', [App\Http\Controllers\Api\FileUploadController::class, 'getRecommendedJobs']);
     Route::get('/jobs/recommendations', [App\Http\Controllers\Api\JobController::class, 'recommendations']);
-    Route::get('/mentee/stats', [App\Http\Controllers\Api\MenteeController::class, 'stats']);
     Route::post('/jobs/scrape', [App\Http\Controllers\Api\JobController::class, 'triggerScrape']);
     Route::apiResource('jobs', App\Http\Controllers\Api\JobController::class);
+    
+    // Mentee & Mentor stats
+    Route::get('/mentee/stats', [App\Http\Controllers\Api\MenteeController::class, 'stats']);
     Route::get('/mentor/stats', [App\Http\Controllers\Api\MentorController::class, 'stats']);
+    
+    // Mentors with enhanced search/filter
     Route::apiResource('mentors', App\Http\Controllers\Api\MentorController::class);
+    
+    // Resources and Management
     Route::apiResource('appointments', App\Http\Controllers\Api\AppointmentController::class);
+    Route::patch('/appointments/{id}/reschedule', [App\Http\Controllers\Api\AppointmentController::class, 'reschedule']);
     Route::apiResource('resources', App\Http\Controllers\Api\ResourceController::class);
     Route::apiResource('mentorships', App\Http\Controllers\Api\MentorshipController::class);
+    
+    // Schedules
     Route::apiResource('schedules', App\Http\Controllers\Api\ScheduleController::class);
     Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
+    Route::get('/schedules/my-schedule', [App\Http\Controllers\Api\ScheduleController::class, 'mySchedule']);
+    
+    // Invitations
     Route::post('/invite-mentee', [App\Http\Controllers\Api\InvitationController::class, 'send']);
     
     // Profile Routes
     Route::put('/user/profile', [App\Http\Controllers\Api\ProfileController::class, 'update']);
     Route::put('/mentors/profile', [App\Http\Controllers\Api\ProfileController::class, 'updateMentor']);
     Route::post('/user/profile-image', [App\Http\Controllers\Api\ProfileController::class, 'uploadImage']);
+    Route::post('/profile/complete', [App\Http\Controllers\Api\ProfileController::class, 'completeProfile']);
 
     // Admin Routes
-    // Admin Routes
-    // Admin Routes
-    Route::prefix('admin')->group(function () {
+    Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Api\AdminController::class, 'dashboard']);
         Route::get('/users', [App\Http\Controllers\Api\AdminController::class, 'getUsers']);
         Route::put('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'updateUser']);
@@ -70,8 +87,6 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Payment Initiate (Protected)
     Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
-
-
 });
 
 // Payment Callbacks (Public)

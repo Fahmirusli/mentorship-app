@@ -13,12 +13,43 @@ class MentorController extends Controller
     {
         $query = User::where('role', 'mentor')
             ->where('is_active', true)
-            ->with(['mentorProfile']);
+            ->with(['mentorProfile', 'schedules']);
 
-        // Filter by expertise
+        // Filter by skills (from user's skills column)
+        if ($request->has('skills') && !empty($request->skills)) {
+            $skills = is_array($request->skills) ? $request->skills : [$request->skills];
+            $query->where(function($q) use ($skills) {
+                foreach ($skills as $skill) {
+                    $q->orWhereJsonContains('skills', $skill);
+                }
+            });
+        }
+
+        // Filter by expertise (from mentor profile)
         if ($request->has('expertise')) {
             $query->whereHas('mentorProfile', function ($q) use ($request) {
                 $q->whereJsonContains('expertise_areas', $request->expertise);
+            });
+        }
+
+        // Filter by minimum rating
+        if ($request->has('rating')) {
+            $minRating = (float) $request->rating;
+            $query->whereHas('feedbackReceived', function($q) use ($minRating) {
+                $q->selectRaw('AVG(rating) as avg_rating')
+                  ->havingRaw('AVG(rating) >= ?', [$minRating]);
+            });
+        }
+
+        // Filter by price range
+        if ($request->has('min_price') || $request->has('max_price')) {
+            $query->whereHas('mentorProfile', function ($q) use ($request) {
+                if ($request->has('min_price')) {
+                    $q->where('hourly_rate', '>=', $request->min_price);
+                }
+                if ($request->has('max_price')) {
+                    $q->where('hourly_rate', '<=', $request->max_price);
+                }
             });
         }
 
@@ -29,19 +60,48 @@ class MentorController extends Controller
             });
         }
 
-        // Search by name or industry
-        if ($request->has('search')) {
+        // Search by name, bio, or skills
+        if ($request->has('search') && !empty($request->search)) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('bio', 'like', "%{$search}%")
+                  ->orWhereJsonContains('skills', $search)
                   ->orWhereHas('mentorProfile', function ($q2) use ($search) {
                       $q2->where('industry', 'like', "%{$search}%")
-                         ->orWhere('job_title', 'like', "%{$search}%");
+                         ->orWhere('job_title', 'like', "%{$search}%")
+                         ->orWhere('company', 'like', "%{$search}%");
                   });
             });
         }
 
-        $mentors = $query->paginate(12);
+        // Sort by rating, experience, or price
+        if ($request->has('sort_by')) {
+            switch ($request->sort_by) {
+                case 'rating':
+                    // This requires a complex query, simplified for now
+                    $query->withAvg('feedbackReceived as avg_rating', 'rating')
+                          ->orderByDesc('avg_rating');
+                    break;
+                case 'experience':
+                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
+                        $q->orderByDesc('years_of_experience');
+                    }]);
+                    break;
+                case 'price_low':
+                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
+                        $q->orderBy('hourly_rate', 'asc');
+                    }]);
+                    break;
+                case 'price_high':
+                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
+                        $q->orderByDesc('hourly_rate');
+                    }]);
+                    break;
+            }
+        }
+
+        $mentors = $query->paginate($request->per_page ?? 12);
 
         return response()->json($mentors);
     }

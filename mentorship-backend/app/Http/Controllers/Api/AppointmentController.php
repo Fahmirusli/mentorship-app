@@ -182,5 +182,81 @@ class AppointmentController extends Controller
             'message' => 'Appointment cancelled successfully',
         ]);
     }
-}
+    
+    public function reschedule(Request $request, $id)
+    {
+        $appointment = Appointment::with('mentorship')->findOrFail($id);
 
+        // Authorization - both mentor and mentee can reschedule
+        $user = $request->user();
+        if ($appointment->mentorship->mentor_id !== $user->id && 
+            $appointment->mentorship->mentee_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'scheduled_at' => 'required|date|after:now',
+            'duration_minutes' => 'sometimes|integer|min:15|max:180',
+            'notes' => 'nullable|string',
+        ]);
+
+        $mentorId = $appointment->mentorship->mentor_id;
+        $appointmentStart = \Carbon\Carbon::parse($validated['scheduled_at']);
+        $duration = $validated['duration_minutes'] ?? $appointment->duration_minutes;
+        $appointmentEnd = $appointmentStart->copy()->addMinutes($duration);
+        $carbonDay = $appointmentStart->dayOfWeek;
+        
+        $dateStr = $appointmentStart->format('Y-m-d');
+        $timeStr = $appointmentStart->format('H:i:s');
+        $endTimeStr = $appointmentEnd->format('H:i:s');
+
+        // Check mentor availability
+        $schedule = \App\Models\Schedule::where('mentor_id', $mentorId)
+            ->where(function($q) use ($dateStr, $carbonDay) {
+                $q->where('date', $dateStr)
+                  ->orWhere(function($sub) use ($carbonDay) {
+                      $sub->whereNull('date')->where('day_of_week', $carbonDay);
+                  });
+            })
+            ->where('is_available', true)
+            ->where('start_time', '<=', $timeStr)
+            ->where('end_time', '>=', $endTimeStr)
+            ->orderByRaw('date IS NOT NULL DESC')
+            ->first();
+
+        if (!$schedule) {
+             return response()->json(['message' => 'Mentor is not available at the requested time.'], 400);
+        }
+
+        // Check for conflicts (excluding current appointment)
+        $conflict = Appointment::whereHas('mentorship', function($q) use ($mentorId) {
+                $q->where('mentor_id', $mentorId);
+            })
+            ->where('id', '!=', $id)
+            ->where('status', '!=', 'cancelled')
+            ->where(function ($q) use ($appointmentStart, $appointmentEnd) {
+                $q->whereBetween('scheduled_at', [$appointmentStart, $appointmentEnd])
+                  ->orWhereRaw('DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) BETWEEN ? AND ?', [$appointmentStart, $appointmentEnd])
+                  ->orWhere(function ($sub) use ($appointmentStart, $appointmentEnd) {
+                      $sub->where('scheduled_at', '<=', $appointmentStart)
+                          ->whereRaw('DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) >= ?', [$appointmentEnd]);
+                  });
+            })
+            ->exists();
+
+        if ($conflict) {
+            return response()->json(['message' => 'This time slot is already booked.'], 409);
+        }
+
+        $appointment->update([
+            'scheduled_at' => $validated['scheduled_at'],
+            'duration_minutes' => $duration,
+            'notes' => $validated['notes'] ?? $appointment->notes,
+            'status' => 'scheduled',
+        ]);
+
+        return response()->json([
+            'message' => 'Appointment rescheduled successfully',
+            'appointment' => $appointment->fresh()->load('mentorship'),
+        ]);
+    }
