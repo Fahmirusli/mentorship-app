@@ -20,7 +20,7 @@ class SocialAuthController extends Controller
         if (!env('GOOGLE_CLIENT_ID') || !env('GOOGLE_CLIENT_SECRET')) {
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
         }
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')->stateless()->redirect();
     }
 
     /**
@@ -29,7 +29,7 @@ class SocialAuthController extends Controller
     public function handleGoogleCallback()
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')->stateless()->user();
             
             $user = User::where('email', $googleUser->email)->first();
 
@@ -126,13 +126,13 @@ class SocialAuthController extends Controller
         if (!env('GITHUB_CLIENT_ID') || !env('GITHUB_CLIENT_SECRET')) {
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
         }
-        return Socialite::driver('github')->redirect();
+        return Socialite::driver('github')->stateless()->redirect();
     }
 
     public function handleGithubCallback()
     {
         try {
-            $githubUser = Socialite::driver('github')->user();
+            $githubUser = Socialite::driver('github')->stateless()->stateless()->user();
             
             $user = User::where('email', $githubUser->email)->first();
 
