@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\TelegramNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +28,14 @@ class AuthController extends Controller
             'role' => $validated['role'],
             'phone' => $validated['phone'] ?? null,
         ]);
+
+        // Send Telegram notification
+        try {
+            $telegramService = app(TelegramNotificationService::class);
+            $telegramService->notifyNewUser($user);
+        } catch (\Exception $e) {
+            \Log::warning('Telegram notification failed: ' . $e->getMessage());
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

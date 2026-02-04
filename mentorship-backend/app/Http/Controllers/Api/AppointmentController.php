@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Mentorship;
+use App\Services\TelegramNotificationService;
 use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
@@ -118,6 +119,14 @@ class AppointmentController extends Controller
             'fee' => $fee,
         ]);
 
+        // Send Telegram notification
+        try {
+            $telegramService = app(TelegramNotificationService::class);
+            $telegramService->notifyNewAppointment($appointment->load('mentorship.mentor', 'mentorship.mentee'));
+        } catch (\Exception $e) {
+            \Log::warning('Telegram notification failed: ' . $e->getMessage());
+        }
+
         return response()->json([
             'message' => 'Appointment created successfully',
             'appointment' => $appointment->load('mentorship'),
@@ -174,6 +183,14 @@ class AppointmentController extends Controller
         $user = auth()->user();
         if ($appointment->mentorship->mentee_id !== $user->id && !$user->isAdmin()) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Send Telegram notification before deletion
+        try {
+            $telegramService = app(TelegramNotificationService::class);
+            $telegramService->notifyAppointmentCancelled($appointment);
+        } catch (\Exception $e) {
+            \Log::warning('Telegram notification failed: ' . $e->getMessage());
         }
 
         $appointment->delete();
@@ -248,12 +265,22 @@ class AppointmentController extends Controller
             return response()->json(['message' => 'This time slot is already booked.'], 409);
         }
 
+        $oldDate = $appointment->scheduled_at->format('M d, Y H:i');
+        
         $appointment->update([
             'scheduled_at' => $validated['scheduled_at'],
             'duration_minutes' => $duration,
             'notes' => $validated['notes'] ?? $appointment->notes,
             'status' => 'scheduled',
         ]);
+
+        // Send Telegram notification
+        try {
+            $telegramService = app(TelegramNotificationService::class);
+            $telegramService->notifyAppointmentRescheduled($appointment->fresh()->load('mentorship.mentor', 'mentorship.mentee'), $oldDate);
+        } catch (\Exception $e) {
+            \Log::warning('Telegram notification failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Appointment rescheduled successfully',
