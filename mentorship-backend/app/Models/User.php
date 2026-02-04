@@ -42,6 +42,8 @@ class User extends Authenticatable
         'skills' => 'array',
         'interests' => 'array',
         'is_active' => 'boolean',
+        'is_verified' => 'boolean',
+        'verified_at' => 'datetime',
     ];
 
     // Accessors
