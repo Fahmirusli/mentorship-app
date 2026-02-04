@@ -56,30 +56,38 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 
-// Admin routes
+// Admin routes - require auth and admin role
 Route::prefix('admin')->middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
-    Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
-    Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
-    Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
-    
-    Route::get('/mentees', [AdminController::class, 'mentees'])->name('admin.mentees');
-    Route::get('/mentors', [AdminController::class, 'mentors'])->name('admin.mentors');
-    Route::get('/mentorships', [AdminController::class, 'mentorships'])->name('admin.mentorships');
-    Route::post('/mentorships', [AdminController::class, 'storeMentorship'])->name('admin.mentorships.store');
-    Route::put('/mentorships/{id}', [AdminController::class, 'updateMentorship'])->name('admin.mentorships.update');
-    Route::delete('/mentorships/{id}', [AdminController::class, 'deleteMentorship'])->name('admin.mentorships.delete');
+    // Check if user is admin, otherwise redirect to login
+    Route::middleware(function ($request, $next) {
+        if (!auth()->user()->isAdmin()) {
+            return redirect('/login')->with('error', 'Unauthorized access. Admin login required.');
+        }
+        return $next($request);
+    })->group(function () {
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+        Route::get('/users', [AdminController::class, 'users'])->name('admin.users');
+        Route::post('/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
+        Route::put('/users/{id}', [AdminController::class, 'updateUser'])->name('admin.users.update');
+        Route::delete('/users/{id}', [AdminController::class, 'deleteUser'])->name('admin.users.delete');
+        
+        Route::get('/mentees', [AdminController::class, 'mentees'])->name('admin.mentees');
+        Route::get('/mentors', [AdminController::class, 'mentors'])->name('admin.mentors');
+        Route::get('/mentorships', [AdminController::class, 'mentorships'])->name('admin.mentorships');
+        Route::post('/mentorships', [AdminController::class, 'storeMentorship'])->name('admin.mentorships.store');
+        Route::put('/mentorships/{id}', [AdminController::class, 'updateMentorship'])->name('admin.mentorships.update');
+        Route::delete('/mentorships/{id}', [AdminController::class, 'deleteMentorship'])->name('admin.mentorships.delete');
 
-    Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('admin.feedbacks');
-    Route::delete('/feedbacks/{id}', [AdminController::class, 'deleteFeedback'])->name('admin.feedbacks.delete');
-    
-    Route::get('/jobs', [AdminController::class, 'jobs'])->name('admin.jobs');
-    Route::post('/jobs', [AdminController::class, 'storeJob'])->name('admin.jobs.store');
-    Route::put('/jobs/{id}', [AdminController::class, 'updateJob'])->name('admin.jobs.update');
-    Route::delete('/jobs/{id}', [AdminController::class, 'deleteJob'])->name('admin.jobs.delete');
-    
-    Route::get('/revenue', [AdminController::class, 'revenue'])->name('admin.revenue');
-    Route::post('/jobs/scrape', [AdminController::class, 'scrapeJobs'])->name('admin.jobs.scrape');
-    Route::post('/jobs/{id}/toggle', [AdminController::class, 'toggleVisibility'])->name('admin.jobs.toggle');
+        Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('admin.feedbacks');
+        Route::delete('/feedbacks/{id}', [AdminController::class, 'deleteFeedback'])->name('admin.feedbacks.delete');
+        
+        Route::get('/jobs', [AdminController::class, 'jobs'])->name('admin.jobs');
+        Route::post('/jobs', [AdminController::class, 'storeJob'])->name('admin.jobs.store');
+        Route::put('/jobs/{id}', [AdminController::class, 'updateJob'])->name('admin.jobs.update');
+        Route::delete('/jobs/{id}', [AdminController::class, 'deleteJob'])->name('admin.jobs.delete');
+        
+        Route::get('/revenue', [AdminController::class, 'revenue'])->name('admin.revenue');
+        Route::post('/jobs/scrape', [AdminController::class, 'scrapeJobs'])->name('admin.jobs.scrape');
+        Route::post('/jobs/{id}/toggle', [AdminController::class, 'toggleVisibility'])->name('admin.jobs.toggle');
+    });
 });
