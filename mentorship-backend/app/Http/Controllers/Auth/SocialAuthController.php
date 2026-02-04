@@ -1,4 +1,3 @@
-
 <?php
 
 namespace App\Http\Controllers\Auth;
@@ -13,6 +12,9 @@ use Illuminate\Support\Str;
 
 class SocialAuthController extends Controller
 {
+    /**
+     * Redirect to Google OAuth
+     */
     public function redirectToGoogle()
     {
         if (!env('GOOGLE_CLIENT_ID') || !env('GOOGLE_CLIENT_SECRET')) {
@@ -21,6 +23,9 @@ class SocialAuthController extends Controller
         return Socialite::driver('google')->stateless()->redirect();
     }
 
+    /**
+     * Handle Google OAuth callback
+     */
     public function handleGoogleCallback()
     {
         try {
@@ -29,24 +34,28 @@ class SocialAuthController extends Controller
             $user = User::where('email', $googleUser->email)->first();
 
             if ($user) {
+                // Update existing user
                 $user->update([
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
                     'email_verified_at' => now()
                 ]);
             } else {
+                // Create new user
                 $user = User::create([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
                     'password' => Hash::make(Str::random(24)),
-                    'role' => request()->get('role', 'mentee'),
+                    'role' => request()->get('role', 'mentee'), // Default to mentee
                     'email_verified_at' => now()
                 ]);
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
             $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
             
@@ -58,6 +67,9 @@ class SocialAuthController extends Controller
         }
     }
 
+    /**
+     * Redirect to LinkedIn OAuth
+     */
     public function redirectToLinkedIn()
     {
         if (!env('LINKEDIN_CLIENT_ID') || !env('LINKEDIN_CLIENT_SECRET')) {
@@ -66,6 +78,9 @@ class SocialAuthController extends Controller
         return Socialite::driver('linkedin')->redirect();
     }
 
+    /**
+     * Handle LinkedIn OAuth callback
+     */
     public function handleLinkedInCallback()
     {
         try {
@@ -74,12 +89,14 @@ class SocialAuthController extends Controller
             $user = User::where('email', $linkedinUser->email)->first();
 
             if ($user) {
+                // Update existing user
                 $user->update([
                     'linkedin_id' => $linkedinUser->id,
                     'avatar' => $linkedinUser->avatar,
                     'email_verified_at' => now()
                 ]);
             } else {
+                // Create new user
                 $user = User::create([
                     'name' => $linkedinUser->name,
                     'email' => $linkedinUser->email,
@@ -92,6 +109,8 @@ class SocialAuthController extends Controller
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
             $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
             
@@ -102,7 +121,6 @@ class SocialAuthController extends Controller
             return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
         }
     }
-
     public function redirectToGithub()
     {
         if (!env('GITHUB_CLIENT_ID') || !env('GITHUB_CLIENT_SECRET')) {
@@ -114,17 +132,19 @@ class SocialAuthController extends Controller
     public function handleGithubCallback()
     {
         try {
-            $githubUser = Socialite::driver('github')->stateless()->user();
+            $githubUser = Socialite::driver('github')->stateless()->stateless()->user();
             
             $user = User::where('email', $githubUser->email)->first();
 
             if ($user) {
+                // Update existing user
                 $user->update([
                     'github_id' => $githubUser->id,
-                    'avatar' => $githubUser->avatar,
+                    'avatar' => $githubUser->avatar, // Priority to latest social login avatar
                     'email_verified_at' => now()
                 ]);
             } else {
+                // Create new user
                 $user = User::create([
                     'name' => $githubUser->name ?? $githubUser->nickname, 
                     'email' => $githubUser->email,
@@ -137,6 +157,8 @@ class SocialAuthController extends Controller
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
             $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
             

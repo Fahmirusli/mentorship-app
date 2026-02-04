@@ -32,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();
+    Route::post('/upload/profile-image', [Api\FileUploadController::class, 'uploadProfileImage']);
+    Route::post('/upload/resume', [Api\FileUploadController::class, 'uploadResume']);
+    Route::put('/user/skills', [Api\FileUploadController::class, 'updateSkills']);
+    Route::get('/jobs/recommended', [Api\FileUploadController::class, 'getRecommendedJobs']);
     });
     
     // Your other API routes here...
@@ -66,6 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Payment Initiate (Protected)
     Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
+
+
 });
 
 // Payment Callbacks (Public)
