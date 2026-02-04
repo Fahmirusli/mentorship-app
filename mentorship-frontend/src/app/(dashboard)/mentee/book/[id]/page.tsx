@@ -21,10 +21,16 @@ export default function BookSession({ params }: { params: Promise<{ id: string }
     useEffect(() => {
         const fetchSchedule = async () => {
             try {
-                const response = await api.get(`/schedules/mentor/${id}`);
+                // Fetch schedules for next 14 days to match backend
+                const startDate = new Date().toISOString().split('T')[0];
+                const endDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                
+                const response = await api.get(`/schedules/mentor/${id}?start_date=${startDate}&end_date=${endDate}`);
                 setSchedules(response.schedules || []);
+                console.log('Loaded schedules:', response.schedules?.length, 'slots');
             } catch (err) {
                 console.error('Error fetching schedule:', err);
+                setError('Failed to load available time slots');
             }
         };
         fetchSchedule();
@@ -38,29 +44,28 @@ export default function BookSession({ params }: { params: Promise<{ id: string }
 
     const generateSlots_v2 = () => {
         const selected = new Date(selectedDate);
-        const dayOfWeek = selected.getDay();
+        const selectedDateStr = selectedDate; // Already in YYYY-MM-DD format
 
-        // Find matching schedules
+        // Find matching schedules for the selected date
         const relevantSchedules = schedules.filter(s => {
-            // Check specific date (Backend sends YYYY-MM-DD)
-            if (s.date && s.date === selectedDate) return true;
-            // Check day of week (recurring) if no specific date
-            if (!s.date && s.day_of_week === dayOfWeek) return true;
-            return false;
+            // Match exact date from backend
+            const scheduleDate = s.date ? s.date.split('T')[0] : null;
+            return scheduleDate === selectedDateStr && s.is_available;
         });
+
+        console.log('Selected date:', selectedDateStr);
+        console.log('Matching schedules:', relevantSchedules.length);
 
         const slots: string[] = [];
 
         relevantSchedules.forEach(schedule => {
-            if (!schedule.is_available) return;
+            // Parse start and end times
+            const startHour = parseInt(schedule.start_time.split(':')[0]);
+            const endHour = parseInt(schedule.end_time.split(':')[0]);
 
-            let start = parseInt(schedule.start_time.split(':')[0]);
-            let end = parseInt(schedule.end_time.split(':')[0]);
-
-            // Assume 60 min slots
-            for (let hour = start; hour < end; hour++) {
+            // Generate hourly slots
+            for (let hour = startHour; hour < endHour; hour++) {
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-                // Convert to AM/PM for display
                 const displayTime = new Date(`2000-01-01T${timeStr}`).toLocaleTimeString('en-US', {
                     hour: '2-digit', minute: '2-digit', hour12: true
                 });
@@ -70,15 +75,12 @@ export default function BookSession({ params }: { params: Promise<{ id: string }
             }
         });
 
-        // Sort slots
+        // Sort slots chronologically
         slots.sort((a, b) => {
             return new Date(`2000-01-01 ${a}`).getTime() - new Date(`2000-01-01 ${b}`).getTime();
         });
 
-        console.log('Generating slots for:', selectedDate);
-        console.log('Schedules found:', relevantSchedules.length);
-        console.log('Generated slots:', slots);
-
+        console.log('Generated time slots:', slots);
         setAvailableSlots(slots);
     };
 

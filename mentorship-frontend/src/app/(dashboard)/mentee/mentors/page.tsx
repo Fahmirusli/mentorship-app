@@ -24,50 +24,47 @@ export default function FindMentors() {
 
   useEffect(() => {
     fetchMentors();
-  }, []);
-
-  useEffect(() => {
-    filterMentors();
-  }, [searchQuery, selectedExpertise, priceRange, minRating, mentors]);
+  }, [searchQuery, selectedExpertise, priceRange, minRating]);
 
   const fetchMentors = async () => {
+    setLoading(true);
     try {
-      const response = await api.get('/mentors');
+      // Build query parameters for backend filtering
+      const params = new URLSearchParams();
+      
+      if (searchQuery) {
+        params.append('search', searchQuery);
+      }
+      
+      if (selectedExpertise.length > 0) {
+        selectedExpertise.forEach(exp => {
+          params.append('skills[]', exp);
+        });
+      }
+      
+      if (priceRange[0] > 0) {
+        params.append('min_price', priceRange[0].toString());
+      }
+      if (priceRange[1] < 500) {
+        params.append('max_price', priceRange[1].toString());
+      }
+      
+      if (minRating > 0) {
+        params.append('rating', minRating.toString());
+      }
+      
+      params.append('per_page', '50');
+      
+      const queryString = params.toString();
+      const response = await api.get(`/mentors${queryString ? '?' + queryString : ''}`);
       const mentorsData = response.data || [];
       setMentors(mentorsData);
+      setFilteredMentors(mentorsData);
     } catch (error) {
       console.error('Error fetching mentors:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterMentors = () => {
-    let filtered = [...mentors];
-
-    if (searchQuery) {
-      filtered = filtered.filter(mentor =>
-        mentor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mentor.bio?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        mentor.expertise?.some((exp: string) => exp.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-
-    if (selectedExpertise.length > 0) {
-      filtered = filtered.filter(mentor =>
-        selectedExpertise.some(exp => mentor.expertise?.includes(exp))
-      );
-    }
-
-    filtered = filtered.filter(mentor =>
-      (mentor.hourly_rate || 50) >= priceRange[0] && (mentor.hourly_rate || 50) <= priceRange[1]
-    );
-
-    if (minRating > 0) {
-      filtered = filtered.filter(mentor => (mentor.rating || 0) >= minRating);
-    }
-
-    setFilteredMentors(filtered);
   };
 
   const toggleExpertise = (exp: string) => {
