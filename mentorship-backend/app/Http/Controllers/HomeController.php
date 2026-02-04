@@ -13,11 +13,7 @@ class HomeController extends Controller
 
     public function index()
     {
-        // Redirect based on user role
-        if (auth()->user()->role === 'admin') {
-            return redirect()->route('admin.dashboard');
-        }
-        
-        return view('home');
+        // Always redirect to admin dashboard
+        return redirect()->route('admin.dashboard');
     }
 }

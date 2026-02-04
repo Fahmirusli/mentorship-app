@@ -19,6 +19,7 @@ class UserSeeder extends Seeder
             'phone' => '0123456789',
             'bio' => 'System Administrator',
             'is_active' => true,
+            'email_verified_at' => now(),
         ]);
 
         // Mentor Users
@@ -86,6 +87,7 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($mentors as $mentor) {
+            $mentor['email_verified_at'] = now();
             User::create($mentor);
         }
 
@@ -149,6 +151,7 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($mentees as $mentee) {
+            $mentee['email_verified_at'] = now();
             User::create($mentee);
         }
     }
