@@ -288,3 +288,4 @@ class AppointmentController extends Controller
             'appointment' => $appointment->fresh()->load('mentorship'),
         ]);
     }
+}
