@@ -76,6 +76,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/profile-image', [App\Http\Controllers\Api\ProfileController::class, 'uploadImage']);
     Route::post('/profile/complete', [App\Http\Controllers\Api\ProfileController::class, 'completeProfile']);
 
+    // Telegram Routes
+    Route::prefix('telegram')->group(function () {
+        Route::get('/link-token', [App\Http\Controllers\Api\TelegramController::class, 'generateLinkToken']);
+        Route::post('/link', [App\Http\Controllers\Api\TelegramController::class, 'linkAccount']);
+        Route::post('/unlink', [App\Http\Controllers\Api\TelegramController::class, 'unlinkAccount']);
+        Route::get('/status', [App\Http\Controllers\Api\TelegramController::class, 'checkStatus']);
+    });
+
     // Admin Routes
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Api\AdminController::class, 'dashboard']);

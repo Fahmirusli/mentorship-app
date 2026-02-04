@@ -50,23 +50,52 @@ class TelegramNotificationService
     }
 
     /**
+     * Send message to a specific user
+     */
+    public function sendToUser($user, $message)
+    {
+        if (!$this->enabled) {
+            return false;
+        }
+
+        // If user has Telegram linked, send to them
+        if ($user->telegram_chat_id) {
+            return $this->sendMessage($message, $user->telegram_chat_id);
+        }
+
+        // Otherwise send to admin (fallback)
+        return $this->sendMessage("👤 {$user->name} - {$message}", $this->chatId);
+    }
+
+    /**
      * Notify about new appointment booking
      */
     public function notifyNewAppointment($appointment)
     {
-        $mentor = $appointment->mentorship->mentor->name;
-        $mentee = $appointment->mentorship->mentee->name;
+        $mentor = $appointment->mentorship->mentor;
+        $mentee = $appointment->mentorship->mentee;
         $date = $appointment->scheduled_at->format('M d, Y H:i');
         $duration = $appointment->duration_minutes;
 
-        $message = "🗓 <b>New Appointment Booked</b>\n\n";
-        $message .= "👨‍🏫 <b>Mentor:</b> {$mentor}\n";
-        $message .= "👤 <b>Mentee:</b> {$mentee}\n";
-        $message .= "📅 <b>Date:</b> {$date}\n";
-        $message .= "⏱ <b>Duration:</b> {$duration} minutes\n";
-        $message .= "💰 <b>Fee:</b> RM {$appointment->fee}";
+        // Notify mentor
+        $mentorMessage = "🗓 <b>New Appointment Booked</b>\n\n";
+        $mentorMessage .= "👤 <b>Mentee:</b> {$mentee->name}\n";
+        $mentorMessage .= "📅 <b>Date:</b> {$date}\n";
+        $mentorMessage .= "⏱ <b>Duration:</b> {$duration} minutes\n";
+        $mentorMessage .= "💰 <b>Fee:</b> RM {$appointment->fee}";
+        
+        $this->sendToUser($mentor, $mentorMessage);
 
-        return $this->sendMessage($message);
+        // Notify mentee
+        $menteeMessage = "✅ <b>Appointment Confirmed</b>\n\n";
+        $menteeMessage .= "👨‍🏫 <b>Mentor:</b> {$mentor->name}\n";
+        $menteeMessage .= "📅 <b>Date:</b> {$date}\n";
+        $menteeMessage .= "⏱ <b>Duration:</b> {$duration} minutes\n";
+        $menteeMessage .= "💰 <b>Fee:</b> RM {$appointment->fee}";
+        
+        $this->sendToUser($mentee, $menteeMessage);
+
+        return true;
     }
 
     /**
@@ -74,17 +103,22 @@ class TelegramNotificationService
      */
     public function notifyAppointmentRescheduled($appointment, $oldDate)
     {
-        $mentor = $appointment->mentorship->mentor->name;
-        $mentee = $appointment->mentorship->mentee->name;
+        $mentor = $appointment->mentorship->mentor;
+        $mentee = $appointment->mentorship->mentee;
         $newDate = $appointment->scheduled_at->format('M d, Y H:i');
 
         $message = "🔄 <b>Appointment Rescheduled</b>\n\n";
-        $message .= "👨‍🏫 <b>Mentor:</b> {$mentor}\n";
-        $message .= "👤 <b>Mentee:</b> {$mentee}\n";
         $message .= "📅 <b>New Date:</b> {$newDate}\n";
         $message .= "🕐 <b>Old Date:</b> {$oldDate}";
 
-        return $this->sendMessage($message);
+        // Notify both parties
+        $mentorMessage = $message . "\n👤 <b>Mentee:</b> {$mentee->name}";
+        $menteeMessage = $message . "\n👨‍🏫 <b>Mentor:</b> {$mentor->name}";
+        
+        $this->sendToUser($mentor, $mentorMessage);
+        $this->sendToUser($mentee, $menteeMessage);
+
+        return true;
     }
 
     /**
@@ -92,16 +126,21 @@ class TelegramNotificationService
      */
     public function notifyAppointmentCancelled($appointment)
     {
-        $mentor = $appointment->mentorship->mentor->name;
-        $mentee = $appointment->mentorship->mentee->name;
+        $mentor = $appointment->mentorship->mentor;
+        $mentee = $appointment->mentorship->mentee;
         $date = $appointment->scheduled_at->format('M d, Y H:i');
 
         $message = "❌ <b>Appointment Cancelled</b>\n\n";
-        $message .= "👨‍🏫 <b>Mentor:</b> {$mentor}\n";
-        $message .= "👤 <b>Mentee:</b> {$mentee}\n";
         $message .= "📅 <b>Date:</b> {$date}";
 
-        return $this->sendMessage($message);
+        // Notify both parties
+        $mentorMessage = $message . "\n👤 <b>Mentee:</b> {$mentee->name}";
+        $menteeMessage = $message . "\n👨‍🏫 <b>Mentor:</b> {$mentor->name}";
+        
+        $this->sendToUser($mentor, $mentorMessage);
+        $this->sendToUser($mentee, $menteeMessage);
+
+        return true;
     }
 
     /**
@@ -109,17 +148,19 @@ class TelegramNotificationService
      */
     public function notifyNewFeedback($feedback)
     {
-        $mentor = $feedback->appointment->mentorship->mentor->name;
-        $mentee = $feedback->appointment->mentorship->mentee->name;
+        $mentor = $feedback->appointment->mentorship->mentor;
+        $mentee = $feedback->appointment->mentorship->mentee;
         $rating = $feedback->rating;
 
         $message = "⭐ <b>New Feedback Received</b>\n\n";
-        $message .= "👨‍🏫 <b>Mentor:</b> {$mentor}\n";
-        $message .= "👤 <b>Mentee:</b> {$mentee}\n";
+        $message .= "👤 <b>From:</b> {$mentee->name}\n";
         $message .= "⭐ <b>Rating:</b> {$rating}/5\n";
         $message .= "💬 <b>Comment:</b> " . substr($feedback->comment, 0, 100);
 
-        return $this->sendMessage($message);
+        // Notify mentor about feedback
+        $this->sendToUser($mentor, $message);
+
+        return true;
     }
 
     /**
@@ -129,13 +170,25 @@ class TelegramNotificationService
     {
         $role = ucfirst($user->role);
         
-        $message = "👤 <b>New User Registered</b>\n\n";
-        $message .= "📛 <b>Name:</b> {$user->name}\n";
-        $message .= "📧 <b>Email:</b> {$user->email}\n";
-        $message .= "🎭 <b>Role:</b> {$role}\n";
-        $message .= "📅 <b>Registered:</b> " . $user->created_at->format('M d, Y H:i');
+        $welcomeMessage = "👋 <b>Welcome to Uplifts Mentorship!</b>\n\n";
+        $welcomeMessage .= "Hi {$user->name}! Your account has been created successfully.\n\n";
+        $welcomeMessage .= "🎭 <b>Role:</b> {$role}\n";
+        $welcomeMessage .= "📧 <b>Email:</b> {$user->email}\n\n";
+        $welcomeMessage .= "💡 <b>Tip:</b> To receive notifications here, link your Telegram account in your profile settings.";
+        
+        // Try to send welcome message to user if they have Telegram linked
+        if ($user->telegram_chat_id) {
+            $this->sendToUser($user, $welcomeMessage);
+        }
 
-        return $this->sendMessage($message);
+        // Also notify admin about new registration
+        $adminMessage = "👤 <b>New User Registered</b>\n\n";
+        $adminMessage .= "📛 <b>Name:</b> {$user->name}\n";
+        $adminMessage .= "📧 <b>Email:</b> {$user->email}\n";
+        $adminMessage .= "🎭 <b>Role:</b> {$role}\n";
+        $adminMessage .= "📅 <b>Registered:</b> " . $user->created_at->format('M d, Y H:i');
+
+        return $this->sendMessage($adminMessage);
     }
 
     /**
