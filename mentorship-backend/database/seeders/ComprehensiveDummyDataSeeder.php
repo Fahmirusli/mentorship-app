@@ -120,9 +120,10 @@ class ComprehensiveDummyDataSeeder extends Seeder
      */
     private function createSchedulesForMentor(User $mentor): void
     {
-        $daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+        // Day of week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday
+        $workdaysOfWeek = [1, 2, 3, 4, 5]; // Monday to Friday
         
-        foreach ($daysOfWeek as $day) {
+        foreach ($workdaysOfWeek as $day) {
             // Check if schedule already exists
             $exists = Schedule::where('mentor_id', $mentor->id)
                 ->where('day_of_week', $day)
