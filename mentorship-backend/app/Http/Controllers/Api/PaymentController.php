@@ -87,9 +87,10 @@ class PaymentController extends Controller
             ]);
 
             // 5. Create Bill with ToyyibPay
+            // Note: billName has 30 char limit
             $billCode = $this->toyyibPay->createBill(
-                "Mentorship Session - " . $mentorship->mentor->name,
-                "Session on " . $scheduledAt->format('d M Y, h:i A') . " (" . $validated['duration_minutes'] . " minutes)",
+                "Session #" . $appointment->id,
+                "Mentorship with " . $mentorship->mentor->name . " on " . $scheduledAt->format('d M Y, h:i A'),
                 $adjustedFee,
                 $appointment->id,
                 $user->email,
