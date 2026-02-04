@@ -21,13 +21,37 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
         ]);
 
+        // Generate 6-digit TAC
+        $tac = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'phone' => $validated['phone'] ?? null,
+            'email_verified_at' => null, // Not verified yet
         ]);
+
+        // Store TAC in cache for 10 minutes
+        \Cache::put('email_verification_' . $user->email, $tac, now()->addMinutes(10));
+
+        // Send verification email
+        try {
+            \Mail::raw(
+                "Welcome to MentorCore!\n\n" .
+                "Your email verification code (TAC) is: {$tac}\n\n" .
+                "This code will expire in 10 minutes.\n\n" .
+                "If you didn't register for MentorCore, please ignore this email.",
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                            ->subject('Email Verification - MentorCore');
+                }
+            );
+        } catch (\Exception $e) {
+            \Log::error('Failed to send verification email: ' . $e->getMessage());
+            // Continue anyway - user can request resend
+        }
 
         // Send Telegram notification
         try {
@@ -37,13 +61,54 @@ class AuthController extends Controller
             \Log::warning('Telegram notification failed: ' . $e->getMessage());
         }
 
+        return response()->json([
+            'message' => 'Registration successful. Please check your email for verification code.',
+            'email' => $user->email,
+        ], 201);
+    }
+
+    public function verifyEmail(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'tac' => 'required|string|size:6',
+        ]);
+
+        $cachedTac = \Cache::get('email_verification_' . $validated['email']);
+
+        if (!$cachedTac) {
+            return response()->json([
+                'message' => 'Verification code has expired. Please register again.',
+            ], 400);
+        }
+
+        if ($cachedTac !== $validated['tac']) {
+            return response()->json([
+                'message' => 'Invalid verification code.',
+            ], 400);
+        }
+
+        // Verify the user
+        $user = User::where('email', $validated['email'])->first();
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found.',
+            ], 404);
+        }
+
+        $user->update(['email_verified_at' => now()]);
+        
+        // Clear the TAC from cache
+        \Cache::forget('email_verification_' . $validated['email']);
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'Registration successful',
+            'message' => 'Email verified successfully.',
             'user' => $user,
             'token' => $token,
-        ], 201);
+        ]);
     }
 
     public function login(Request $request)
