@@ -97,22 +97,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/unlink', [App\Http\Controllers\Api\TelegramController::class, 'unlinkAccount']);
         Route::get('/status', [App\Http\Controllers\Api\TelegramController::class, 'checkStatus']);
     });
+    
+    // Payment Initiate (Protected)
+    Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
 });
 
 // Admin Routes
 Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\Api\AdminController::class, 'dashboard']);
-        Route::get('/users', [App\Http\Controllers\Api\AdminController::class, 'getUsers']);
-        Route::put('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'updateUser']);
-        Route::delete('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
-        Route::post('/users/{id}/verify', [App\Http\Controllers\Api\AdminController::class, 'verifyUser']);
-        Route::post('/users/{id}/unverify', [App\Http\Controllers\Api\AdminController::class, 'unverifyUser']);
-        Route::post('/users/{id}/telegram-test', [App\Http\Controllers\Api\AdminController::class, 'sendTelegramTest']);
-        Route::get('/mentorships', [App\Http\Controllers\Api\AdminController::class, 'getMentorships']);
-    });
-    
-    // Payment Initiate (Protected)
-    Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
+    Route::get('/dashboard', [App\Http\Controllers\Api\AdminController::class, 'dashboard']);
+    Route::get('/users', [App\Http\Controllers\Api\AdminController::class, 'getUsers']);
+    Route::put('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'updateUser']);
+    Route::delete('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
+    Route::post('/users/{id}/verify', [App\Http\Controllers\Api\AdminController::class, 'verifyUser']);
+    Route::post('/users/{id}/unverify', [App\Http\Controllers\Api\AdminController::class, 'unverifyUser']);
+    Route::post('/users/{id}/telegram-test', [App\Http\Controllers\Api\AdminController::class, 'sendTelegramTest']);
+    Route::get('/mentorships', [App\Http\Controllers\Api\AdminController::class, 'getMentorships']);
 });
 
 // Payment Callbacks (Public)
