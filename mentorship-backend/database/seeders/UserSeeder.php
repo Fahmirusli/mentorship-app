@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
         // Admin User
         User::create([
             'name' => 'Admin User',
-            'email' => 'admin@mentorship.com',
+            'email' => 'admin@gmail.com',
             'password' => Hash::make('password123'),
             'role' => 'admin',
             'phone' => '0123456789',
@@ -25,7 +25,7 @@ class UserSeeder extends Seeder
         $mentors = [
             [
                 'name' => 'Sarah Johnson',
-                'email' => 'sarah@mentorship.com',
+                'email' => 'sarah@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentor',
                 'phone' => '0123456780',
@@ -37,7 +37,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Michael Chen',
-                'email' => 'michael@mentorship.com',
+                'email' => 'michael@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentor',
                 'phone' => '0123456781',
@@ -49,7 +49,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Emily Rodriguez',
-                'email' => 'emily@mentorship.com',
+                'email' => 'emily@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentor',
                 'phone' => '0123456782',
@@ -61,7 +61,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'David Kumar',
-                'email' => 'david@mentorship.com',
+                'email' => 'david@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentor',
                 'phone' => '0123456783',
@@ -73,7 +73,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Lisa Wong',
-                'email' => 'lisa@mentorship.com',
+                'email' => 'lisa@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentor',
                 'phone' => '0123456784',
@@ -93,7 +93,7 @@ class UserSeeder extends Seeder
         $mentees = [
             [
                 'name' => 'Ahmad Fahmi',
-                'email' => 'fahmi@student.com',
+                'email' => 'fahmi@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentee',
                 'phone' => '0123456790',
@@ -104,7 +104,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Siti Nurhaliza',
-                'email' => 'siti@student.com',
+                'email' => 'siti@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentee',
                 'phone' => '0123456791',
@@ -115,7 +115,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Wei Lun',
-                'email' => 'weilun@student.com',
+                'email' => 'weilun@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentee',
                 'phone' => '0123456792',
@@ -126,13 +126,24 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Priya Devi',
-                'email' => 'priya@student.com',
+                'email' => 'priya@gmail.com',
                 'password' => Hash::make('password123'),
                 'role' => 'mentee',
                 'phone' => '0123456793',
                 'bio' => 'UI/UX design enthusiast looking to break into the industry.',
                 'skills' => ['Figma', 'Photoshop', 'Basic HTML/CSS'],
                 'interests' => ['UI Design', 'UX Design', 'Graphic Design'],
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Fahmi',
+                'email' => 'arefahmi1@gmail.com',
+                'password' => Hash::make('password123'),
+                'role' => 'mentee',
+                'phone' => '0123456794',
+                'bio' => 'Passionate learner interested in full-stack development.',
+                'skills' => ['HTML', 'CSS', 'JavaScript'],
+                'interests' => ['Web Development', 'Software Engineering'],
                 'is_active' => true,
             ],
         ];
