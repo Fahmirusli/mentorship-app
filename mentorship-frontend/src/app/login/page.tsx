@@ -42,8 +42,9 @@ export default function Login() {
             } else {
                 setError(data.message || 'Login failed');
             }
-        } catch (err) {
-            setError('Network error. Please try again.');
+        } catch (err: any) {
+            console.error('Login Error Details:', err);
+            setError(`Network error: ${err.message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
