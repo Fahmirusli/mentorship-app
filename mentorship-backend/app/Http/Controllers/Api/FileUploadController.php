@@ -15,26 +15,34 @@ class FileUploadController extends Controller
     public function uploadProfileImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
         $user = auth()->user();
 
         // Delete old image if exists
-        if ($user->profile_image && Storage::exists('public/' . $user->profile_image)) {
-            Storage::delete('public/' . $user->profile_image);
+        if ($user->profile_image) {
+            $oldPath = str_replace('/storage/', '', $user->profile_image);
+            $oldPath = str_replace(config('app.url') . '/storage/', '', $oldPath);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
         }
 
         // Store new image
         $path = $request->file('image')->store('profiles', 'public');
+        
+        // Generate full URL
+        $url = asset('storage/' . $path);
 
         // Update user
-        $user->update(['profile_image' => $path]);
+        $user->profile_image = $url;
+        $user->save();
 
         return response()->json([
             'message' => 'Profile image uploaded successfully',
-            'image_url' => asset('storage/' . $path),
-            'profile_image' => $path
+            'image_url' => $url,
+            'path' => $path
         ]);
     }
 

@@ -17,21 +17,16 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'phone' => 'sometimes|string|max:20',
-            'bio' => 'sometimes|string', // Assuming bio is on users table or profile? Check User model.
+            'bio' => 'sometimes|string|max:1000',
+            'skills' => 'sometimes|array',
+            'interests' => 'sometimes|array',
         ]);
 
         $user->update($validated);
-        
-        // If bio is on mentee/mentor profile, update it there too?
-        // Frontend sends bio to /user/profile.
-        // Let's assume User has bio column? Or we need to update relation.
-        // User model usually has: name, email, password.
-        // MentorProfile has: bio, etc.
-        // Let's check User model later. for now safe to update what we can.
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user
+            'user' => $user->fresh()
         ]);
     }
 
@@ -72,28 +67,52 @@ class ProfileController extends Controller
     public function uploadImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
         $user = $request->user();
 
         // Delete old image if exists
         if ($user->profile_image) {
-            Storage::disk('public')->delete(str_replace('/storage/', '', $user->profile_image)); // Handle URL stored
+            $oldPath = str_replace('/storage/', '', $user->profile_image);
+            $oldPath = str_replace(config('app.url') . '/storage/', '', $oldPath);
+            if (Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
         }
 
-        $path = $request->file('image')->store('profile_images', 'public');
+        // Store new image
+        $path = $request->file('image')->store('profiles', 'public');
         
-        // Save full URL or relative path? 
-        // Frontend usually expects URL. Asset helper generates full URL.
+        // Generate full URL
         $url = asset('storage/' . $path);
         
-        $user->profile_image = $url; // Storing URL for simplicity as User model likely has string
+        $user->profile_image = $url;
         $user->save();
 
         return response()->json([
             'message' => 'Profile image uploaded successfully',
-            'image_url' => $url
+            'image_url' => $url,
+            'path' => $path
         ]);
     }
-}
+
+    public function completeProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'bio' => 'required|string|max:1000',
+            'skills' => 'required_if:role,mentor|array',
+            'interests' => 'sometimes|array',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile completed successfully',
+            'user' => $user->fresh()
+        ]);
+    }
