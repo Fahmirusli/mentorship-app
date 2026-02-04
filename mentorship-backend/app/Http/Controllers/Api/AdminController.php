@@ -148,21 +148,26 @@ class AdminController extends Controller
             $validated['password'] = Hash::make($validated['password']);
         }
 
-        // Set verified_at timestamp when verified
-        if (isset($validated['is_verified']) && $validated['is_verified'] && !$user->is_verified) {
-            $validated['verified_at'] = now();
-        }
-
-        // Clear verified_at when unverified
-        if (isset($validated['is_verified']) && !$validated['is_verified']) {
-            $validated['verified_at'] = null;
+        // Ensure boolean conversion for is_verified
+        if ($request->has('is_verified')) {
+            $validated['is_verified'] = filter_var($request->is_verified, FILTER_VALIDATE_BOOLEAN);
+            
+            // Set verified_at timestamp when verified
+            if ($validated['is_verified'] && !$user->is_verified) {
+                $validated['verified_at'] = now();
+            }
+            
+            // Clear verified_at when unverified
+            if (!$validated['is_verified']) {
+                $validated['verified_at'] = null;
+            }
         }
 
         $user->update($validated);
 
         return response()->json([
             'message' => 'User updated successfully',
-            'user' => $user,
+            'user' => $user->fresh(),
         ]);
     }
 
