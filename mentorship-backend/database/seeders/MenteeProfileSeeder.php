@@ -41,6 +41,13 @@ class MenteeProfileSeeder extends Seeder
                 'education_level' => 'Diploma',
                 'field_of_study' => 'Graphic Design',
             ],
+            [
+                'current_skills' => ['HTML', 'CSS', 'JavaScript'],
+                'skills_to_learn' => ['React', 'Node.js', 'TypeScript', 'Database Design'],
+                'career_goals' => 'Master full-stack development and contribute to open source projects.',
+                'education_level' => "Bachelor's Degree",
+                'field_of_study' => 'Computer Science',
+            ],
         ];
 
         foreach ($mentees as $index => $mentee) {
