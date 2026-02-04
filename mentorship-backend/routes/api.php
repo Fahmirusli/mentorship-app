@@ -83,6 +83,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/unlink', [App\Http\Controllers\Api\TelegramController::class, 'unlinkAccount']);
         Route::get('/status', [App\Http\Controllers\Api\TelegramController::class, 'checkStatus']);
     });
+});
+
+// Telegram Webhook (public, no auth required)
+Route::post('/telegram/webhook', [App\Http\Controllers\Api\TelegramWebhookController::class, 'webhook']);
+
+Route::middleware('auth:sanctum')->group(function () {
 
     // Admin Routes
     Route::prefix('admin')->middleware('admin')->group(function () {

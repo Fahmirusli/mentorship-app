@@ -99,6 +99,54 @@ class TelegramNotificationService
     }
 
     /**
+     * Notify mentor about new mentorship request with Accept/Reject buttons
+     */
+    public function notifyNewMentorshipRequest($mentorship)
+    {
+        if (!$this->enabled) {
+            return false;
+        }
+
+        $mentor = $mentorship->mentor;
+        $mentee = $mentorship->mentee;
+
+        $message = "📩 <b>New Mentorship Request</b>\n\n";
+        $message .= "👤 <b>From:</b> {$mentee->name}\n";
+        $message .= "📧 <b>Email:</b> {$mentee->email}\n";
+        $message .= "🎯 <b>Goal:</b> {$mentorship->goal}\n";
+        if ($mentorship->expectations) {
+            $message .= "💡 <b>Expectations:</b> {$mentorship->expectations}";
+        }
+
+        try {
+            // Send with interactive buttons if user has Telegram linked
+            if ($mentor->telegram_chat_id) {
+                $keyboard = \Telegram\Bot\Keyboard\Keyboard::make()
+                    ->inline()
+                    ->row([
+                        \Telegram\Bot\Keyboard\Keyboard::inlineButton(['text' => '✅ Accept', 'callback_data' => "accept_{$mentorship->id}"]),
+                        \Telegram\Bot\Keyboard\Keyboard::inlineButton(['text' => '❌ Reject', 'callback_data' => "reject_{$mentorship->id}"])
+                    ]);
+
+                $this->telegram->sendMessage([
+                    'chat_id' => $mentor->telegram_chat_id,
+                    'text' => $message,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => $keyboard
+                ]);
+            } else {
+                // Fallback to admin if no Telegram
+                $this->sendMessage("👤 {$mentor->name} - {$message}", $this->chatId);
+            }
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send mentorship request notification: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Notify about appointment rescheduled
      */
     public function notifyAppointmentRescheduled($appointment, $oldDate)

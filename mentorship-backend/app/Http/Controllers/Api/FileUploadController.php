@@ -18,7 +18,8 @@ class FileUploadController extends Controller
             'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = User::find(auth()->id());
 
         // Delete old image if exists
         if ($user->profile_image) {
@@ -55,7 +56,8 @@ class FileUploadController extends Controller
             'resume' => 'required|file|mimes:pdf,doc,docx|max:5120'
         ]);
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = User::find(auth()->id());
 
         // Store resume
         $path = $request->file('resume')->store('resumes', 'public');
@@ -84,7 +86,8 @@ class FileUploadController extends Controller
             'skills.*' => 'string'
         ]);
 
-        $user = auth()->user();
+        /** @var User $user */
+        $user = User::find(auth()->id());
         $user->update([
             'skills' => json_encode($request->skills)
         ]);
