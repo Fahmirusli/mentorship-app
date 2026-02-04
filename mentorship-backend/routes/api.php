@@ -27,6 +27,15 @@ Route::get('/auth/linkedin/callback', [SocialAuthController::class, 'handleLinke
 Route::get('/auth/github', [SocialAuthController::class, 'redirectToGithub']);
 Route::get('/auth/github/callback', [SocialAuthController::class, 'handleGithubCallback']);
 
+// Public API endpoints (no auth required)
+Route::get('/mentors', [App\Http\Controllers\Api\MentorController::class, 'index']);
+Route::get('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'show']);
+Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
+Route::get('/jobs', [App\Http\Controllers\Api\JobController::class, 'index']);
+
+// Telegram Webhook (public, no auth required)
+Route::post('/telegram/webhook', [App\Http\Controllers\Api\TelegramWebhookController::class, 'webhook']);
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -47,14 +56,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/jobs/recommended', [App\Http\Controllers\Api\FileUploadController::class, 'getRecommendedJobs']);
     Route::get('/jobs/recommendations', [App\Http\Controllers\Api\JobController::class, 'recommendations']);
     Route::post('/jobs/scrape', [App\Http\Controllers\Api\JobController::class, 'triggerScrape']);
-    Route::apiResource('jobs', App\Http\Controllers\Api\JobController::class);
+    Route::post('/jobs', [App\Http\Controllers\Api\JobController::class, 'store']);
+    Route::put('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'update']);
+    Route::delete('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'destroy']);
     
     // Mentee & Mentor stats
     Route::get('/mentee/stats', [App\Http\Controllers\Api\MenteeController::class, 'stats']);
     Route::get('/mentor/stats', [App\Http\Controllers\Api\MentorController::class, 'stats']);
     
-    // Mentors with enhanced search/filter
-    Route::apiResource('mentors', App\Http\Controllers\Api\MentorController::class);
+    // Mentor management (protected operations)
+    Route::post('/mentors', [App\Http\Controllers\Api\MentorController::class, 'store']);
+    Route::put('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'update']);
+    Route::delete('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'destroy']);
     
     // Resources and Management
     Route::apiResource('appointments', App\Http\Controllers\Api\AppointmentController::class);
@@ -62,9 +75,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('resources', App\Http\Controllers\Api\ResourceController::class);
     Route::apiResource('mentorships', App\Http\Controllers\Api\MentorshipController::class);
     
-    // Schedules
-    Route::apiResource('schedules', App\Http\Controllers\Api\ScheduleController::class);
-    Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
+    // Schedules (protected operations)
+    Route::post('/schedules', [App\Http\Controllers\Api\ScheduleController::class, 'store']);
+    Route::put('/schedules/{id}', [App\Http\Controllers\Api\ScheduleController::class, 'update']);
+    Route::delete('/schedules/{id}', [App\Http\Controllers\Api\ScheduleController::class, 'destroy']);
     Route::get('/schedules/my-schedule', [App\Http\Controllers\Api\ScheduleController::class, 'mySchedule']);
     
     // Invitations
@@ -85,13 +99,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// Telegram Webhook (public, no auth required)
-Route::post('/telegram/webhook', [App\Http\Controllers\Api\TelegramWebhookController::class, 'webhook']);
-
-Route::middleware('auth:sanctum')->group(function () {
-
-    // Admin Routes
-    Route::prefix('admin')->middleware('admin')->group(function () {
+// Admin Routes
+Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Api\AdminController::class, 'dashboard']);
         Route::get('/users', [App\Http\Controllers\Api\AdminController::class, 'getUsers']);
         Route::put('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'updateUser']);
