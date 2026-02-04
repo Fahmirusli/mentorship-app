@@ -22,6 +22,8 @@ class User extends Authenticatable
         'interests',
         'profile_image',
         'is_active',
+        'is_verified',
+        'verified_at',
         'google_id',
         'github_id',
         'linkedin_id',
