@@ -101,29 +101,72 @@ class TelegramWebhookController extends Controller
                 
                 Cache::forget("telegram_link_{$token}");
                 
+                // Send welcome with menu
+                $keyboard = $this->getMainMenuKeyboard($user);
+                
                 $this->telegram->sendMessage([
                     'chat_id' => $chatId,
-                    'text' => "✅ <b>Account Linked Successfully!</b>\n\nYou will now receive notifications here.\n\nType /help to see available commands.",
-                    'parse_mode' => 'HTML'
+                    'text' => "✅ <b>Account Linked Successfully!</b>\n\n" .
+                              "Welcome {$user->name}! You will now receive notifications here.\n\n" .
+                              "Choose an option below:",
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => $keyboard
                 ]);
                 
                 return response()->json(['ok' => true]);
             }
         }
 
-        // Regular welcome message
+        // Regular welcome message with menu button
+        $keyboard = Keyboard::make()
+            ->inline()
+            ->row([
+                Keyboard::inlineButton(['text' => '🔗 Link Account', 'url' => 'https://uplifts.dev/dashboard'])
+            ])
+            ->row([
+                Keyboard::inlineButton(['text' => '❓ Help', 'callback_data' => 'help'])
+            ]);
+
         $this->telegram->sendMessage([
             'chat_id' => $chatId,
             'text' => "👋 <b>Welcome to Uplifts Mentorship Bot!</b>\n\n" .
                       "To link your account:\n" .
-                      "1. Go to your dashboard\n" .
-                      "2. Click 'Connect Telegram'\n" .
-                      "3. Use the provided link\n\n" .
-                      "Type /help for more commands.",
-            'parse_mode' => 'HTML'
+                      "1. Click 'Link Account' below\n" .
+                      "2. Go to your dashboard\n" .
+                      "3. Click 'Connect Telegram'\n" .
+                      "4. Use the provided link",
+            'parse_mode' => 'HTML',
+            'reply_markup' => $keyboard
         ]);
 
         return response()->json(['ok' => true]);
+    }
+
+    protected function getMainMenuKeyboard($user)
+    {
+        $keyboard = Keyboard::make()->inline();
+
+        if ($user->role === 'mentor') {
+            $keyboard->row([
+                Keyboard::inlineButton(['text' => '📩 My Requests', 'callback_data' => 'my_requests']),
+                Keyboard::inlineButton(['text' => '📅 My Sessions', 'callback_data' => 'my_sessions'])
+            ]);
+            $keyboard->row([
+                Keyboard::inlineButton(['text' => '⏰ I\'m Running Late', 'callback_data' => 'running_late'])
+            ]);
+        } else {
+            $keyboard->row([
+                Keyboard::inlineButton(['text' => '📅 My Sessions', 'callback_data' => 'my_sessions']),
+                Keyboard::inlineButton(['text' => '👨‍🏫 Find Mentors', 'url' => 'https://uplifts.dev/mentee/find-mentor'])
+            ]);
+        }
+
+        $keyboard->row([
+            Keyboard::inlineButton(['text' => '💼 Job Opportunities', 'callback_data' => 'jobs']),
+            Keyboard::inlineButton(['text' => '❓ Help', 'callback_data' => 'help'])
+        ]);
+
+        return $keyboard;
     }
 
     protected function handleLate($chatId, $args)
@@ -336,24 +379,42 @@ class TelegramWebhookController extends Controller
     {
         $user = User::where('telegram_chat_id', $chatId)->first();
         
-        $message = "🤖 <b>Bot Commands:</b>\n\n";
+        $message = "🤖 <b>Bot Commands & Features:</b>\n\n";
         
-        if ($user && $user->isMentor()) {
-            $message .= "👨‍🏫 <b>Mentor Commands:</b>\n";
-            $message .= "/myrequests - View pending mentorship requests\n";
-            $message .= "/late [minutes] - Notify mentee you're running late\n";
-            $message .= "/mysessions - View upcoming sessions\n\n";
+        if ($user && $user->role === 'mentor') {
+            $message .= "👨‍🏫 <b>Mentor Features:</b>\n";
+            $message .= "• View and manage mentorship requests\n";
+            $message .= "• Notify mentees if running late\n";
+            $message .= "• Track upcoming sessions\n\n";
+        } else if ($user) {
+            $message .= "👨‍🎓 <b>Mentee Features:</b>\n";
+            $message .= "• View your scheduled sessions\n";
+            $message .= "• Browse job opportunities\n";
+            $message .= "• Receive session reminders\n\n";
         }
         
-        $message .= "📚 <b>General Commands:</b>\n";
+        $message .= "📱 <b>Commands:</b>\n";
+        $message .= "/start - Show main menu\n";
+        $message .= "/help - Show this help message\n";
+        $message .= "/mysessions - View upcoming sessions\n";
         $message .= "/jobs [keyword] - Search for jobs\n";
-        $message .= "/mysessions - View your sessions\n";
-        $message .= "/help - Show this message\n";
+        
+        if ($user && $user->role === 'mentor') {
+            $message .= "/myrequests - View pending requests\n";
+            $message .= "/late [minutes] - Notify mentee of delay\n";
+        }
+
+        $keyboard = Keyboard::make()
+            ->inline()
+            ->row([
+                Keyboard::inlineButton(['text' => '📱 Main Menu', 'callback_data' => 'main_menu'])
+            ]);
 
         $this->telegram->sendMessage([
             'chat_id' => $chatId,
             'text' => $message,
-            'parse_mode' => 'HTML'
+            'parse_mode' => 'HTML',
+            'reply_markup' => $keyboard
         ]);
 
         return response()->json(['ok' => true]);
@@ -363,18 +424,120 @@ class TelegramWebhookController extends Controller
     {
         $chatId = $callbackQuery->getMessage()->getChat()->getId();
         $data = $callbackQuery->getData();
+        $queryId = $callbackQuery->getId();
         
-        if (Str::startsWith($data, 'accept_')) {
+        // Handle menu callbacks
+        if ($data == 'my_requests') {
+            $this->handleMyRequests($chatId);
+            $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
+        } elseif ($data == 'my_sessions') {
+            $this->handleMySessions($chatId);
+            $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
+        } elseif ($data == 'running_late') {
+            $this->promptLateNotification($chatId, $queryId);
+        } elseif ($data == 'jobs') {
+            $this->handleJobs($chatId, []);
+            $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
+        } elseif ($data == 'help') {
+            $this->handleHelp($chatId);
+            $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
+        } elseif (Str::startsWith($data, 'accept_')) {
             $mentorshipId = str_replace('accept_', '', $data);
-            $this->acceptMentorship($chatId, $mentorshipId, $callbackQuery->getId());
+            $this->acceptMentorship($chatId, $mentorshipId, $queryId);
         } elseif (Str::startsWith($data, 'reject_')) {
             $mentorshipId = str_replace('reject_', '', $data);
-            $this->rejectMentorship($chatId, $mentorshipId, $callbackQuery->getId());
+            $this->rejectMentorship($chatId, $mentorshipId, $queryId);
+        } elseif (Str::startsWith($data, 'late_')) {
+            $minutes = str_replace('late_', '', $data);
+            $this->sendLateNotification($chatId, $queryId, intval($minutes));
         } elseif ($data == 'provide_feedback') {
-            $this->initiateSessionFeedback($chatId, $callbackQuery->getId());
+            $this->initiateSessionFeedback($chatId, $queryId);
+        } elseif ($data == 'main_menu') {
+            $user = User::where('telegram_chat_id', $chatId)->first();
+            if ($user) {
+                $keyboard = $this->getMainMenuKeyboard($user);
+                $this->telegram->sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => "📱 <b>Main Menu</b>\n\nChoose an option:",
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => $keyboard
+                ]);
+            }
+            $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
         }
 
         return response()->json(['ok' => true]);
+    }
+
+    protected function promptLateNotification($chatId, $queryId)
+    {
+        $keyboard = Keyboard::make()
+            ->inline()
+            ->row([
+                Keyboard::inlineButton(['text' => '5 minutes', 'callback_data' => 'late_5']),
+                Keyboard::inlineButton(['text' => '10 minutes', 'callback_data' => 'late_10'])
+            ])
+            ->row([
+                Keyboard::inlineButton(['text' => '15 minutes', 'callback_data' => 'late_15']),
+                Keyboard::inlineButton(['text' => '30 minutes', 'callback_data' => 'late_30'])
+            ])
+            ->row([
+                Keyboard::inlineButton(['text' => '« Back', 'callback_data' => 'main_menu'])
+            ]);
+
+        $this->telegram->answerCallbackQuery(['callback_query_id' => $queryId]);
+        
+        $this->telegram->sendMessage([
+            'chat_id' => $chatId,
+            'text' => "⏰ <b>How late will you be?</b>\n\nSelect the delay time:",
+            'parse_mode' => 'HTML',
+            'reply_markup' => $keyboard
+        ]);
+    }
+
+    protected function sendLateNotification($chatId, $queryId, $minutes)
+    {
+        $user = User::where('telegram_chat_id', $chatId)->first();
+        
+        if (!$user) {
+            $this->telegram->answerCallbackQuery([
+                'callback_query_id' => $queryId,
+                'text' => '❌ Account not linked'
+            ]);
+            return;
+        }
+
+        // Find today's upcoming appointment
+        $appointment = Appointment::whereHas('mentorship', function($q) use ($user) {
+                $q->where('mentor_id', $user->id);
+            })
+            ->where('scheduled_at', '>', now())
+            ->where('scheduled_at', '<', now()->addHours(2))
+            ->where('status', 'scheduled')
+            ->orderBy('scheduled_at')
+            ->first();
+
+        if (!$appointment) {
+            $this->telegram->answerCallbackQuery([
+                'callback_query_id' => $queryId,
+                'text' => 'No upcoming sessions found in the next 2 hours.'
+            ]);
+            return;
+        }
+
+        // Notify mentee
+        $mentee = $appointment->mentorship->mentee;
+        $telegram = app(TelegramNotificationService::class);
+        $telegram->sendToUser($mentee, 
+            "⏰ <b>Session Update</b>\n\n" .
+            "Your mentor {$user->name} is running {$minutes} minutes late.\n" .
+            "Revised start time: " . now()->addMinutes($minutes)->format('H:i')
+        );
+
+        $this->telegram->answerCallbackQuery([
+            'callback_query_id' => $queryId,
+            'text' => "✅ Mentee notified about {$minutes} min delay"
+        ]);
     }
 
     protected function acceptMentorship($chatId, $mentorshipId, $queryId)
