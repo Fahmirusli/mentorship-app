@@ -48,13 +48,19 @@ export default function MentorSettings() {
         setTelegramStatus(prev => ({ ...prev, loading: true }));
         try {
             const response = await api.get('/telegram/link-token');
+            console.log('Telegram link response:', response);
+            
+            if (!response || !response.link) {
+                throw new Error('Invalid response from server');
+            }
+            
             setTelegramLink(response.link);
             window.open(response.link, '_blank');
             
             const interval = setInterval(async () => {
                 try {
                     const status = await api.get('/telegram/status');
-                    if (status.linked) {
+                    if (status && status.linked) {
                         setTelegramStatus({
                             linked: true,
                             chat_id: status.chat_id,
