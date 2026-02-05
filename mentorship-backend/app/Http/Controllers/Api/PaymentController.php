@@ -7,6 +7,7 @@ use App\Models\Appointment;
 use App\Models\Mentorship;
 use App\Models\Schedule;
 use App\Services\ToyyibPayService;
+use App\Services\GoogleMeetService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -165,9 +166,19 @@ class PaymentController extends Controller
 
             if ($status == 1) {
                 // Payment successful
+                // Generate Google Meet link
+                $meetLink = null;
+                try {
+                    $meetService = app(GoogleMeetService::class);
+                    $meetLink = $meetService->generateSimpleMeetLink();
+                } catch (\Exception $e) {
+                    Log::warning('Failed to generate Meet link: ' . $e->getMessage());
+                }
+
                 $appointment->update([
                     'payment_status' => 'paid',
-                    'status' => 'scheduled'
+                    'status' => 'scheduled',
+                    'meeting_link' => $meetLink
                 ]);
 
                 // Update schedule booked_slots
