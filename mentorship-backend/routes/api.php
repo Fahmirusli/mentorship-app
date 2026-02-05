@@ -32,6 +32,7 @@ Route::get('/mentors', [App\Http\Controllers\Api\MentorController::class, 'index
 Route::get('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'show']);
 Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
 Route::get('/jobs', [App\Http\Controllers\Api\JobController::class, 'index']);
+Route::get('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'show']);
 
 // Telegram Webhook (public, no auth required)
 Route::post('/telegram/webhook', [App\Http\Controllers\Api\TelegramWebhookController::class, 'webhook']);
