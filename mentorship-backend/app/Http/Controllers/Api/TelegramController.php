@@ -17,8 +17,8 @@ class TelegramController extends Controller
     {
         $user = $request->user();
         
-        // Generate unique token
-        $token = Str::random(32);
+        // Generate unique token with LINK- prefix
+        $token = 'LINK-' . Str::random(32);
         
         // Store token with user ID for 10 minutes
         Cache::put("telegram_link_{$token}", $user->id, now()->addMinutes(10));
