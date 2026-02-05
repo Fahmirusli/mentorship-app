@@ -53,16 +53,20 @@ export default function Settings() {
             
             // Poll for status update
             const interval = setInterval(async () => {
-                const status = await api.get('/telegram/status');
-                if (status.data.linked) {
-                    setTelegramStatus({
-                        linked: true,
-                        chat_id: status.data.chat_id,
-                        loading: false
-                    });
-                    setTelegramLink('');
-                    clearInterval(interval);
-                    alert('Telegram account linked successfully!');
+                try {
+                    const status = await api.get('/telegram/status');
+                    if (status.data.linked) {
+                        setTelegramStatus({
+                            linked: true,
+                            chat_id: status.data.chat_id,
+                            loading: false
+                        });
+                        setTelegramLink('');
+                        clearInterval(interval);
+                        alert('Telegram account linked successfully!');
+                    }
+                } catch (err) {
+                    console.error('Error checking status:', err);
                 }
             }, 3000);
 
@@ -71,10 +75,11 @@ export default function Settings() {
                 clearInterval(interval);
                 setTelegramStatus(prev => ({ ...prev, loading: false }));
             }, 120000);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error generating Telegram link:', error);
             setTelegramStatus(prev => ({ ...prev, loading: false }));
-            alert('Failed to generate Telegram link');
+            const errorMessage = error?.message || 'Failed to generate Telegram link';
+            alert(errorMessage);
         }
     };
 
