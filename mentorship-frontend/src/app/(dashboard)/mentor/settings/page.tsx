@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Lock, Bell, Globe, Save, Loader } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Bell, Globe, Save, Loader, MessageCircle, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 
 export default function MentorSettings() {
@@ -20,6 +20,78 @@ export default function MentorSettings() {
         new_password: '',
         confirm_password: ''
     });
+    const [telegramStatus, setTelegramStatus] = useState({
+        linked: false,
+        chat_id: null,
+        loading: false
+    });
+    const [telegramLink, setTelegramLink] = useState('');
+
+    useEffect(() => {
+        checkTelegramStatus();
+    }, []);
+
+    const checkTelegramStatus = async () => {
+        try {
+            const response = await api.get('/telegram/status');
+            setTelegramStatus({
+                linked: response.data.linked,
+                chat_id: response.data.chat_id,
+                loading: false
+            });
+        } catch (error) {
+            console.error('Error checking Telegram status:', error);
+        }
+    };
+
+    const generateTelegramLink = async () => {
+        setTelegramStatus(prev => ({ ...prev, loading: true }));
+        try {
+            const response = await api.get('/telegram/link-token');
+            setTelegramLink(response.data.link);
+            window.open(response.data.link, '_blank');
+            
+            const interval = setInterval(async () => {
+                const status = await api.get('/telegram/status');
+                if (status.data.linked) {
+                    setTelegramStatus({
+                        linked: true,
+                        chat_id: status.data.chat_id,
+                        loading: false
+                    });
+                    setTelegramLink('');
+                    clearInterval(interval);
+                    alert('Telegram account linked successfully!');
+                }
+            }, 3000);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                setTelegramStatus(prev => ({ ...prev, loading: false }));
+            }, 120000);
+        } catch (error) {
+            console.error('Error generating Telegram link:', error);
+            setTelegramStatus(prev => ({ ...prev, loading: false }));
+            alert('Failed to generate Telegram link');
+        }
+    };
+
+    const unlinkTelegram = async () => {
+        if (!confirm('Are you sure you want to unlink your Telegram account?')) return;
+        
+        try {
+            await api.post('/telegram/unlink');
+            setTelegramStatus({
+                linked: false,
+                chat_id: null,
+                loading: false
+            });
+            alert('Telegram account unlinked successfully');
+        } catch (error) {
+            console.error('Error unlinking Telegram:', error);
+            alert('Failed to unlink Telegram account');
+        }
+    };
 
     const handleSaveSettings = async () => {
         setSaving(true);
@@ -63,6 +135,65 @@ export default function MentorSettings() {
                             <p className="text-gray-600 mt-2">Manage your account preferences</p>
                         </div>
                         <SettingsIcon className="w-12 h-12 text-indigo-600" />
+                    </div>
+
+                    {/* Telegram Integration */}
+                    <div className="space-y-6 mb-8 pb-8 border-b">
+                        <div className="flex items-center gap-3">
+                            <MessageCircle className="w-5 h-5 text-gray-700" />
+                            <h2 className="text-xl font-semibold text-gray-900">Telegram Integration</h2>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        {telegramStatus.linked ? (
+                                            <>
+                                                <CheckCircle className="w-5 h-5 text-green-600" />
+                                                <p className="font-medium text-gray-900">Connected</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XCircle className="w-5 h-5 text-gray-400" />
+                                                <p className="font-medium text-gray-900">Not Connected</p>
+                                            </>
+                                        )}
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        {telegramStatus.linked 
+                                            ? 'You will receive notifications via Telegram' 
+                                            : 'Connect your Telegram account to receive instant notifications'}
+                                    </p>
+                                    {telegramStatus.linked ? (
+                                        <button
+                                            onClick={unlinkTelegram}
+                                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+                                        >
+                                            Disconnect
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={generateTelegramLink}
+                                            disabled={telegramStatus.loading}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 text-sm"
+                                        >
+                                            {telegramStatus.loading ? (
+                                                <>
+                                                    <Loader className="w-4 h-4 animate-spin" />
+                                                    Waiting for connection...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    Connect Telegram
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Notifications */}
