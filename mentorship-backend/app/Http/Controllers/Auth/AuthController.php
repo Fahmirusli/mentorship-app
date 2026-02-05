@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ResendMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -39,10 +40,12 @@ class AuthController extends Controller
 
         // Send TAC via email
         try {
-            Mail::raw("Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.", function($message) use ($request) {
-                $message->to($request->email)
-                        ->subject('Email Verification - Uplift Mentorship');
-            });
+            $mailService = app(ResendMailService::class);
+            $mailService->send(
+                $request->email,
+                'Email Verification - Uplift Mentorship',
+                "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
+            );
         } catch (\Exception $e) {
             Log::error('Failed to send verification email: ' . $e->getMessage());
         }
@@ -143,10 +146,12 @@ class AuthController extends Controller
 
         // Send TAC via email
         try {
-            Mail::raw("Your password reset code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.", function($message) use ($request) {
-                $message->to($request->email)
-                        ->subject('Password Reset - Uplift Mentorship');
-            });
+            $mailService = app(ResendMailService::class);
+            $mailService->send(
+                $request->email,
+                'Password Reset - Uplift Mentorship',
+                "Your password reset code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+            );
         } catch (\Exception $e) {
             Log::error('Failed to send reset email: ' . $e->getMessage());
         }

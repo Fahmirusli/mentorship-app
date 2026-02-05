@@ -170,6 +170,19 @@ class PaymentController extends Controller
                     'status' => 'scheduled'
                 ]);
 
+                // Update schedule booked_slots
+                $schedule = Schedule::where('mentor_id', $appointment->mentor_id)
+                    ->where('date', $appointment->scheduled_at->format('Y-m-d'))
+                    ->where('start_time', $appointment->scheduled_at->format('H:i:s'))
+                    ->first();
+                
+                if ($schedule) {
+                    $schedule->increment('booked_slots');
+                    if ($schedule->booked_slots >= $schedule->total_slots) {
+                        $schedule->update(['is_available' => false]);
+                    }
+                }
+
                 // Create transaction record
                 \App\Models\Transaction::firstOrCreate(
                     ['bill_code' => $billCode], 
@@ -200,7 +213,8 @@ class PaymentController extends Controller
                         ->where('start_time', $appointment->scheduled_at->format('H:i:s'))
                         ->first();
                     
-                    if ($schedule) {
+                    if ($schedule && $schedule->booked_slots > 0) {
+                        $schedule->decrement('booked_slots');
                         $schedule->update(['is_available' => true]);
                     }
                 }
