@@ -40,6 +40,7 @@ class AdminController extends Controller
             'total_jobs' => Job::where('is_active', true)->count(),
             'total_feedback' => Feedback::count(),
             'average_rating' => round(Feedback::avg('rating'), 2),
+            'total_revenue' => \App\Models\Transaction::where('status', 'paid')->sum('amount'),
         ];
 
         // Recent activities
