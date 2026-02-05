@@ -35,8 +35,8 @@ export default function MentorSettings() {
         try {
             const response = await api.get('/telegram/status');
             setTelegramStatus({
-                linked: response.data.linked,
-                chat_id: response.data.chat_id,
+                linked: response.linked,
+                chat_id: response.chat_id,
                 loading: false
             });
         } catch (error) {
@@ -48,16 +48,16 @@ export default function MentorSettings() {
         setTelegramStatus(prev => ({ ...prev, loading: true }));
         try {
             const response = await api.get('/telegram/link-token');
-            setTelegramLink(response.data.link);
-            window.open(response.data.link, '_blank');
+            setTelegramLink(response.link);
+            window.open(response.link, '_blank');
             
             const interval = setInterval(async () => {
                 try {
                     const status = await api.get('/telegram/status');
-                    if (status.data.linked) {
+                    if (status.linked) {
                         setTelegramStatus({
                             linked: true,
-                            chat_id: status.data.chat_id,
+                            chat_id: status.chat_id,
                             loading: false
                         });
                         setTelegramLink('');
