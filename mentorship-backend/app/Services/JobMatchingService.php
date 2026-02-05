@@ -41,7 +41,14 @@ class JobMatchingService
         $recommendations = [];
         
         foreach ($jobs as $job) {
-            $jobRequirements = json_decode($job->requirements ?? '[]', true);
+            // Handle both string and array formats for requirements
+            $jobRequirements = $job->requirements;
+            if (is_string($jobRequirements)) {
+                $jobRequirements = json_decode($jobRequirements ?? '[]', true);
+            }
+            if (!is_array($jobRequirements)) {
+                $jobRequirements = [];
+            }
             
             $matchScore = $this->calculateMatchScore($userSkills, $jobRequirements);
             $skillGap = $this->calculateSkillGap($userSkills, $jobRequirements);
