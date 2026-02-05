@@ -15,26 +15,40 @@ class TelegramController extends Controller
      */
     public function generateLinkToken(Request $request)
     {
-        $user = $request->user();
-        
-        // Generate unique token with LINK- prefix
-        $token = 'LINK-' . Str::random(32);
-        
-        // Store token with user ID for 10 minutes
-        Cache::put("telegram_link_{$token}", $user->id, now()->addMinutes(10));
-        
-        $botUsername = config('telegram.bot_username', 'your_bot_username');
-        
-        return response()->json([
-            'token' => $token,
-            'link' => "https://t.me/{$botUsername}?start={$token}",
-            'expires_in' => 600, // 10 minutes
-            'instructions' => [
-                '1. Click the link or open your Telegram bot',
-                '2. Click START or send /start',
-                '3. Your account will be automatically linked',
-            ]
-        ]);
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Unauthenticated'
+                ], 401);
+            }
+            
+            // Generate unique token with LINK- prefix
+            $token = 'LINK-' . Str::random(32);
+            
+            // Store token with user ID for 10 minutes
+            Cache::put("telegram_link_{$token}", $user->id, now()->addMinutes(10));
+            
+            $botUsername = config('telegram.bot_username', 'uplifts_mentorship_bot');
+            
+            return response()->json([
+                'token' => $token,
+                'link' => "https://t.me/{$botUsername}?start={$token}",
+                'expires_in' => 600, // 10 minutes
+                'instructions' => [
+                    '1. Click the link or open your Telegram bot',
+                    '2. Click START or send /start',
+                    '3. Your account will be automatically linked',
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Telegram link generation failed: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to generate Telegram link',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
