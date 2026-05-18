@@ -67,60 +67,6 @@ class SocialAuthController extends Controller
         }
     }
 
-    /**
-     * Redirect to LinkedIn OAuth
-     */
-    public function redirectToLinkedIn()
-    {
-        if (!env('LINKEDIN_CLIENT_ID') || !env('LINKEDIN_CLIENT_SECRET')) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_not_configured');
-        }
-        return Socialite::driver('linkedin')->redirect();
-    }
-
-    /**
-     * Handle LinkedIn OAuth callback
-     */
-    public function handleLinkedInCallback()
-    {
-        try {
-            $linkedinUser = Socialite::driver('linkedin')->user();
-            
-            $user = User::where('email', $linkedinUser->email)->first();
-
-            if ($user) {
-                // Update existing user
-                $user->update([
-                    'linkedin_id' => $linkedinUser->id,
-                    'avatar' => $linkedinUser->avatar,
-                    'email_verified_at' => now()
-                ]);
-            } else {
-                // Create new user
-                $user = User::create([
-                    'name' => $linkedinUser->name,
-                    'email' => $linkedinUser->email,
-                    'linkedin_id' => $linkedinUser->id,
-                    'avatar' => $linkedinUser->avatar,
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => request()->get('role', 'mentee'),
-                    'email_verified_at' => now()
-                ]);
-            }
-
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            // Redirect to frontend with token
-            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
-            $redirectUrl = "{$frontendUrl}/auth/callback?token={$token}&user=" . urlencode(json_encode($user));
-            
-            return redirect($redirectUrl);
-            
-        } catch (\Exception $e) {
-            Log::error('LinkedIn OAuth error: ' . $e->getMessage());
-            return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=oauth_failed');
-        }
-    }
     public function redirectToGithub()
     {
         if (!env('GITHUB_CLIENT_ID') || !env('GITHUB_CLIENT_SECRET')) {
@@ -132,7 +78,7 @@ class SocialAuthController extends Controller
     public function handleGithubCallback()
     {
         try {
-            $githubUser = Socialite::driver('github')->stateless()->stateless()->user();
+            $githubUser = Socialite::driver('github')->stateless()->user();
             
             $user = User::where('email', $githubUser->email)->first();
 

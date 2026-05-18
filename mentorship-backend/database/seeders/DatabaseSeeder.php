@@ -10,9 +10,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             UserSeeder::class,
+            AdminUserSeeder::class,        // Add this
+            TestUserSeeder::class,         // Add this
             MentorProfileSeeder::class,
             MenteeProfileSeeder::class,
             JobSeeder::class,
+            MentorScheduleSeeder::class,   // Add this
+            TestScheduleSeeder::class,     // Add this
             MentorshipSeeder::class,
             AppointmentSeeder::class,
             ResourceSeeder::class,

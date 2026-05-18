@@ -73,7 +73,7 @@ class MentorProfileSeeder extends Seeder
         foreach ($mentors as $index => $mentor) {
             MentorProfile::create([
                 'user_id' => $mentor->id,
-                ...$profiles[$index],
+                ...($profiles[$index] ?? $profiles[0]),
             ]);
         }
     }

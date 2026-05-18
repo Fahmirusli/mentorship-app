@@ -63,7 +63,7 @@ export interface JobRecommendation {
     id: number;
     title: string;
     company: string;
-    source: 'JobStreet' | 'LinkedIn' | 'Hiredly'; // Scraped sources [cite: 1958]
+    source: 'JobStreet' | 'LinkedIn' | 'MauKerja';
     match_score: number; // NLP Cosine Similarity score (0-100) [cite: 1977]
     missing_skills: string[]; // Skill Gap Analysis [cite: 1979]
     url: string;

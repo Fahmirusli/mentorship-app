@@ -89,8 +89,7 @@ class AdminController extends Controller
     public function getUsers(Request $request)
     {
         $query = User::with(['mentorProfile', 'menteeProfile'])
-            ->select('users.*')
-            ->selectRaw('CASE WHEN telegram_chat_id IS NOT NULL THEN true ELSE false END as has_telegram');
+            ->select('users.*');
 
         // Filter by role
         if ($request->has('role')) {
@@ -107,14 +106,7 @@ class AdminController extends Controller
             $query->where('is_verified', $request->is_verified);
         }
 
-        // Filter by telegram linked
-        if ($request->has('has_telegram')) {
-            if ($request->has_telegram == 'true' || $request->has_telegram == '1') {
-                $query->whereNotNull('telegram_chat_id');
-            } else {
-                $query->whereNull('telegram_chat_id');
-            }
-        }
+
 
         // Search
         if ($request->has('search')) {
@@ -143,7 +135,7 @@ class AdminController extends Controller
             'is_verified' => 'sometimes|boolean',
             'phone' => 'sometimes|string|max:20',
             'password' => 'sometimes|string|min:8',
-            'telegram_chat_id' => 'sometimes|nullable|string',
+
         ]);
 
         if (isset($validated['password'])) {
@@ -215,13 +207,7 @@ class AdminController extends Controller
             'verified_at' => now(),
         ]);
 
-        // Send notification to user
-        try {
-            $telegram = app(\App\Services\TelegramNotificationService::class);
-            $telegram->sendToUser($user, "✅ <b>Account Verified!</b>\n\nYour account has been verified by an administrator.");
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send verification notification: ' . $e->getMessage());
-        }
+
 
         return response()->json([
             'message' => 'User verified successfully',
@@ -242,31 +228,5 @@ class AdminController extends Controller
             'message' => 'User verification removed',
             'user' => $user,
         ]);
-    }
-
-    public function sendTelegramTest(Request $request, $id)
-    {
-        $user = User::findOrFail($id);
-        
-        if (!$user->telegram_chat_id) {
-            return response()->json([
-                'message' => 'User has not linked Telegram account'
-            ], 400);
-        }
-
-        $message = $request->input('message', '🧪 Test message from admin');
-
-        try {
-            $telegram = app(\App\Services\TelegramNotificationService::class);
-            $telegram->sendToUser($user, "<b>Admin Message</b>\n\n{$message}");
-            
-            return response()->json([
-                'message' => 'Test message sent successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to send message: ' . $e->getMessage()
-            ], 500);
-        }
     }
 }

@@ -169,10 +169,28 @@ export default function JobListings() {
               const job = item.job || item;
               const matchScore = item.match_score;
               const skillGap = item.skill_gap;
-              const missingSkills = item.missing_skills || [];
+              const missingSkills = Array.isArray(item.missing_skills)
+                ? item.missing_skills
+                : (typeof item.missing_skills === 'string'
+                    ? (() => {
+                        try {
+                          return JSON.parse(item.missing_skills || '[]');
+                        } catch {
+                          return [];
+                        }
+                      })()
+                    : []);
               const requirements = Array.isArray(job.requirements)
                 ? job.requirements
-                : (typeof job.requirements === 'string' ? JSON.parse(job.requirements || '[]') : []);
+                : (typeof job.requirements === 'string'
+                    ? (() => {
+                        try {
+                          return JSON.parse(job.requirements || '[]');
+                        } catch {
+                          return [];
+                        }
+                      })()
+                    : []);
 
               return (
                 <div key={idx} className="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden">

@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Api\MentorController;
+use App\Http\Controllers\Api\FeedbackController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,20 +24,20 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 // OAuth routes
 Route::get('/auth/google', [SocialAuthController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback']);
-Route::get('/auth/linkedin', [SocialAuthController::class, 'redirectToLinkedIn']);
-Route::get('/auth/linkedin/callback', [SocialAuthController::class, 'handleLinkedInCallback']);
+
 Route::get('/auth/github', [SocialAuthController::class, 'redirectToGithub']);
 Route::get('/auth/github/callback', [SocialAuthController::class, 'handleGithubCallback']);
 
 // Public API endpoints (no auth required)
 Route::get('/mentors', [App\Http\Controllers\Api\MentorController::class, 'index']);
 Route::get('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'show']);
+Route::get('/mentors/nearby', [App\Http\Controllers\Api\MentorController::class, 'getNearby']);
+Route::get('/mentors/all-skills', [App\Http\Controllers\Api\MentorController::class, 'getAllSkills']);
 Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
 Route::get('/jobs', [App\Http\Controllers\Api\JobController::class, 'index']);
-Route::get('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'show']);
+Route::get('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'show'])->whereNumber('id');
 
-// Telegram Webhook (public, no auth required)
-Route::post('/telegram/webhook', [App\Http\Controllers\Api\TelegramWebhookController::class, 'webhook']);
+
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -43,6 +45,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user()->load(['mentorProfile', 'menteeProfile']);
     });
+
+    Route::get('/mentee/dashboard', [\App\Http\Controllers\Api\MenteeDashboardController::class, 'getDashboardData']);
     
     // File uploads
     Route::post('/upload/profile-image', [App\Http\Controllers\Api\FileUploadController::class, 'uploadProfileImage']);
@@ -58,8 +62,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/jobs/recommendations', [App\Http\Controllers\Api\JobController::class, 'recommendations']);
     Route::post('/jobs/scrape', [App\Http\Controllers\Api\JobController::class, 'triggerScrape']);
     Route::post('/jobs', [App\Http\Controllers\Api\JobController::class, 'store']);
-    Route::put('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'update']);
-    Route::delete('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'destroy']);
+    Route::put('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'update'])->whereNumber('id');
+    Route::delete('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'destroy'])->whereNumber('id');
+
+    // Feedback
+    Route::get('/feedback', [FeedbackController::class, 'index']);
+    Route::post('/feedback', [FeedbackController::class, 'store']);
+    Route::delete('/feedback/{id}', [FeedbackController::class, 'destroy'])->whereNumber('id');
     
     // Mentee & Mentor stats
     Route::get('/mentee/stats', [App\Http\Controllers\Api\MenteeController::class, 'stats']);
@@ -90,17 +99,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/mentors/profile', [App\Http\Controllers\Api\ProfileController::class, 'updateMentor']);
     Route::post('/user/profile-image', [App\Http\Controllers\Api\ProfileController::class, 'uploadImage']);
     Route::post('/profile/complete', [App\Http\Controllers\Api\ProfileController::class, 'completeProfile']);
+    Route::post('/user/location', [App\Http\Controllers\Api\AuthController::class, 'updateLocation']);
+    Route::get('/mentors/nearby', [App\Http\Controllers\Api\MentorController::class, 'getNearby']);
 
-    // Telegram Routes
-    Route::prefix('telegram')->group(function () {
-        Route::get('/link-token', [App\Http\Controllers\Api\TelegramController::class, 'generateLinkToken']);
-        Route::post('/link', [App\Http\Controllers\Api\TelegramController::class, 'linkAccount']);
-        Route::post('/unlink', [App\Http\Controllers\Api\TelegramController::class, 'unlinkAccount']);
-        Route::get('/status', [App\Http\Controllers\Api\TelegramController::class, 'checkStatus']);
-    });
+
     
     // Payment Initiate (Protected)
     Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
+
+    // Chat / Messaging
+    Route::get('/conversations', [App\Http\Controllers\Api\ChatController::class, 'getConversations']);
+    Route::get('/messages/{otherUserId}', [App\Http\Controllers\Api\ChatController::class, 'getMessages']);
+    Route::post('/messages/send', [App\Http\Controllers\Api\ChatController::class, 'sendMessage']);
+    Route::get('/messages/poll/{conversationId}', [App\Http\Controllers\Api\ChatController::class, 'pollMessages']);
+
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
 });
 
 // Admin Routes
@@ -111,7 +128,7 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
     Route::delete('/users/{id}', [App\Http\Controllers\Api\AdminController::class, 'deleteUser']);
     Route::post('/users/{id}/verify', [App\Http\Controllers\Api\AdminController::class, 'verifyUser']);
     Route::post('/users/{id}/unverify', [App\Http\Controllers\Api\AdminController::class, 'unverifyUser']);
-    Route::post('/users/{id}/telegram-test', [App\Http\Controllers\Api\AdminController::class, 'sendTelegramTest']);
+
     Route::get('/mentorships', [App\Http\Controllers\Api\AdminController::class, 'getMentorships']);
 });
 

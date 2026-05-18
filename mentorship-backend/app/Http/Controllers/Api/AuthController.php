@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\TelegramNotificationService;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -53,13 +53,7 @@ class AuthController extends Controller
             // Continue anyway - user can request resend
         }
 
-        // Send Telegram notification
-        try {
-            $telegramService = app(TelegramNotificationService::class);
-            $telegramService->notifyNewUser($user);
-        } catch (\Exception $e) {
-            \Log::warning('Telegram notification failed: ' . $e->getMessage());
-        }
+
 
         return response()->json([
             'message' => 'Registration successful. Please check your email for verification code.',
@@ -185,6 +179,28 @@ class AuthController extends Controller
         // For now, return success message
         return response()->json([
             'message' => 'Password reset link sent to your email',
+        ]);
+    }
+
+    public function updateLocation(Request $request)
+    {
+        // 1. Validate the coordinates
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        // 2. Get the currently logged-in user and update their database row
+        $user = $request->user();
+        $user->update([
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        ]);
+
+        return response()->json([
+            'message' => 'Location updated successfully in the background.',
+            'latitude' => $user->latitude,
+            'longitude' => $user->longitude,
         ]);
     }
 }

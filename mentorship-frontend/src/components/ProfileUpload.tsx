@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function ProfileUpload() {
     const [loading, setLoading] = useState(false);
@@ -20,21 +21,8 @@ export default function ProfileUpload() {
             const formData = new FormData();
             formData.append('image', file);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload/profile-image`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setMessage('Profile image uploaded successfully!');
-            } else {
-                setError(data.message || 'Upload failed');
-            }
+            await api.post('/upload/profile-image', formData);
+            setMessage('Profile image uploaded successfully!');
         } catch (err: any) {
             setError(err.message || 'Upload error');
         } finally {
@@ -54,21 +42,8 @@ export default function ProfileUpload() {
             const formData = new FormData();
             formData.append('resume', file);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/upload/resume`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setMessage('Resume uploaded successfully!');
-            } else {
-                setError(data.message || 'Upload failed');
-            }
+            await api.post('/upload/resume', formData);
+            setMessage('Resume uploaded successfully!');
         } catch (err: any) {
             setError(err.message || 'Upload error');
         } finally {

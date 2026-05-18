@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, User, Loader, ArrowLeft, Github } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function Register() {
     const router = useRouter();
@@ -33,7 +34,7 @@ export default function Register() {
         }
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/register`, {
+            const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -60,7 +61,7 @@ export default function Register() {
         setError('');
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/verify-email`, {
+            const response = await fetch(`${API_BASE_URL}/verify-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -85,12 +86,9 @@ export default function Register() {
     };
 
     const handleGoogleSignup = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google?register=true`;
+        window.location.href = `${API_BASE_URL}/auth/google?register=true`;
     };
 
-    const handleLinkedInSignup = () => {
-        window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/linkedin?register=true`;
-    };
 
     if (step === 'verify') {
         return (
@@ -316,7 +314,7 @@ export default function Register() {
 
                     {/* GitHub Signup */}
                     <button
-                        onClick={() => window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/github`}
+                        onClick={() => window.location.href = `${API_BASE_URL}/auth/github`}
                         className="flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center transition"
                     >
                         <Github className="w-5 h-5 text-gray-900" />

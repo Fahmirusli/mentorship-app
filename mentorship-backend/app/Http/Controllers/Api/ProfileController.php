@@ -16,6 +16,7 @@ class ProfileController extends Controller
         
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'sometimes|string|max:20',
             'bio' => 'sometimes|string|max:1000',
             'skills' => 'sometimes|array',
@@ -116,3 +117,4 @@ class ProfileController extends Controller
             'user' => $user->fresh()
         ]);
     }
+}

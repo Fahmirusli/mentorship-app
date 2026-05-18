@@ -21,7 +21,7 @@ class JobScraperService
             // Fallback to mock data for demo purposes if scraper is blocked/fails
             $this->seedMockData('JobStreet');
             $this->seedMockData('LinkedIn');
-            $this->seedMockData('Hiredly');
+            $this->seedMockData('MauKerja');
             
             $results['total'] += 15; // 5 from each
             $results['mock_data_generated'] = true;
@@ -163,7 +163,7 @@ class JobScraperService
                 ['title' => 'DevOps Engineer', 'skills' => ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Linux']],
                 ['title' => 'Cloud Architect', 'skills' => ['AWS', 'Azure', 'Cloud Architecture', 'Terraform', 'Kubernetes']]
             ],
-            'Hiredly' => [
+            'MauKerja' => [
                 ['title' => 'UI/UX Designer', 'skills' => ['Figma', 'Adobe XD', 'User Research', 'Prototyping']],
                 ['title' => 'Frontend Ninja', 'skills' => ['React', 'Vue', 'JavaScript', 'CSS', 'HTML']],
                 ['title' => 'Laravel Specialist', 'skills' => ['PHP', 'Laravel', 'MySQL', 'REST API', 'Vue']],

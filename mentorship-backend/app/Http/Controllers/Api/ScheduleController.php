@@ -51,6 +51,7 @@ class ScheduleController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'is_available' => 'sometimes|boolean',
+            'fee' => 'sometimes|numeric|min:0',
         ]);
 
         // Check for overlapping schedules

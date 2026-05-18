@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Loader, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { API_BASE_URL } from '@/lib/api';
 
 export default function ForgotPassword() {
     const router = useRouter();
@@ -22,7 +23,7 @@ export default function ForgotPassword() {
         setError('');
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/forgot-password`, {
+            const response = await fetch(`${API_BASE_URL}/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
@@ -49,7 +50,7 @@ export default function ForgotPassword() {
         setError('');
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/verify-reset-code`, {
+            const response = await fetch(`${API_BASE_URL}/verify-reset-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, tac })
@@ -82,7 +83,7 @@ export default function ForgotPassword() {
         }
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/reset-password`, {
+            const response = await fetch(`${API_BASE_URL}/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, tac, password, password_confirmation: passwordConfirmation })

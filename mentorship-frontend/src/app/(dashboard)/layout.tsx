@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
-import { authService } from '@/lib/api';
+import { api } from '@/lib/api';
+import { authService } from '@/lib/auth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Determine role dynamically from auth state
@@ -10,9 +11,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setIsClient(true);
-    const user = authService.getUser();
-    if (user?.role) {
+    
+    // 1. Setup User Role
+    const user = authService.getCurrentUser();
+    if (user?.role === 'mentor' || user?.role === 'mentee') {
       setUserRole(user.role);
+    }
+
+    // 2. Background Location Update (New Feature)
+    if (authService.getToken() && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            await api.post('/user/location', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+            console.log("Background location updated silently.");
+          } catch (error) {
+            console.error("Failed to update location silently", error);
+          }
+        },
+        (error) => {
+          console.log("User denied location permission on web.");
+        }
+      );
     }
   }, []);
 

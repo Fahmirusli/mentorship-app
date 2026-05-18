@@ -1,7 +1,6 @@
-import axios from 'axios';
-
 // src/lib/api.ts
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api')
+  .replace(/\/+$/, '');
 
 interface RequestOptions extends RequestInit {
   data?: any;
@@ -33,7 +32,6 @@ class ApiClient {
     const config: RequestInit = {
       ...options,
       headers,
-      credentials: 'include',
     };
 
     if (options.data) {
@@ -88,7 +86,7 @@ class ApiClient {
   }
 }
 
-export const api = new ApiClient(API_URL);
+export const api = new ApiClient(API_BASE_URL);
 
 // Auth Service
 export const authService = {

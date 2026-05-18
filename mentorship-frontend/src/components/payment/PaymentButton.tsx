@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CreditCard, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface PaymentButtonProps {
     amount: number;
@@ -20,21 +21,11 @@ export function PaymentButton({ amount, description, appointmentId, onSuccess, o
         setStatus('processing');
 
         try {
-            // In production, this would call your backend API
-            const response = await fetch('/api/payments/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    amount,
-                    description,
-                    appointment_id: appointmentId
-                })
+            const data = await api.post('/payment/initiate', {
+                amount,
+                description,
+                appointment_id: appointmentId,
             });
-
-            const data = await response.json();
 
             if (data.payment_url) {
                 // Redirect to ToyyibPay payment page

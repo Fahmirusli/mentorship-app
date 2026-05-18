@@ -9,8 +9,7 @@ use Illuminate\Http\Request;
 
 class MentorController extends Controller
 {
-    public function index(Request $request)
-    {
+    public function index(Request $request){
         $query = User::where('role', 'mentor')
             ->where('is_active', true)
             ->with(['mentorProfile', 'schedules']);
@@ -121,8 +120,7 @@ class MentorController extends Controller
         return response()->json($mentors);
     }
 
-    public function show($id)
-    {
+    public function show($id){
         $mentor = User::where('role', 'mentor')
             ->with(['mentorProfile', 'feedbackReceived.fromUser'])
             ->findOrFail($id);
@@ -160,8 +158,7 @@ class MentorController extends Controller
         return response()->json($mentor);
     }
 
-    public function createProfile(Request $request)
-    {
+    public function createProfile(Request $request){
         if ($request->user()->role !== 'mentor') {
             return response()->json([
                 'message' => 'Only mentors can create mentor profiles',
@@ -188,8 +185,7 @@ class MentorController extends Controller
         ], 201);
     }
 
-    public function updateProfile(Request $request)
-    {
+    public function updateProfile(Request $request){
         if ($request->user()->role !== 'mentor') {
             return response()->json([
                 'message' => 'Only mentors can update mentor profiles',
@@ -221,8 +217,8 @@ class MentorController extends Controller
             'profile' => $profile,
         ]);
     }
-    public function stats(Request $request)
-    {
+
+    public function stats(Request $request){
         $user = $request->user();
 
         // 1. Total Mentees (Unique mentees from mentorships)
@@ -268,6 +264,44 @@ class MentorController extends Controller
             'earnings' => $earnings,
             'rating' => $rating,
             'upcomingSessions' => $upcomingSessions
+        ]);
+    }
+
+    public function getNearby(Request $request) {
+        // This fetches mentors from your 'Uplift' users table
+        $mentors = User::where('role', 'mentor')->get(); 
+        return response()->json($mentors);
+    }
+
+    /**
+     * Get all unique skills available across all mentors.
+     * Used by the skill selection screen to show real mentor skills.
+     */
+    public function getAllSkills()
+    {
+        $mentors = User::where('role', 'mentor')
+            ->where('is_active', true)
+            ->whereNotNull('skills')
+            ->get();
+
+        $allSkills = [];
+        foreach ($mentors as $mentor) {
+            $skills = $mentor->skills;
+            if (is_string($skills)) {
+                $skills = json_decode($skills, true) ?? [];
+            }
+            if (is_array($skills)) {
+                $allSkills = array_merge($allSkills, $skills);
+            }
+        }
+
+        // Unique, sorted skills
+        $uniqueSkills = array_values(array_unique($allSkills));
+        sort($uniqueSkills);
+
+        return response()->json([
+            'skills' => $uniqueSkills,
+            'count' => count($uniqueSkills),
         ]);
     }
 }

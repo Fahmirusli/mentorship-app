@@ -53,7 +53,7 @@ class MenteeProfileSeeder extends Seeder
         foreach ($mentees as $index => $mentee) {
             MenteeProfile::create([
                 'user_id' => $mentee->id,
-                ...$profiles[$index],
+                ...($profiles[$index] ?? $profiles[0]),
             ]);
         }
     }

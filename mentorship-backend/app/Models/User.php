@@ -26,9 +26,7 @@ class User extends Authenticatable
         'verified_at',
         'google_id',
         'github_id',
-        'linkedin_id',
         'avatar',
-        'telegram_chat_id',
     ];
 
     protected $hidden = [

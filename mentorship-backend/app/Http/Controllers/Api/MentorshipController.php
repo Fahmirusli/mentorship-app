@@ -63,9 +63,7 @@ class MentorshipController extends Controller
             'status' => 'pending',
         ]);
 
-        // Send Telegram notification with Accept/Reject buttons
-        $telegram = app(\App\Services\TelegramNotificationService::class);
-        $telegram->notifyNewMentorshipRequest($mentorship->load(['mentor', 'mentee']));
+
 
         return response()->json([
             'message' => 'Mentorship request created successfully',
@@ -109,24 +107,7 @@ class MentorshipController extends Controller
 
         $mentorship->update($validated);
 
-        // Send status update notification to mentee
-        if (isset($validated['status'])) {
-            $telegram = app(\App\Services\TelegramNotificationService::class);
-            
-            if ($validated['status'] === 'active') {
-                $telegram->sendToUser($mentorship->mentee, 
-                    "🎉 <b>Mentorship Request Accepted!</b>\n\n" .
-                    "Mentor {$mentorship->mentor->name} has accepted your request.\n" .
-                    "You can now schedule sessions together!"
-                );
-            } elseif ($validated['status'] === 'rejected' || $validated['status'] === 'cancelled') {
-                $telegram->sendToUser($mentorship->mentee,
-                    "😔 <b>Mentorship Request Update</b>\n\n" .
-                    "Your request with {$mentorship->mentor->name} has been " . $validated['status'] . ".\n" .
-                    "Feel free to explore other mentors on the platform."
-                );
-            }
-        }
+
 
         // Update mentor's total_mentees count if status changed to active
         if (isset($validated['status']) && $validated['status'] === 'active') {
