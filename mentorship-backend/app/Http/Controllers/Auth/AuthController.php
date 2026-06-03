@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\ResendMailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -38,17 +37,11 @@ class AuthController extends Controller
             'email_verified_at' => null
         ]);
 
-        // Send TAC via email
-        try {
-            $mailService = app(ResendMailService::class);
-            $mailService->send(
-                $request->email,
-                'Email Verification - Uplift Mentorship',
-                "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
-            );
-        } catch (\Exception $e) {
-            Log::error('Failed to send verification email: ' . $e->getMessage());
-        }
+        $this->sendTacEmail(
+            $request->email,
+            'Email Verification - Uplift Mentorship',
+            "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
+        );
 
         return response()->json([
             'message' => 'Registration successful! Please check your email for verification code.',
@@ -144,17 +137,11 @@ class AuthController extends Controller
         // Store TAC in cache for 10 minutes
         Cache::put("password_reset_{$request->email}", $tac, now()->addMinutes(10));
 
-        // Send TAC via email
-        try {
-            $mailService = app(ResendMailService::class);
-            $mailService->send(
-                $request->email,
-                'Password Reset - Uplift Mentorship',
-                "Your password reset code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
-            );
-        } catch (\Exception $e) {
-            Log::error('Failed to send reset email: ' . $e->getMessage());
-        }
+        $this->sendTacEmail(
+            $request->email,
+            'Password Reset - Uplift Mentorship',
+            "Your password reset code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+        );
 
         return response()->json([
             'message' => 'Password reset code sent to your email'
@@ -219,6 +206,56 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Password reset successfully'
         ]);
+    }
+
+    public function resendVerification(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Email is already verified'
+            ], 400);
+        }
+
+        $tac = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        Cache::put("email_verification_{$request->email}", $tac, now()->addMinutes(10));
+
+        $this->sendTacEmail(
+            $request->email,
+            'Email Verification - Uplift Mentorship',
+            "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
+        );
+
+        return response()->json([
+            'message' => 'Verification code resent'
+        ]);
+    }
+
+    private function sendTacEmail(string $to, string $subject, string $message): void
+    {
+        try {
+            Log::info('Attempting to send TAC email to: ' . $to);
+            Mail::raw($message, function ($mail) use ($to, $subject) {
+                $mail->to($to)
+                    ->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'))
+                    ->subject($subject);
+            });
+            Log::info('TAC email sent successfully to: ' . $to);
+        } catch (\Exception $e) {
+            Log::error('Failed to send email to ' . $to . ': ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+        }
     }
 
     public function logout(Request $request)
