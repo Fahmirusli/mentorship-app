@@ -35,11 +35,18 @@ Route::post('/login', function (Illuminate\Http\Request $request) {
 
     if (Auth::attempt($credentials, $request->filled('remember'))) {
         $request->session()->regenerate();
-        
+
         if (auth()->user()->role === 'admin') {
             return redirect()->intended('/admin/dashboard');
         }
-        return redirect()->intended('/home');
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return back()->withErrors([
+            'email' => 'This login is for admins only.'
+        ])->onlyInput('email');
     }
 
     return back()->withErrors([
