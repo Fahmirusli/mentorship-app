@@ -64,6 +64,12 @@ class JobScraperService
     {
         $apiKey = config('services.rapidapi.key');
         $apiHost = config('services.rapidapi.host', 'jsearch.p.rapidapi.com');
+        $allowedSources = config('services.rapidapi.allowed_sources', [
+            'linkedin',
+            'jobstreet',
+            'maukerja',
+        ]);
+        $allowedSources = array_map('strtolower', $allowedSources);
 
         if (!$apiKey) {
             Log::warning('RAPIDAPI_KEY is not configured.');
@@ -92,6 +98,13 @@ class JobScraperService
         $jobs = [];
 
         foreach ($items as $item) {
+            $sourceRaw = $item['job_publisher'] ?? ($item['job_board'] ?? 'RapidAPI');
+            $sourceNormalized = strtolower(preg_replace('/\s+/', '', $sourceRaw));
+
+            if (!in_array($sourceNormalized, $allowedSources, true)) {
+                continue;
+            }
+
             $jobs[] = [
                 'title' => $item['job_title'] ?? 'Untitled',
                 'company' => $item['employer_name'] ?? 'Unknown',
@@ -99,7 +112,7 @@ class JobScraperService
                 'description' => $item['job_description'] ?? '',
                 'requirements' => $item['job_required_skills'] ?? [],
                 'salary' => $item['job_salary_currency'] ?? null,
-                'source' => $item['job_publisher'] ?? ($item['job_board'] ?? 'RapidAPI'),
+                'source' => $sourceRaw,
                 'external_url' => $item['job_apply_link'] ?? ($item['job_apply_is_direct'] ? ($item['job_apply_link'] ?? '') : ($item['job_google_link'] ?? '')),
             ];
         }
