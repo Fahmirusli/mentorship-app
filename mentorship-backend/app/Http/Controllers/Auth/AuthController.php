@@ -95,8 +95,12 @@ class AuthController extends Controller
         Cache::forget("email_verification_{$request->email}");
         Cache::forget("pending_registration_{$request->email}");
 
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Email verified successfully!'
+            'message' => 'Email verified successfully!',
+            'token' => $token,
+            'user' => $user
         ]);
     }
 
