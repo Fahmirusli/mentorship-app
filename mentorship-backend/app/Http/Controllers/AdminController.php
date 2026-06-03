@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Job;
 use App\Models\Mentorship;
+use App\Models\JobScrapeSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -189,7 +190,34 @@ class AdminController extends Controller
                 ->groupBy('source')
                 ->get()
         ];
-        return view('admin.jobs', compact('jobs', 'jobStats'));
+
+        $schedule = JobScrapeSchedule::first();
+
+        return view('admin.jobs', compact('jobs', 'jobStats', 'schedule'));
+    }
+
+    public function updateScrapeSchedule(Request $request)
+    {
+        $validated = $request->validate([
+            'run_time' => 'required|date_format:H:i',
+            'keyword' => 'nullable|string|max:255',
+            'enabled' => 'sometimes|boolean',
+        ]);
+
+        $schedule = JobScrapeSchedule::first();
+
+        if (!$schedule) {
+            $schedule = new JobScrapeSchedule();
+        }
+
+        $schedule->run_time = $validated['run_time'];
+        $schedule->timezone = 'Asia/Kuala_Lumpur';
+        $schedule->keyword = $validated['keyword'] ?? null;
+        $schedule->enabled = (bool)($validated['enabled'] ?? false);
+        $schedule->updated_by = Auth::id();
+        $schedule->save();
+
+        return back()->with('success', 'Scrape schedule updated.');
     }
 
     public function toggleVisibility($id)

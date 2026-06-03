@@ -7,19 +7,17 @@ use App\Services\JobScraperService;
 
 class ScrapeJobs extends Command
 {
-    protected $signature = 'jobs:scrape';
-    protected $description = 'Scrape jobs from JobStreet, LinkedIn, and Hiredly';
+    protected $signature = 'jobs:scrape {--keyword=Software Engineer}';
+    protected $description = 'Fetch jobs from RapidAPI JSearch';
 
     public function handle(JobScraperService $scraper)
     {
         $this->info('Starting job scraping...');
-        
-        $results = $scraper->scrapeAll();
-        
+
+        $keyword = $this->option('keyword');
+        $results = $scraper->scrapeAll($keyword);
+
         $this->info("Scraped {$results['total']} jobs");
-        $this->info("JobStreet: " . ($results['jobstreet'] ?? 0));
-        $this->info("LinkedIn: " . ($results['linkedin'] ?? 0));
-        $this->info("Hiredly: " . ($results['hiredly'] ?? 0));
         
         return 0;
     }

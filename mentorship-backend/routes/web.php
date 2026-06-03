@@ -85,6 +85,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::post('/jobs', [AdminController::class, 'storeJob'])->name('admin.jobs.store');
     Route::put('/jobs/{id}', [AdminController::class, 'updateJob'])->name('admin.jobs.update');
     Route::delete('/jobs/{id}', [AdminController::class, 'deleteJob'])->name('admin.jobs.delete');
+    Route::post('/jobs/schedule', [AdminController::class, 'updateScrapeSchedule'])->name('admin.jobs.schedule');
     
     Route::get('/revenue', [AdminController::class, 'revenue'])->name('admin.revenue');
     Route::post('/jobs/scrape', [AdminController::class, 'scrapeJobs'])->name('admin.jobs.scrape');

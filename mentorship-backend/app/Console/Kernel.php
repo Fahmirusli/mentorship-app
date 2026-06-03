@@ -9,16 +9,15 @@ class Kernel extends ConsoleKernel
 {
     protected $commands = [
         \App\Console\Commands\ScrapeJobs::class,
+        \App\Console\Commands\ScrapeScheduledJobs::class,
     ];
 
 
     protected function schedule(Schedule $schedule)
     {
-        // Run job scraping every night at 2 AM
-        $schedule->command('jobs:scrape')
-                 ->dailyAt('02:00')
-                 ->timezone('Asia/Kuala_Lumpur')
-                 ->emailOutputOnFailure('admin@example.com'); // Change to your email
+        $schedule->command('jobs:scrape-scheduled')
+            ->everyMinute()
+            ->emailOutputOnFailure('admin@example.com');
         
 
     }

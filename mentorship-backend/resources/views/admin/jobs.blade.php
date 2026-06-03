@@ -16,6 +16,51 @@
             <button class="btn btn-secondary" onclick="openScrapeModal()">
                 <span>🕷️</span> + Start New Scraper Job
             </button>
+            <button class="btn btn-secondary" onclick="openScheduleModal()">
+                <span>⏰</span> Schedule Scraper
+            </button>
+        </div>
+    </div>
+
+    <div class="content-card" style="margin-bottom: 24px;">
+        <div class="card-header" style="justify-content: space-between; align-items: center;">
+            <div>
+                <h3 class="card-title">Scrape Schedule</h3>
+                <p style="color: var(--text-secondary); font-size: 13px;">Timezone: Asia/Kuala_Lumpur</p>
+            </div>
+            <div>
+                @if($schedule && $schedule->enabled)
+                    <span class="badge" style="background: rgba(72, 187, 120, 0.1); color: #48bb78;">Enabled</span>
+                @else
+                    <span class="badge" style="background: rgba(160, 174, 192, 0.1); color: #a0aec0;">Disabled</span>
+                @endif
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Next Run Time</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
+                    {{ $schedule?->run_time ?? 'Not set' }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Keyword</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
+                    {{ $schedule?->keyword ?? 'Software Engineer' }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Last Run</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
+                    {{ $schedule?->last_run_at ? $schedule->last_run_at->format('M j, Y H:i') : 'Not yet' }}
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-secondary);">Last Status</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
+                    {{ $schedule?->last_run_status ?? 'N/A' }}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -220,6 +265,32 @@
     </div>
 </div>
 
+<!-- Schedule Scrape Modal -->
+<div id="scheduleModal" class="modal-backdrop">
+    <div class="modal-content">
+        <h3 style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">Schedule Job Scraper</h3>
+        <form action="{{ route('admin.jobs.schedule') }}" method="POST">
+            @csrf
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px;">Run Time (24h)</label>
+                <input type="time" name="run_time" required class="form-input" value="{{ $schedule?->run_time ?? '02:00' }}">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px;">Keyword</label>
+                <input type="text" name="keyword" class="form-input" placeholder="Software Engineer" value="{{ $schedule?->keyword ?? '' }}">
+            </div>
+            <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="scheduleEnabled" name="enabled" value="1" {{ $schedule && $schedule->enabled ? 'checked' : '' }}>
+                <label for="scheduleEnabled" style="font-size: 13px; font-weight: 600;">Enable schedule</label>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeModal('scheduleModal')" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
     </div>
 </div>
 
@@ -273,7 +344,7 @@
                 <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Target Keyword</label>
                 <input type="text" name="keyword" class="form-input" placeholder="e.g. 'Data Analyst' or 'React Developer'" required autofocus>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                    This will search LinkedIn, Hiredly, and Indeed for the specified role.
+                    This will fetch jobs from RapidAPI JSearch for the specified role.
                 </p>
             </div>
             
@@ -348,6 +419,10 @@ td { color: var(--text-primary); font-size: 14px; }
 <script>
     function openCreateModal() {
         document.getElementById('createModal').classList.add('modal-open');
+    }
+
+    function openScheduleModal() {
+        document.getElementById('scheduleModal').classList.add('modal-open');
     }
 
     function openEditModal(id, title, company, location, salary, isActive) {

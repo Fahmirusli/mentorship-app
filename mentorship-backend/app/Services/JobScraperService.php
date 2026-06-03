@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Job;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -13,19 +12,10 @@ class JobScraperService
     {
         $results = ['total' => 0];
 
-        Log::info("Triggering Python scraper for keyword: $keyword");
-        $jobs = $this->runPythonScraper($keyword);
+        $jobs = $this->fetchRapidApiJobs($keyword);
 
         if (empty($jobs)) {
-            Log::warning('Python scraper returned no jobs. Falling back to mock data generator.');
-            // Fallback to mock data for demo purposes if scraper is blocked/fails
-            $this->seedMockData('JobStreet');
-            $this->seedMockData('LinkedIn');
-            $this->seedMockData('MauKerja');
-            
-            $results['total'] += 15; // 5 from each
-            $results['mock_data_generated'] = true;
-            
+            Log::warning('RapidAPI returned no jobs or is not configured.');
             return $results;
         }
 
@@ -70,43 +60,52 @@ class JobScraperService
         return $results;
     }
 
-    private function runPythonScraper($keyword = 'Software Engineer')
+    private function fetchRapidApiJobs(string $keyword): array
     {
-        set_time_limit(300); // Increase execution time to 5 minutes
-        $scriptPath = base_path('scripts/scrape_jobs.py');
-        $outputPath = storage_path('app/scraped_jobs.json');
-        
-        // Ensure previous file is gone
-        if (file_exists($outputPath)) {
-            unlink($outputPath);
+        $apiKey = config('services.rapidapi.key');
+        $apiHost = config('services.rapidapi.host', 'jsearch.p.rapidapi.com');
+
+        if (!$apiKey) {
+            Log::warning('RAPIDAPI_KEY is not configured.');
+            return [];
         }
 
-        // Run script with keyword argument
-        $escapedKeyword = escapeshellarg($keyword);
-        $cmd = "python \"{$scriptPath}\" --keyword {$escapedKeyword} 2>&1";
-        
-        Log::info("Executing scraper: $cmd");
-        $output = shell_exec($cmd);
-        Log::info("Scraper console output: " . substr($output, 0, 500) . "..."); // Log first 500 chars
+        $endpoint = "https://{$apiHost}/search";
 
-        if (file_exists($outputPath)) {
-            $jsonContent = file_get_contents($outputPath);
-            $decoded = json_decode($jsonContent, true);
-            
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
-            
-            Log::error("JSON Decode Error from file: " . json_last_error_msg());
-        } else {
-            Log::error("Scraper failed to generate output file: $outputPath");
+        $response = \Illuminate\Support\Facades\Http::withHeaders([
+            'X-RapidAPI-Key' => $apiKey,
+            'X-RapidAPI-Host' => $apiHost,
+        ])->get($endpoint, [
+            'query' => $keyword,
+            'page' => 1,
+            'num_pages' => 1,
+            'date_posted' => 'week',
+        ]);
+
+        if (!$response->ok()) {
+            Log::error('RapidAPI request failed: ' . $response->status());
+            return [];
         }
 
-        return [];
+        $payload = $response->json();
+        $items = $payload['data'] ?? [];
+        $jobs = [];
+
+        foreach ($items as $item) {
+            $jobs[] = [
+                'title' => $item['job_title'] ?? 'Untitled',
+                'company' => $item['employer_name'] ?? 'Unknown',
+                'location' => $item['job_city'] ?? ($item['job_country'] ?? 'Remote'),
+                'description' => $item['job_description'] ?? '',
+                'requirements' => $item['job_required_skills'] ?? [],
+                'salary' => $item['job_salary_currency'] ?? null,
+                'source' => $item['job_publisher'] ?? ($item['job_board'] ?? 'RapidAPI'),
+                'external_url' => $item['job_apply_link'] ?? ($item['job_apply_is_direct'] ? ($item['job_apply_link'] ?? '') : ($item['job_google_link'] ?? '')),
+            ];
+        }
+
+        return $jobs;
     }
-
-    // Removed legacy method implementations (scrapeWeWorkRemotely, scrapeJobStreet, etc)
-    // to strictly rely on the Python script as requested.
 
 
     private function extractSkills($text)

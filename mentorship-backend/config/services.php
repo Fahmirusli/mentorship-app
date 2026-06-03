@@ -43,4 +43,9 @@ return [
         'redirect' => env('APP_URL') . '/api/auth/github/callback',
     ],
 
+    'rapidapi' => [
+        'key' => env('RAPIDAPI_KEY'),
+        'host' => env('RAPIDAPI_HOST', 'jsearch.p.rapidapi.com'),
+    ],
+
 ];
