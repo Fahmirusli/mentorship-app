@@ -18,7 +18,13 @@ class AppConfig {
   // For REAL PHONE (same WiFi): Use your PC's IP address
   // For Android EMULATOR: Change to 'http://10.0.2.2:8000/api'
   // For PRODUCTION: Change to 'https://your-domain.com/api'
-  static const String apiBaseUrl = 'http://192.168.0.95:8000/api';
+  static const String apiBaseUrl = 'https://api.uplifts.dev/api';
+  static const String apiRootUrl = 'https://api.uplifts.dev';
+
+  // OAuth redirect settings (mobile deep link)
+  static const String oauthRedirectScheme = 'uplifts';
+  static const String oauthRedirectPath = 'oauth';
+  static String get oauthRedirectUri => '$oauthRedirectScheme://$oauthRedirectPath';
 
   // App-wide constants
   static const String appName = 'MentorCore';

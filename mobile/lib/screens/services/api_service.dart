@@ -2,12 +2,22 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config.dart';
 
 
 class ApiService {
   static String get baseUrl => AppConfig.apiBaseUrl;
   static Duration get _timeout => Duration(seconds: AppConfig.httpTimeoutSeconds);
+
+  // OAuth (Google/GitHub) - opens external browser for authentication
+  static Future<bool> startOAuth(String provider, {String? role}) async {
+    final redirect = Uri.encodeComponent(AppConfig.oauthRedirectUri);
+    final roleQuery = role != null ? '&role=${Uri.encodeComponent(role)}' : '';
+    final url = '${AppConfig.apiRootUrl}/api/auth/$provider?redirect=$redirect$roleQuery';
+
+    return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
 
   // 1. LOGIN FUNCTION
   static Future<Map<String, dynamic>> login(String email, String password) async {

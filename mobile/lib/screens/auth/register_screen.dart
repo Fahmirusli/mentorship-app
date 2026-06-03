@@ -224,7 +224,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _socialButton(String platform, Color color, IconData icon) {
     return InkWell(
-      onTap: () { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connecting to $platform API..."))); },
+      onTap: () {
+        final provider = platform.toLowerCase();
+        ApiService.startOAuth(provider, role: _selectedRole).then((opened) {
+          if (!opened) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Unable to open $platform login.")),
+            );
+          }
+        });
+      },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
