@@ -24,18 +24,19 @@ class AuthController extends Controller
 
         // Generate 6-digit TAC
         $tac = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-        
-        // Store TAC in cache for 10 minutes
+
+        // Store pending registration data and TAC for 10 minutes
+        Cache::put(
+            "pending_registration_{$request->email}",
+            [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => $request->role
+            ],
+            now()->addMinutes(10)
+        );
         Cache::put("email_verification_{$request->email}", $tac, now()->addMinutes(10));
-        
-        // Create user but mark as unverified
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-            'email_verified_at' => null
-        ]);
 
         $this->sendTacEmail(
             $request->email,
@@ -70,22 +71,33 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Verify user
         $user = User::where('email', $request->email)->first();
-        if ($user) {
+        if (!$user) {
+            $pending = Cache::get("pending_registration_{$request->email}");
+            if (!$pending) {
+                return response()->json([
+                    'message' => 'Registration expired. Please register again.'
+                ], 400);
+            }
+
+            $user = User::create([
+                'name' => $pending['name'],
+                'email' => $pending['email'],
+                'password' => $pending['password'],
+                'role' => $pending['role'],
+                'email_verified_at' => now()
+            ]);
+        } else {
             $user->email_verified_at = now();
             $user->save();
-            
-            Cache::forget("email_verification_{$request->email}");
-            
-            return response()->json([
-                'message' => 'Email verified successfully!'
-            ]);
         }
 
+        Cache::forget("email_verification_{$request->email}");
+        Cache::forget("pending_registration_{$request->email}");
+
         return response()->json([
-            'message' => 'User not found.'
-        ], 404);
+            'message' => 'Email verified successfully!'
+        ]);
     }
 
     public function login(Request $request)
@@ -217,12 +229,15 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return response()->json([
-                'message' => 'User not found'
-            ], 404);
+            $pending = Cache::get("pending_registration_{$request->email}");
+            if (!$pending) {
+                return response()->json([
+                    'message' => 'No pending registration found.'
+                ], 404);
+            }
         }
 
-        if ($user->email_verified_at) {
+        if ($user && $user->email_verified_at) {
             return response()->json([
                 'message' => 'Email is already verified'
             ], 400);
@@ -230,6 +245,11 @@ class AuthController extends Controller
 
         $tac = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         Cache::put("email_verification_{$request->email}", $tac, now()->addMinutes(10));
+
+        $pending = Cache::get("pending_registration_{$request->email}");
+        if ($pending) {
+            Cache::put("pending_registration_{$request->email}", $pending, now()->addMinutes(10));
+        }
 
         $this->sendTacEmail(
             $request->email,
