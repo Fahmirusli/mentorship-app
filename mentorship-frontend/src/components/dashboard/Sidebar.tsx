@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { authService } from '@/lib/auth';
+import { api } from '@/lib/api';
 import { Logo } from '@/components/Logo';
 
 export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
@@ -20,6 +21,27 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
+
+    // Fetch latest user data so navbar reflects profile updates without re-login.
+    api.get('/user')
+      .then((freshUser) => {
+        setUser((prev: any) => ({ ...prev, ...freshUser }));
+      })
+      .catch((error) => {
+        console.error('Failed to refresh user for navbar', error);
+      });
+
+    const handleProfileImageUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ imageUrl?: string }>;
+      if (customEvent.detail?.imageUrl) {
+        setUser((prev: any) => ({ ...prev, profile_image: customEvent.detail.imageUrl }));
+      }
+    };
+
+    window.addEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
+    return () => {
+      window.removeEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
+    };
   }, []);
 
   const menteeLinks = [
@@ -125,7 +147,15 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer ml-2"
               >
                 <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
+                  {user?.profile_image ? (
+                    <img
+                      src={user.profile_image}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-4 h-4 text-white" />
+                  )}
                 </div>
                 <div className="hidden lg:block">
                   <p className="text-xs font-semibold text-white">

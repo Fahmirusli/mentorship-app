@@ -175,6 +175,11 @@ export default function MenteeProfile() {
                                         try {
                                             const res = await api.post('/user/profile-image', formData);
                                             setImage(res.image_url);
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new CustomEvent('profile-image-updated', {
+                                                    detail: { imageUrl: res.image_url }
+                                                }));
+                                            }
                                         } catch (err) {
                                             console.error(err);
                                             alert('Failed to upload image');
