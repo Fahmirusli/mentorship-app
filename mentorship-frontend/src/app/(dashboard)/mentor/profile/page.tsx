@@ -57,7 +57,13 @@ export default function MentorProfile() {
                 is_available: mentorProfile.is_available ?? true
             });
             setImage(response.profile_image || null);
-            setResumeUrl(response.resume_path ? `${(process.env.NEXT_PUBLIC_API_BASE_URL || '').replace('/api', '')}/storage/${response.resume_path}` : null);
+            if (response.resume_path) {
+                const resumeValue = String(response.resume_path);
+                const appBase = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace('/api', '');
+                setResumeUrl(resumeValue.startsWith('data:') ? resumeValue : `${appBase}/storage/${resumeValue}`);
+            } else {
+                setResumeUrl(null);
+            }
         } catch (error) {
             console.error('Error fetching profile:', error);
         } finally {

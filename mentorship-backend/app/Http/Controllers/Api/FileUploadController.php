@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class FileUploadController extends Controller
 {
@@ -21,20 +20,10 @@ class FileUploadController extends Controller
         /** @var User $user */
         $user = User::find(auth()->id());
 
-        // Delete old image if exists
-        if ($user->profile_image) {
-            $oldPath = str_replace('/storage/', '', $user->profile_image);
-            $oldPath = str_replace(config('app.url') . '/storage/', '', $oldPath);
-            if (Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
-
-        // Store new image
-        $path = $request->file('image')->store('profiles', 'public');
-        
-        // Generate full URL
-        $url = asset('storage/' . $path);
+        $file = $request->file('image');
+        $mime = $file->getMimeType() ?: 'image/jpeg';
+        $contents = base64_encode(file_get_contents($file->getRealPath()));
+        $url = "data:{$mime};base64,{$contents}";
 
         // Update user
         $user->profile_image = $url;
@@ -43,7 +32,7 @@ class FileUploadController extends Controller
         return response()->json([
             'message' => 'Profile image uploaded successfully',
             'image_url' => $url,
-            'path' => $path
+            'stored_in' => 'database'
         ]);
     }
 
@@ -59,20 +48,20 @@ class FileUploadController extends Controller
         /** @var User $user */
         $user = User::find(auth()->id());
 
-        // Store resume
-        $path = $request->file('resume')->store('resumes', 'public');
+        $file = $request->file('resume');
+        $mime = $file->getMimeType() ?: 'application/octet-stream';
+        $contents = base64_encode(file_get_contents($file->getRealPath()));
+        $dataUrl = "data:{$mime};base64,{$contents}";
 
-        // Extract skills from filename or metadata if possible
-        // For now, just store the path
-        
         $user->update([
-            'resume_path' => $path
+            'resume_path' => $dataUrl
         ]);
 
         return response()->json([
             'message' => 'Resume uploaded successfully',
-            'resume_url' => asset('storage/' . $path),
-            'resume_path' => $path
+            'resume_url' => $dataUrl,
+            'resume_path' => $dataUrl,
+            'stored_in' => 'database'
         ]);
     }
 

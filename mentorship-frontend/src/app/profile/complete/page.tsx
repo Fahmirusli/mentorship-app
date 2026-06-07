@@ -50,8 +50,9 @@ export default function CompleteProfilePage() {
         skills: Array.isArray(user.skills) ? user.skills : [],
       });
       if (user.resume_path) {
+        const resumeValue = String(user.resume_path);
         const appBase = (process.env.NEXT_PUBLIC_API_BASE_URL || '').replace('/api', '');
-        setResumeUrl(`${appBase}/storage/${user.resume_path}`);
+        setResumeUrl(resumeValue.startsWith('data:') ? resumeValue : `${appBase}/storage/${resumeValue}`);
       }
       if (user.profile_complete) {
         goDashboard(user.role || role);

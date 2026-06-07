@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\MentorProfile;
 use App\Models\MenteeProfile;
@@ -77,20 +76,10 @@ class ProfileController extends Controller
 
         $user = $request->user();
 
-        // Delete old image if exists
-        if ($user->profile_image) {
-            $oldPath = str_replace('/storage/', '', $user->profile_image);
-            $oldPath = str_replace(config('app.url') . '/storage/', '', $oldPath);
-            if (Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
-
-        // Store new image
-        $path = $request->file('image')->store('profiles', 'public');
-        
-        // Generate full URL
-        $url = asset('storage/' . $path);
+        $file = $request->file('image');
+        $mime = $file->getMimeType() ?: 'image/jpeg';
+        $contents = base64_encode(file_get_contents($file->getRealPath()));
+        $url = "data:{$mime};base64,{$contents}";
         
         $user->profile_image = $url;
         $user->save();
@@ -98,7 +87,7 @@ class ProfileController extends Controller
         return response()->json([
             'message' => 'Profile image uploaded successfully',
             'image_url' => $url,
-            'path' => $path
+            'stored_in' => 'database'
         ]);
     }
 
