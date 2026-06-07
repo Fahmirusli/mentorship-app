@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Briefcase, Save, Loader } from 'lucide-react';
 import { api } from '@/lib/api';
-import { authService } from '@/lib/auth';
 
 export default function MenteeProfile() {
     const [loading, setLoading] = useState(true);
@@ -16,6 +15,7 @@ export default function MenteeProfile() {
         phone: '',
         bio: '',
         location: '',
+        skills: [] as string[],
         current_skills: [] as string[],
         skills_to_learn: [] as string[],
         career_goals: '',
@@ -23,7 +23,10 @@ export default function MenteeProfile() {
         field_of_study: ''
     });
     const [newSkill, setNewSkill] = useState('');
+    const [newCurrentSkill, setNewCurrentSkill] = useState('');
     const [newSkillToLearn, setNewSkillToLearn] = useState('');
+    const [uploadingResume, setUploadingResume] = useState(false);
+    const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -31,22 +34,25 @@ export default function MenteeProfile() {
 
     const fetchProfile = async () => {
         try {
-            const user = authService.getCurrentUser();
             const response = await api.get('/user');
+            const menteeProfile = response.mentee_profile || response.menteeProfile || {};
+            const sharedSkills = Array.isArray(response.skills) ? response.skills : [];
 
             setProfile({
                 name: response.name || '',
                 email: response.email || '',
                 phone: response.phone || '',
                 bio: response.bio || '',
-                location: '',
-                current_skills: response.mentee_profile?.current_skills || [],
-                skills_to_learn: response.mentee_profile?.skills_to_learn || [],
-                career_goals: response.mentee_profile?.career_goals || '',
-                education_level: response.mentee_profile?.education_level || '',
-                field_of_study: response.mentee_profile?.field_of_study || ''
+                location: response.address || '',
+                skills: sharedSkills,
+                current_skills: menteeProfile.current_skills || [],
+                skills_to_learn: menteeProfile.skills_to_learn || [],
+                career_goals: menteeProfile.career_goals || '',
+                education_level: menteeProfile.education_level || '',
+                field_of_study: menteeProfile.field_of_study || ''
             });
             setImage(response.profile_image || null);
+            setResumeUrl(response.resume_path ? `${(process.env.NEXT_PUBLIC_API_BASE_URL || '').replace('/api', '')}/storage/${response.resume_path}` : null);
         } catch (error) {
             console.error('Error fetching profile:', error);
         } finally {
@@ -60,7 +66,9 @@ export default function MenteeProfile() {
             await api.put('/user/profile', {
                 name: profile.name,
                 phone: profile.phone,
-                bio: profile.bio
+                address: profile.location,
+                bio: profile.bio,
+                skills: profile.skills
             });
 
             await api.put('/mentees/profile', {
@@ -81,14 +89,25 @@ export default function MenteeProfile() {
     };
 
     const addSkill = () => {
-        if (newSkill && !profile.current_skills.includes(newSkill)) {
-            setProfile({ ...profile, current_skills: [...profile.current_skills, newSkill] });
-            setNewSkill('');
+        if (newCurrentSkill && !profile.current_skills.includes(newCurrentSkill)) {
+            setProfile({ ...profile, current_skills: [...profile.current_skills, newCurrentSkill] });
+            setNewCurrentSkill('');
         }
     };
 
     const removeSkill = (skill: string) => {
         setProfile({ ...profile, current_skills: profile.current_skills.filter(s => s !== skill) });
+    };
+
+    const addSharedSkill = () => {
+        if (newSkill && !profile.skills.includes(newSkill)) {
+            setProfile({ ...profile, skills: [...profile.skills, newSkill] });
+            setNewSkill('');
+        }
+    };
+
+    const removeSharedSkill = (skill: string) => {
+        setProfile({ ...profile, skills: profile.skills.filter(s => s !== skill) });
     };
 
     const addSkillToLearn = () => {
@@ -272,19 +291,19 @@ export default function MenteeProfile() {
 
                     {/* Skills */}
                     <div className="space-y-6 mb-8 pb-8 border-b">
-                        <h2 className="text-xl font-semibold text-gray-900">Current Skills</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Skills</h2>
 
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={newSkill}
                                 onChange={(e) => setNewSkill(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                onKeyPress={(e) => e.key === 'Enter' && addSharedSkill()}
                                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 placeholder="Add a skill (e.g., React, Python)"
                             />
                             <button
-                                onClick={addSkill}
+                                onClick={addSharedSkill}
                                 className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                             >
                                 Add
@@ -292,18 +311,49 @@ export default function MenteeProfile() {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            {profile.current_skills.map((skill, index) => (
+                            {profile.skills.map((skill, index) => (
                                 <span
                                     key={index}
                                     className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center gap-2"
                                 >
                                     {skill}
                                     <button
-                                        onClick={() => removeSkill(skill)}
+                                        onClick={() => removeSharedSkill(skill)}
                                         className="text-indigo-500 hover:text-indigo-700"
                                     >
                                         ×
                                     </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8 pb-8 border-b">
+                        <h2 className="text-xl font-semibold text-gray-900">Current Skills Detail</h2>
+                        <p className="text-sm text-gray-500">Use this section to add technical skills you already practice for matching.</p>
+
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newCurrentSkill}
+                                onChange={(e) => setNewCurrentSkill(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Add current technical skill"
+                            />
+                            <button
+                                onClick={addSkill}
+                                className="px-6 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {profile.current_skills.map((skill, index) => (
+                                <span key={index} className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm flex items-center gap-2">
+                                    {skill}
+                                    <button onClick={() => removeSkill(skill)} className="text-violet-500 hover:text-violet-700">×</button>
                                 </span>
                             ))}
                         </div>
@@ -358,6 +408,41 @@ export default function MenteeProfile() {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                             placeholder="What are your career goals?"
                         />
+                    </div>
+
+                    <div className="space-y-4 mb-8 pb-8 border-b">
+                        <h2 className="text-xl font-semibold text-gray-900">Resume</h2>
+                        <div className="flex items-center gap-4">
+                            <label className="px-4 py-2 bg-gray-900 text-white rounded-lg cursor-pointer hover:bg-black">
+                                {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,.doc,.docx"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setUploadingResume(true);
+                                        const formData = new FormData();
+                                        formData.append('resume', file);
+                                        try {
+                                            const res = await api.post('/upload/resume', formData);
+                                            setResumeUrl(res.resume_url || null);
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert('Failed to upload resume');
+                                        } finally {
+                                            setUploadingResume(false);
+                                        }
+                                    }}
+                                />
+                            </label>
+                            {resumeUrl && (
+                                <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                                    View current resume
+                                </a>
+                            )}
+                        </div>
                     </div>
 
                     {/* Save Button */}

@@ -32,6 +32,11 @@ export default function Login() {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
 
+                if (data.profile_incomplete) {
+                    router.push('/profile/complete');
+                    return;
+                }
+
                 // Redirect based on role
                 if (data.user.role === 'mentor') {
                     router.push('/mentor/dashboard');

@@ -44,7 +44,11 @@ Route::get('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'show']
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
-        return $request->user()->load(['mentorProfile', 'menteeProfile']);
+        $user = $request->user()->load(['mentorProfile', 'menteeProfile']);
+        return array_merge($user->toArray(), [
+            'profile_complete' => $user->isProfileComplete(),
+            'profile_incomplete' => !$user->isProfileComplete(),
+        ]);
     });
 
     Route::get('/mentee/dashboard', [\App\Http\Controllers\Api\MenteeDashboardController::class, 'getDashboardData']);
@@ -98,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Profile Routes
     Route::put('/user/profile', [App\Http\Controllers\Api\ProfileController::class, 'update']);
     Route::put('/mentors/profile', [App\Http\Controllers\Api\ProfileController::class, 'updateMentor']);
+    Route::put('/mentees/profile', [App\Http\Controllers\Api\MenteeController::class, 'updateProfile']);
     Route::post('/user/profile-image', [App\Http\Controllers\Api\ProfileController::class, 'uploadImage']);
     Route::post('/profile/complete', [App\Http\Controllers\Api\ProfileController::class, 'completeProfile']);
     Route::post('/user/location', [App\Http\Controllers\Api\AuthController::class, 'updateLocation']);

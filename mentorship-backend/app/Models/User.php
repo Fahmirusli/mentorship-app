@@ -17,10 +17,12 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
+        'address',
         'bio',
         'skills',
         'interests',
         'profile_image',
+        'resume_path',
         'is_active',
         'is_verified',
         'verified_at',
@@ -106,5 +108,45 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    public function isProfileComplete(): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $hasBase = !empty($this->name)
+            && !empty($this->phone)
+            && !empty($this->bio)
+            && !empty($this->address);
+
+        if (!$hasBase) {
+            return false;
+        }
+
+        if ($this->isMentor()) {
+            $skills = is_array($this->skills) ? $this->skills : [];
+            return count($skills) > 0;
+        }
+
+        if ($this->isMentee()) {
+            $skills = is_array($this->skills) ? $this->skills : [];
+            if (count($skills) > 0) {
+                return true;
+            }
+
+            $profile = $this->menteeProfile;
+            if (!$profile) {
+                return false;
+            }
+
+            $currentSkills = is_array($profile->current_skills) ? $profile->current_skills : [];
+            $targetSkills = is_array($profile->skills_to_learn) ? $profile->skills_to_learn : [];
+
+            return count($currentSkills) > 0 || count($targetSkills) > 0;
+        }
+
+        return true;
     }
 }

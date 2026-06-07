@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../services/api_service.dart';
+import '../shared/profile_menu_screens.dart';
 
 class LoginPage extends StatefulWidget {
   final Function(int) onLogin;
@@ -39,6 +40,19 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return; // Safety check
 
     if (result['success'] == true) {
+      if (result['profile_incomplete'] == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => EditProfileScreen(
+              requireCompletion: true,
+              roleAfterCompletion: result['role'] ?? 1,
+            ),
+          ),
+          (route) => false,
+        );
+        return;
+      }
+
       // It worked! Laravel accepted it. Route to the correct dashboard based on role.
       widget.onLogin(result['role']);
     } else {

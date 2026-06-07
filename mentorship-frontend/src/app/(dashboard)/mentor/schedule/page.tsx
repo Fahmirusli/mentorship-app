@@ -6,11 +6,24 @@ import { api } from '@/lib/api';
 
 interface TimeSlot {
     id?: number;
-    date: string; // Changed from day_of_week to specific date YYYY-MM-DD
+    date: string;
     start_time: string;
     end_time: string;
     is_available: boolean;
+    fee: number;
 }
+
+const toDateInputValue = (value?: string) => {
+    if (!value) return '';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return parsed.toISOString().slice(0, 10);
+};
+
+const toTimeInputValue = (value?: string) => {
+    if (!value) return '';
+    return value.slice(0, 5);
+};
 
 export default function MentorSchedule() {
     const [loading, setLoading] = useState(true);
@@ -19,7 +32,8 @@ export default function MentorSchedule() {
         date: new Date().toISOString().split('T')[0],
         start_time: '09:00',
         end_time: '17:00',
-        is_available: true
+        is_available: true,
+        fee: 50,
     });
 
     useEffect(() => {
@@ -28,13 +42,18 @@ export default function MentorSchedule() {
 
     const fetchSchedule = async () => {
         try {
-            const user = await api.get('/user');
-            // Fetch schedules for this mentor
-            // Note: backend needs to support date-based querying or just return all
-            const response = await api.get('/schedules/mentor/' + user.id);
-            // Filter or map if necessary, assuming backend returns array
-            // If backend uses day_of_week, we need to adapt backend too or just use date here
-            setSchedule(response.data || []);
+            const response = await api.get('/schedules/my-schedule');
+            const rows = Array.isArray(response.schedules) ? response.schedules : [];
+            setSchedule(
+                rows.map((slot: any) => ({
+                    id: slot.id,
+                    date: toDateInputValue(slot.date),
+                    start_time: toTimeInputValue(slot.start_time),
+                    end_time: toTimeInputValue(slot.end_time),
+                    is_available: Boolean(slot.is_available),
+                    fee: Number(slot.fee ?? 50),
+                }))
+            );
         } catch (error) {
             console.error('Error fetching schedule:', error);
         } finally {
@@ -43,14 +62,42 @@ export default function MentorSchedule() {
     };
 
     const addTimeSlot = async () => {
+        if (!newSlot.date) {
+            alert('Please select a valid date.');
+            return;
+        }
+
+        if (newSlot.start_time >= newSlot.end_time) {
+            alert('End time must be after start time.');
+            return;
+        }
+
+        if (Number.isNaN(newSlot.fee) || newSlot.fee < 0) {
+            alert('Please enter a valid price.');
+            return;
+        }
+
         try {
             const response = await api.post('/schedules', newSlot);
-            setSchedule([...schedule, response]);
+            if (response.schedule) {
+                const slot = response.schedule;
+                setSchedule([
+                    ...schedule,
+                    {
+                        id: slot.id,
+                        date: toDateInputValue(slot.date),
+                        start_time: toTimeInputValue(slot.start_time),
+                        end_time: toTimeInputValue(slot.end_time),
+                        is_available: Boolean(slot.is_available),
+                        fee: Number(slot.fee ?? newSlot.fee),
+                    },
+                ]);
+            }
             // Reset but keep date same for convenience
             setNewSlot({
                 ...newSlot,
                 start_time: '09:00',
-                end_time: '17:00'
+                end_time: '17:00',
             });
         } catch (error) {
             console.error('Error adding time slot:', error);
@@ -79,13 +126,17 @@ export default function MentorSchedule() {
     // Group slots by date for display
     const groupedSlots: Record<string, TimeSlot[]> = {};
     schedule.forEach(slot => {
-        const d = slot.date || 'Recurring'; // Fallback if backend still sends day_of_week
+        const d = slot.date || 'unscheduled';
         if (!groupedSlots[d]) groupedSlots[d] = [];
         groupedSlots[d].push(slot);
     });
 
     // Sort dates
-    const sortedDates = Object.keys(groupedSlots).sort();
+    const sortedDates = Object.keys(groupedSlots).sort((a, b) => {
+        if (a === 'unscheduled') return 1;
+        if (b === 'unscheduled') return -1;
+        return a.localeCompare(b);
+    });
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
@@ -102,13 +153,14 @@ export default function MentorSchedule() {
                     {/* Add New Time Slot */}
                     <div className="bg-indigo-50 rounded-lg p-6 mb-8">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Availability</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                                 <input
                                     type="date"
                                     value={newSlot.date}
                                     onChange={(e) => setNewSlot({ ...newSlot, date: e.target.value })}
+                                    min={new Date().toISOString().slice(0, 10)}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
                             </div>
@@ -129,6 +181,18 @@ export default function MentorSchedule() {
                                     type="time"
                                     value={newSlot.end_time}
                                     onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Price (RM)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={newSlot.fee}
+                                    onChange={(e) => setNewSlot({ ...newSlot, fee: Number(e.target.value) })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
                             </div>
@@ -159,14 +223,19 @@ export default function MentorSchedule() {
                                 {sortedDates.map((date) => (
                                     <div key={date} className="border border-gray-200 rounded-lg overflow-hidden">
                                         <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 font-medium text-gray-700">
-                                            {new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                            {date === 'unscheduled'
+                                                ? 'Unscheduled'
+                                                : new Date(date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                         </div>
                                         <div className="p-4 space-y-2">
                                             {groupedSlots[date].map((slot) => (
                                                 <div key={slot.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:shadow-sm">
-                                                    <div className="flex items-center text-gray-900 font-medium">
-                                                        <Clock className="w-4 h-4 text-indigo-600 mr-2" />
-                                                        {slot.start_time} - {slot.end_time}
+                                                    <div className="flex items-center gap-6 text-gray-900 font-medium">
+                                                        <div className="flex items-center">
+                                                            <Clock className="w-4 h-4 text-indigo-600 mr-2" />
+                                                            {slot.start_time} - {slot.end_time}
+                                                        </div>
+                                                        <div className="text-indigo-700 font-semibold">RM {Number(slot.fee).toFixed(2)}</div>
                                                     </div>
                                                     <button
                                                         onClick={() => slot.id && deleteTimeSlot(slot.id)}

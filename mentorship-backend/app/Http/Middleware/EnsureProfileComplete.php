@@ -37,14 +37,19 @@ class EnsureProfileComplete
     {
         // Check required fields based on role
         if ($user->role === 'mentor') {
+            $skills = is_array($user->skills) ? $user->skills : [];
             return !empty($user->name) 
                 && !empty($user->phone) 
+                && !empty($user->address)
                 && !empty($user->bio) 
-                && !empty($user->skills);
+                && count($skills) > 0;
         } elseif ($user->role === 'mentee') {
+            $skills = is_array($user->skills) ? $user->skills : [];
             return !empty($user->name) 
                 && !empty($user->phone) 
-                && !empty($user->bio);
+                && !empty($user->address)
+                && !empty($user->bio)
+                && count($skills) > 0;
         }
 
         return true; // Admin or other roles don't need profile completion

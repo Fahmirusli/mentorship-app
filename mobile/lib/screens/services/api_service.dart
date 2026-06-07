@@ -48,7 +48,12 @@ class ApiService {
           }
         }
 
-        return {'success': true, 'message': data['message'] ?? 'Login successful', 'role': userRole};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Login successful',
+          'role': userRole,
+          'profile_incomplete': data['profile_incomplete'] == true,
+        };
       } else {
         // Handle Laravel validation errors (401, 422)
         final errorData = jsonDecode(response.body);
@@ -180,7 +185,12 @@ class ApiService {
           userRole = data['user']['role'] == 'mentor' ? 2 : 1;
         }
 
-        return {'success': true, 'message': 'Verified successfully!', 'role': userRole};
+        return {
+          'success': true,
+          'message': 'Verified successfully!',
+          'role': userRole,
+          'profile_incomplete': data['profile_incomplete'] == true,
+        };
       } else {
         final errorData = jsonDecode(response.body);
         return {'success': false, 'message': errorData['message'] ?? 'Invalid code.'};
@@ -195,7 +205,9 @@ class ApiService {
     String? name,
     String? bio,
     String? phone,
+    String? address,
     String? email,
+    List<String>? skills,
   }) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -206,7 +218,9 @@ class ApiService {
       if (name != null) body['name'] = name;
       if (bio != null) body['bio'] = bio;
       if (phone != null) body['phone'] = phone;
+      if (address != null) body['address'] = address;
       if (email != null) body['email'] = email;
+      if (skills != null) body['skills'] = skills;
 
       final response = await http.put(
         Uri.parse('$baseUrl/user/profile'),
@@ -225,6 +239,39 @@ class ApiService {
         final errorData = jsonDecode(response.body);
         return {'success': false, 'message': errorData['message'] ?? 'Update failed'};
       }
+    } catch (e) {
+      return {'success': false, 'message': 'Could not connect to server.'};
+    }
+  }
+
+  static Future<Map<String, dynamic>> uploadResume(String filePath) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return {'success': false, 'message': 'Not logged in'};
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/upload/resume'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+      request.files.add(await http.MultipartFile.fromPath('resume', filePath));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'resume_url': data['resume_url'],
+          'message': data['message'] ?? 'Resume uploaded'
+        };
+      }
+
+      final errorData = jsonDecode(response.body);
+      return {'success': false, 'message': errorData['message'] ?? 'Upload failed'};
     } catch (e) {
       return {'success': false, 'message': 'Could not connect to server.'};
     }

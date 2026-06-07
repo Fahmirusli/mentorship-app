@@ -8,6 +8,12 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class JobScraperService
 {
+    private const SOURCE_CANONICAL_NAMES = [
+        'linkedin' => 'LinkedIn',
+        'jobstreet' => 'JobStreet',
+        'maukerja' => 'MauKerja',
+    ];
+
     public function scrapeAll($keyword = 'Software Engineer')
     {
         $results = ['total' => 0];
@@ -21,13 +27,14 @@ class JobScraperService
 
         foreach ($jobs as $jobData) {
             // Standardize Keys
-            $source = strtolower($jobData['source'] ?? 'unknown');
+            $sourceName = $jobData['source'] ?? 'Unknown';
+            $sourceKey = strtolower(preg_replace('/[^a-z0-9]/', '', $sourceName));
             
             // Increment counters
-            if (!isset($results[$source])) {
-                $results[$source] = 0;
+            if (!isset($results[$sourceKey])) {
+                $results[$sourceKey] = 0;
             }
-            $results[$source]++;
+            $results[$sourceKey]++;
             $results['total']++;
 
             $this->storeJob([
@@ -40,14 +47,14 @@ class JobScraperService
                     ? json_encode($jobData['requirements']) 
                     : $this->extractSkills($jobData['title'] . ' ' . ($jobData['description'] ?? '')),
                 'salary' => $jobData['salary'] ?? null,
-                'source' => ucfirst($source),
+                'source' => $sourceName,
                 'external_url' => $jobData['external_url'],
                 'posted_date' => now(), 
                 'is_active' => true,
                 
                 // Legacy / Duplicate Fields Population (to fix NULLs in DB views)
                 'salary_range' => $jobData['salary'] ?? 'Not Specified',
-                'source_platform' => ucfirst($source),
+                'source_platform' => $sourceName,
                 'source_url' => $jobData['external_url'],
                 'job_type' => 'Full Time', // Default
                 'experience_level' => 'Entry/Junior Level', // Default
@@ -64,12 +71,23 @@ class JobScraperService
     {
         $apiKey = config('services.rapidapi.key');
         $apiHost = config('services.rapidapi.host', 'jsearch.p.rapidapi.com');
+        $numPages = (int) config('services.rapidapi.num_pages', 3);
+        $datePosted = config('services.rapidapi.date_posted', 'week');
+        $country = config('services.rapidapi.country');
         $allowedSources = config('services.rapidapi.allowed_sources', [
             'linkedin',
             'jobstreet',
             'maukerja',
         ]);
         $allowedSources = array_map('strtolower', $allowedSources);
+        $allowedSourcesNormalized = array_values(array_filter(array_map(
+            fn($source) => preg_replace('/[^a-z0-9]/', '', $source),
+            $allowedSources
+        )));
+
+        if ($numPages < 1) {
+            $numPages = 1;
+        }
 
         if (!$apiKey) {
             Log::warning('RAPIDAPI_KEY is not configured.');
@@ -77,33 +95,81 @@ class JobScraperService
         }
 
         $endpoint = "https://{$apiHost}/search";
+        $queries = array_values(array_unique(array_merge(
+            [$keyword],
+            array_map(fn($allowed) => $keyword . ' ' . (self::SOURCE_CANONICAL_NAMES[$allowed] ?? $allowed), $allowedSourcesNormalized)
+        )));
+        $items = [];
 
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'X-RapidAPI-Key' => $apiKey,
-            'X-RapidAPI-Host' => $apiHost,
-        ])->get($endpoint, [
-            'query' => $keyword,
-            'page' => 1,
-            'num_pages' => 1,
-            'date_posted' => 'week',
-        ]);
+        foreach ($queries as $query) {
+            $queryParams = [
+                'query' => $query,
+                'page' => 1,
+                'num_pages' => $numPages,
+                'date_posted' => $datePosted,
+            ];
 
-        if (!$response->ok()) {
-            Log::error('RapidAPI request failed: ' . $response->status());
+            if (!empty($country)) {
+                $queryParams['country'] = $country;
+            }
+
+                        $response = \Illuminate\Support\Facades\Http::withHeaders([
+                                'X-RapidAPI-Key' => $apiKey,
+                                'X-RapidAPI-Host' => $apiHost,
+                        ])->connectTimeout(10)
+                            ->timeout(20)
+                            ->retry(1, 500)
+                            ->get($endpoint, $queryParams);
+
+            if (!$response->ok()) {
+                Log::warning('RapidAPI request failed', [
+                    'status' => $response->status(),
+                    'query' => $query,
+                ]);
+                continue;
+            }
+
+            $payload = $response->json();
+            $items = array_merge($items, $payload['data'] ?? []);
+        }
+
+        if (empty($items)) {
             return [];
         }
 
-        $payload = $response->json();
-        $items = $payload['data'] ?? [];
         $jobs = [];
+        $seen = [];
 
         foreach ($items as $item) {
-            $sourceRaw = $item['job_publisher'] ?? ($item['job_board'] ?? 'RapidAPI');
-            $sourceNormalized = strtolower(preg_replace('/\s+/', '', $sourceRaw));
+            $sourceRaw = $item['job_publisher']
+                ?? $item['job_offer_source']
+                ?? ($item['job_board'] ?? 'RapidAPI');
+            $sourceNormalized = preg_replace('/[^a-z0-9]/', '', strtolower($sourceRaw));
+            $matchedAllowedSource = null;
 
-            if (!in_array($sourceNormalized, $allowedSources, true)) {
+            foreach ($allowedSourcesNormalized as $allowed) {
+                if ($sourceNormalized === $allowed
+                    || str_contains($sourceNormalized, $allowed)
+                    || str_contains($allowed, $sourceNormalized)
+                ) {
+                    $matchedAllowedSource = $allowed;
+                    break;
+                }
+            }
+
+            if (!$matchedAllowedSource) {
                 continue;
             }
+
+            $canonicalSource = self::SOURCE_CANONICAL_NAMES[$matchedAllowedSource] ?? $sourceRaw;
+            $externalUrl = $item['job_apply_link'] ?? ($item['job_apply_is_direct'] ? ($item['job_apply_link'] ?? '') : ($item['job_google_link'] ?? ''));
+            $uniqueKey = strtolower(($item['job_title'] ?? 'untitled') . '|' . ($item['employer_name'] ?? 'unknown') . '|' . $externalUrl);
+
+            if (isset($seen[$uniqueKey])) {
+                continue;
+            }
+
+            $seen[$uniqueKey] = true;
 
             $jobs[] = [
                 'title' => $item['job_title'] ?? 'Untitled',
@@ -112,8 +178,8 @@ class JobScraperService
                 'description' => $item['job_description'] ?? '',
                 'requirements' => $item['job_required_skills'] ?? [],
                 'salary' => $item['job_salary_currency'] ?? null,
-                'source' => $sourceRaw,
-                'external_url' => $item['job_apply_link'] ?? ($item['job_apply_is_direct'] ? ($item['job_apply_link'] ?? '') : ($item['job_google_link'] ?? '')),
+                'source' => $canonicalSource,
+                'external_url' => $externalUrl,
             ];
         }
 

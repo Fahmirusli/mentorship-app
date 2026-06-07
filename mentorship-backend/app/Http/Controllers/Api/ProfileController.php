@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use App\Models\MentorProfile;
+use App\Models\MenteeProfile;
 
 class ProfileController extends Controller
 {
@@ -18,8 +19,10 @@ class ProfileController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'sometimes|string|max:20',
+            'address' => 'sometimes|string|max:255',
             'bio' => 'sometimes|string|max:1000',
             'skills' => 'sometimes|array',
+            'skills.*' => 'string|max:100',
             'interests' => 'sometimes|array',
         ]);
 
@@ -27,7 +30,8 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user->fresh()
+            'user' => $user->fresh()->load(['mentorProfile', 'menteeProfile']),
+            'profile_complete' => $user->fresh()->isProfileComplete()
         ]);
     }
 
@@ -105,16 +109,48 @@ class ProfileController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
+            'address' => 'required|string|max:255',
             'bio' => 'required|string|max:1000',
-            'skills' => 'required_if:role,mentor|array',
+            'skills' => 'required|array|min:1',
+            'skills.*' => 'string|max:100',
             'interests' => 'sometimes|array',
+            'current_skills' => 'sometimes|array',
+            'current_skills.*' => 'string|max:100',
+            'skills_to_learn' => 'sometimes|array',
+            'skills_to_learn.*' => 'string|max:100',
+            'career_goals' => 'sometimes|string|max:2000',
+            'education_level' => 'sometimes|string|max:255',
+            'field_of_study' => 'sometimes|string|max:255',
         ]);
 
-        $user->update($validated);
+        $user->update([
+            'name' => $validated['name'],
+            'phone' => $validated['phone'],
+            'address' => $validated['address'],
+            'bio' => $validated['bio'],
+            'skills' => $validated['skills'],
+            'interests' => $validated['interests'] ?? $user->interests,
+        ]);
+
+        if ($user->isMentee()) {
+            $profile = $user->menteeProfile;
+            if (!$profile) {
+                $profile = MenteeProfile::create(['user_id' => $user->id]);
+            }
+
+            $profile->update([
+                'current_skills' => $validated['current_skills'] ?? $validated['skills'],
+                'skills_to_learn' => $validated['skills_to_learn'] ?? $profile->skills_to_learn,
+                'career_goals' => $validated['career_goals'] ?? $profile->career_goals,
+                'education_level' => $validated['education_level'] ?? $profile->education_level,
+                'field_of_study' => $validated['field_of_study'] ?? $profile->field_of_study,
+            ]);
+        }
 
         return response()->json([
             'message' => 'Profile completed successfully',
-            'user' => $user->fresh()
+            'user' => $user->fresh()->load(['mentorProfile', 'menteeProfile']),
+            'profile_complete' => $user->fresh()->isProfileComplete()
         ]);
     }
 }

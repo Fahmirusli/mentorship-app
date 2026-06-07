@@ -1,10 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { api } from '@/lib/api';
 import { authService } from '@/lib/auth';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   // Determine role dynamically from auth state
   const [userRole, setUserRole] = useState<'mentee' | 'mentor'>('mentee');
   const [isClient, setIsClient] = useState(false); // To avoid hydration mismatch
@@ -16,6 +18,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const user = authService.getCurrentUser();
     if (user?.role === 'mentor' || user?.role === 'mentee') {
       setUserRole(user.role);
+
+      api.get('/user')
+        .then((currentUser) => {
+          if (currentUser?.profile_incomplete) {
+            router.push('/profile/complete');
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to validate profile completion', err);
+        });
     }
 
     // 2. Background Location Update (New Feature)
@@ -37,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
       );
     }
-  }, []);
+  }, [router]);
 
   if (!isClient) return null; // or a loading spinner
 

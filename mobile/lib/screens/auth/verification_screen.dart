@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../mentee/mentee_home.dart';
 import '../mentor/mentor_home.dart';
+import '../shared/profile_menu_screens.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String email; // We pass the email from the register screen
@@ -35,6 +36,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Email Verified!", style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
+
+      if (result['profile_incomplete'] == true) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => EditProfileScreen(
+              requireCompletion: true,
+              roleAfterCompletion: result['role'] ?? 1,
+            ),
+          ),
+          (route) => false,
+        );
+        return;
+      }
 
       // Now we push them to the dashboard, and remove all previous screens so they can't hit "back" to register again
       if (result['role'] == 1) { // Mentee

@@ -54,9 +54,9 @@ class MenteeController extends Controller
         $profile = $request->user()->menteeProfile;
         
         if (!$profile) {
-            return response()->json([
-                'message' => 'Mentee profile not found',
-            ], 404);
+            $profile = MenteeProfile::create([
+                'user_id' => $request->user()->id,
+            ]);
         }
 
         $profile->update($validated);

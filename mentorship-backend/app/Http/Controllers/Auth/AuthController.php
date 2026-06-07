@@ -100,7 +100,9 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Email verified successfully!',
             'token' => $token,
-            'user' => $user
+            'user' => $user,
+            'profile_complete' => $user->isProfileComplete(),
+            'profile_incomplete' => !$user->isProfileComplete()
         ]);
     }
 
@@ -129,7 +131,9 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user
+            'user' => $user,
+            'profile_complete' => $user->isProfileComplete(),
+            'profile_incomplete' => !$user->isProfileComplete()
         ]);
     }
 

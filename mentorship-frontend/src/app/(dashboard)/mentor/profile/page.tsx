@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, DollarSign, Save, Loader, Award } from 'lucide-react';
 import { api } from '@/lib/api';
-import { authService } from '@/lib/auth';
 
 export default function MentorProfile() {
     const [loading, setLoading] = useState(true);
@@ -14,7 +13,9 @@ export default function MentorProfile() {
         name: '',
         email: '',
         phone: '',
+        address: '',
         bio: '',
+        skills: [] as string[],
         job_title: '',
         company: '',
         years_of_experience: 0,
@@ -25,6 +26,9 @@ export default function MentorProfile() {
         is_available: true
     });
     const [newExpertise, setNewExpertise] = useState('');
+    const [newSkill, setNewSkill] = useState('');
+    const [uploadingResume, setUploadingResume] = useState(false);
+    const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -33,22 +37,27 @@ export default function MentorProfile() {
     const fetchProfile = async () => {
         try {
             const response = await api.get('/user');
+            const mentorProfile = response.mentor_profile || response.mentorProfile || {};
+            const skills = Array.isArray(response.skills) ? response.skills : [];
 
             setProfile({
                 name: response.name || '',
                 email: response.email || '',
                 phone: response.phone || '',
+                address: response.address || '',
                 bio: response.bio || '',
-                job_title: response.mentor_profile?.job_title || '',
-                company: response.mentor_profile?.company || '',
-                years_of_experience: response.mentor_profile?.years_of_experience || 0,
-                expertise_areas: response.mentor_profile?.expertise_areas || [],
-                industry: response.mentor_profile?.industry || '',
-                hourly_rate: response.mentor_profile?.hourly_rate || 50,
-                mentorship_approach: response.mentor_profile?.mentorship_approach || '',
-                is_available: response.mentor_profile?.is_available ?? true
+                skills,
+                job_title: mentorProfile.job_title || '',
+                company: mentorProfile.company || '',
+                years_of_experience: mentorProfile.years_of_experience || 0,
+                expertise_areas: mentorProfile.expertise_areas || [],
+                industry: mentorProfile.industry || '',
+                hourly_rate: mentorProfile.hourly_rate || 50,
+                mentorship_approach: mentorProfile.mentorship_approach || '',
+                is_available: mentorProfile.is_available ?? true
             });
             setImage(response.profile_image || null);
+            setResumeUrl(response.resume_path ? `${(process.env.NEXT_PUBLIC_API_BASE_URL || '').replace('/api', '')}/storage/${response.resume_path}` : null);
         } catch (error) {
             console.error('Error fetching profile:', error);
         } finally {
@@ -62,7 +71,9 @@ export default function MentorProfile() {
             await api.put('/user/profile', {
                 name: profile.name,
                 phone: profile.phone,
-                bio: profile.bio
+                address: profile.address,
+                bio: profile.bio,
+                skills: profile.skills
             });
 
             await api.put('/mentors/profile', {
@@ -94,6 +105,17 @@ export default function MentorProfile() {
 
     const removeExpertise = (expertise: string) => {
         setProfile({ ...profile, expertise_areas: profile.expertise_areas.filter(e => e !== expertise) });
+    };
+
+    const addSkill = () => {
+        if (newSkill && !profile.skills.includes(newSkill)) {
+            setProfile({ ...profile, skills: [...profile.skills, newSkill] });
+            setNewSkill('');
+        }
+    };
+
+    const removeSkill = (skill: string) => {
+        setProfile({ ...profile, skills: profile.skills.filter(s => s !== skill) });
     };
 
     if (loading) {
@@ -201,6 +223,17 @@ export default function MentorProfile() {
                                     value={profile.phone}
                                     onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                                <input
+                                    type="text"
+                                    value={profile.address}
+                                    onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    placeholder="Street, city, state"
                                 />
                             </div>
 
@@ -317,6 +350,78 @@ export default function MentorProfile() {
                                     </button>
                                 </span>
                             ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-6 mb-8 pb-8 border-b">
+                        <h2 className="text-xl font-semibold text-gray-900">Skills</h2>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={newSkill}
+                                onChange={(e) => setNewSkill(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                placeholder="Add a skill (e.g., Communication, React)"
+                            />
+                            <button
+                                onClick={addSkill}
+                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                            {profile.skills.map((skill, index) => (
+                                <span
+                                    key={index}
+                                    className="px-3 py-1 bg-sky-100 text-sky-700 rounded-full text-sm flex items-center gap-2"
+                                >
+                                    {skill}
+                                    <button
+                                        onClick={() => removeSkill(skill)}
+                                        className="text-sky-500 hover:text-sky-700"
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 mb-8 pb-8 border-b">
+                        <h2 className="text-xl font-semibold text-gray-900">Resume</h2>
+                        <div className="flex items-center gap-4">
+                            <label className="px-4 py-2 bg-gray-900 text-white rounded-lg cursor-pointer hover:bg-black">
+                                {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+                                <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,.doc,.docx"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setUploadingResume(true);
+                                        const formData = new FormData();
+                                        formData.append('resume', file);
+                                        try {
+                                            const res = await api.post('/upload/resume', formData);
+                                            setResumeUrl(res.resume_url || null);
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert('Failed to upload resume');
+                                        } finally {
+                                            setUploadingResume(false);
+                                        }
+                                    }}
+                                />
+                            </label>
+                            {resumeUrl && (
+                                <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                                    View current resume
+                                </a>
+                            )}
                         </div>
                     </div>
 

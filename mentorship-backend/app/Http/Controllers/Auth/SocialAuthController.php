@@ -160,10 +160,12 @@ class SocialAuthController extends Controller
     private function buildRedirectUrl(string $baseUrl, string $token, User $user): string
     {
         $separator = str_contains($baseUrl, '?') ? '&' : '?';
+        $profileComplete = $user->isProfileComplete() ? '1' : '0';
 
         return $baseUrl
             . $separator
             . 'token=' . urlencode($token)
-            . '&user=' . urlencode(json_encode($user));
+            . '&user=' . urlencode(json_encode($user))
+            . '&profile_complete=' . $profileComplete;
     }
 }

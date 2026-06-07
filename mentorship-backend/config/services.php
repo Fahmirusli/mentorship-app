@@ -46,6 +46,9 @@ return [
     'rapidapi' => [
         'key' => env('RAPIDAPI_KEY'),
         'host' => env('RAPIDAPI_HOST', 'jsearch.p.rapidapi.com'),
+        'country' => env('RAPIDAPI_COUNTRY', 'my'),
+        'num_pages' => env('RAPIDAPI_NUM_PAGES', 3),
+        'date_posted' => env('RAPIDAPI_DATE_POSTED', 'week'),
         'allowed_sources' => array_filter(array_map('trim', explode(',', env('RAPIDAPI_ALLOWED_SOURCES', 'LinkedIn,JobStreet,MauKerja')))),
     ],
 

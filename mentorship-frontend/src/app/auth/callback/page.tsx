@@ -15,6 +15,7 @@ function CallbackContent() {
     const token = searchParams.get('token');
     const userStr = searchParams.get('user');
     const error = searchParams.get('error');
+    const profileComplete = searchParams.get('profile_complete');
 
     if (error) {
       setStatus('error');
@@ -33,6 +34,11 @@ function CallbackContent() {
         setMessage('Login successful! Redirecting...');
 
         setTimeout(() => {
+          if (profileComplete === '0') {
+            router.push('/profile/complete');
+            return;
+          }
+
           if (user.role === 'mentor') {
             router.push('/mentor/dashboard');
           } else if (user.role === 'admin') {

@@ -39,13 +39,26 @@ class ResourceController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'url' => 'required|string', // In real app, might handle file uploads here
             'type' => 'required|in:link,file,video',
+            'url' => 'required_without:file|string',
+            'file' => 'required_without:url|file|mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,csv,txt,zip,jpg,jpeg,png,mp4|max:204800',
         ]);
+
+        $url = $validated['url'] ?? '';
+        $type = $validated['type'];
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('resources', 'public');
+            $url = asset('storage/' . $path);
+            $type = 'file';
+        }
 
         $resource = Resource::create([
             'mentor_id' => $request->user()->id,
-            ...$validated,
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'url' => $url,
+            'type' => $type,
         ]);
 
         return response()->json($resource, 201);
@@ -57,6 +70,14 @@ class ResourceController extends Controller
 
         if ($resource->mentor_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($resource->type === 'file' && $resource->url) {
+            $appUrl = rtrim(config('app.url'), '/');
+            $path = str_replace($appUrl . '/storage/', '', $resource->url);
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
         }
 
         $resource->delete();

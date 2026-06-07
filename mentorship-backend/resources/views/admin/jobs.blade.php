@@ -38,9 +38,10 @@
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
             <div>
-                <div style="font-size: 12px; color: var(--text-secondary);">Next Run Time</div>
-                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
-                    {{ $schedule?->run_time ?? 'Not set' }}
+                <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;">Next Scheduled Run</div>
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: baseline; gap: 8px;">
+                    <span>{{ $schedule?->run_time ?? '--:--' }}</span>
+                    <span style="font-size: 12px; font-weight: 500; color: var(--text-secondary);">Asia/Kuala_Lumpur</span>
                 </div>
             </div>
             <div>

@@ -46,22 +46,17 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
-            'date' => 'nullable|date|required_without:day_of_week',
-            'day_of_week' => 'nullable|integer|between(0,6)|required_without:date', // 0=Sunday, 6=Saturday
+            'date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'is_available' => 'sometimes|boolean',
-            'fee' => 'sometimes|numeric|min:0',
+            'fee' => 'required|numeric|min:0|max:9999.99',
         ]);
 
         // Check for overlapping schedules
         $overlapping = Schedule::where('mentor_id', $request->user()->id)
             ->where(function ($q) use ($validated) {
-                if (isset($validated['date'])) {
-                    $q->where('date', $validated['date']);
-                } else {
-                    $q->where('day_of_week', $validated['day_of_week']);
-                }
+                $q->where('date', $validated['date']);
             })
             ->where(function ($query) use ($validated) {
                 $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
@@ -79,6 +74,11 @@ class ScheduleController extends Controller
 
         $schedule = Schedule::create([
             'mentor_id' => $request->user()->id,
+            'date' => $validated['date'],
+            'start_time' => $validated['start_time'],
+            'end_time' => $validated['end_time'],
+            'fee' => $validated['fee'],
+            'is_available' => $validated['is_available'] ?? true,
             ...$validated,
         ]);
 
@@ -98,10 +98,11 @@ class ScheduleController extends Controller
         }
 
         $validated = $request->validate([
-            'day_of_week' => 'sometimes|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
+            'date' => 'sometimes|date_format:Y-m-d|after_or_equal:today',
             'start_time' => 'sometimes|date_format:H:i',
             'end_time' => 'sometimes|date_format:H:i|after:start_time',
             'is_available' => 'sometimes|boolean',
+            'fee' => 'sometimes|numeric|min:0|max:9999.99',
         ]);
 
         $schedule->update($validated);
@@ -117,7 +118,7 @@ class ScheduleController extends Controller
         $schedule = Schedule::findOrFail($id);
 
         // Authorization
-        if ($schedule->mentor_id !== auth()->user()->id && !auth()->user()->isAdmin()) {
+        if ($schedule->mentor_id !== auth()->user()->id && auth()->user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -145,7 +146,6 @@ class ScheduleController extends Controller
         }
 
         $schedules = $query->orderByRaw('date IS NULL DESC, date ASC')
-            ->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
 
@@ -154,6 +154,8 @@ class ScheduleController extends Controller
             if ($schedule->date) {
                 $schedule->date = \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
             }
+            $schedule->start_time = \Carbon\Carbon::parse($schedule->start_time)->format('H:i');
+            $schedule->end_time = \Carbon\Carbon::parse($schedule->end_time)->format('H:i');
             return $schedule;
         });
 

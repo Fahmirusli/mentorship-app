@@ -53,6 +53,11 @@ class ApiClient {
         const error = await response.json().catch(() => ({
           message: `HTTP ${response.status}`
         }));
+
+        if (response.status === 403 && error.profile_incomplete && typeof window !== 'undefined') {
+          window.location.href = '/profile/complete';
+        }
+
         throw new Error(error.message || `Request failed with status ${response.status}`);
       }
 

@@ -62,7 +62,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _initDeepLinks() async {
-    final initial = await _appLinks.getInitialAppLink();
+    final initial = await _appLinks.getInitialLink();
     if (initial != null) {
       await _handleOAuthLink(initial);
     }

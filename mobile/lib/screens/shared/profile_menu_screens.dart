@@ -1,14 +1,24 @@
 // lib/screens/shared/profile_menu_screens.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../services/api_service.dart';
+import '../mentee/mentee_home.dart';
+import '../mentor/mentor_home.dart';
 
 // ==========================================
 // 1. EDIT PROFILE SCREEN
 // ==========================================
 class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({super.key});
+  final bool requireCompletion;
+  final int? roleAfterCompletion;
+
+  const EditProfileScreen({
+    super.key,
+    this.requireCompletion = false,
+    this.roleAfterCompletion,
+  });
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -19,9 +29,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _bioController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _skillsController = TextEditingController();
 
   String? _profileImageUrl;
+  String? _resumeUrl;
   File? _selectedImageFile;
+  String? _selectedResumePath;
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -39,7 +53,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _bioController.text = userData['bio'] ?? '';
         _emailController.text = userData['email'] ?? '';
         _phoneController.text = userData['phone'] ?? '';
+        _addressController.text = userData['address'] ?? '';
+        _skillsController.text = (userData['skills'] as List<dynamic>? ?? []).map((s) => s.toString()).join(', ');
         _profileImageUrl = userData['profile_image'];
+        if (userData['resume_path'] != null && userData['resume_path'].toString().isNotEmpty) {
+          _resumeUrl = userData['resume_path'].toString();
+        }
         _isLoading = false;
       });
     } else if (mounted) {
@@ -63,6 +82,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    if (widget.requireCompletion &&
+        (_nameController.text.trim().isEmpty ||
+            _phoneController.text.trim().isEmpty ||
+            _addressController.text.trim().isEmpty ||
+            _bioController.text.trim().isEmpty ||
+            _skillsController.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete all required fields before continuing.'),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     // 1. Upload image if a new one was selected
@@ -85,26 +120,67 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
 
+    if (_selectedResumePath != null) {
+      final resumeResult = await ApiService.uploadResume(_selectedResumePath!);
+      if (resumeResult['success'] != true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(resumeResult['message'] ?? 'Resume upload failed'),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        setState(() => _isSaving = false);
+        return;
+      }
+      _resumeUrl = resumeResult['resume_url'];
+    }
+
+    final parsedSkills = _skillsController.text
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet()
+        .toList();
+
     // 2. Update profile text fields
     final result = await ApiService.updateProfile(
       name: _nameController.text.trim(),
       bio: _bioController.text.trim(),
       email: _emailController.text.trim(),
       phone: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
+      skills: parsedSkills,
     );
 
     setState(() => _isSaving = false);
 
     if (mounted) {
       if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Profile Updated!"),
-            backgroundColor: Color(0xFF6B4EE6),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context, true); // Return true to indicate data changed
+        if (widget.requireCompletion && widget.roleAfterCompletion != null) {
+          if (widget.roleAfterCompletion == 2) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => MentorDashboard(onLogout: () {})),
+              (route) => false,
+            );
+          } else {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => MenteeDashboard(onLogout: () {})),
+              (route) => false,
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Profile Updated!"),
+              backgroundColor: Color(0xFF6B4EE6),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pop(context, true); // Return true to indicate data changed
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -123,6 +199,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _bioController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
+    _skillsController.dispose();
     super.dispose();
   }
 
@@ -191,6 +269,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   _buildEditField("Email Address", _emailController, Icons.email_outlined),
                   const SizedBox(height: 15),
                   _buildEditField("Phone Number", _phoneController, Icons.phone_outlined),
+                  const SizedBox(height: 15),
+                  _buildEditField("Address", _addressController, Icons.home_outlined),
+                  const SizedBox(height: 15),
+                  _buildEditField("Skills (comma separated)", _skillsController, Icons.psychology_outlined),
+                  const SizedBox(height: 15),
+
+                  InkWell(
+                    onTap: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['pdf', 'doc', 'docx'],
+                      );
+                      if (result != null && result.files.single.path != null && mounted) {
+                        setState(() {
+                          _selectedResumePath = result.files.single.path;
+                        });
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Text(
+                        _selectedResumePath != null
+                            ? 'Resume selected: ${_selectedResumePath!.split(Platform.pathSeparator).last}'
+                            : (_resumeUrl != null && _resumeUrl!.isNotEmpty
+                                ? 'Resume uploaded (tap to replace)'
+                                : 'Upload Resume (optional)'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A)),
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 40),
 
