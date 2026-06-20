@@ -41,13 +41,13 @@ export function ChatWidget() {
 
   // Load conversations on mount
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.id) {
       loadConversations();
       // Poll for new conversations/unread counts every 30s
       const convInterval = setInterval(loadConversations, 30000);
       return () => clearInterval(convInterval);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
