@@ -82,7 +82,7 @@ class MenteeController extends Controller
         $mentorships = $activeMentorships->count();
 
         // 2. Hours Mentored: total completed appointment minutes for this mentee
-        $totalCompletedMinutes = Mentorship::where('mentee_id', $user->id)
+        $totalCompletedMinutes = Mentorship::where('mentorships.mentee_id', $user->id)
             ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
             ->where('appointments.status', 'completed')
             ->sum('appointments.duration_minutes');
