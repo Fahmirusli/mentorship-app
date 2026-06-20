@@ -58,25 +58,45 @@ export default function MenteeDashboard() {
   }
 
   const statCards = [
-    { label: 'Active Mentorships', value: stats.mentorships, icon: Users, gradient: 'from-blue-500 to-indigo-600', bg: 'bg-blue-50' },
-    { label: 'Hours Mentored', value: stats.hours, icon: Clock, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50' },
+    { label: 'Active Mentorships', value: stats.mentorships, icon: Users, gradient: 'from-purple-500 to-purple-600', bg: 'bg-purple-50' },
+    { label: 'Hours Mentored', value: stats.hours, icon: Clock, gradient: 'from-fuchsia-500 to-purple-600', bg: 'bg-fuchsia-50' },
     { label: 'Skills Learning', value: stats.skills, icon: Target, gradient: 'from-violet-500 to-purple-600', bg: 'bg-violet-50' },
-    { label: 'Job Matches', value: stats.jobs, icon: Briefcase, gradient: 'from-amber-500 to-orange-600', bg: 'bg-amber-50' },
+    { label: 'Job Matches', value: stats.jobs, icon: Briefcase, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50' },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 page-enter">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
-        <div className="mb-8 animate-fade-in-up">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5 text-indigo-500" />
-            <span className="text-sm font-medium text-indigo-600">Dashboard</span>
+        <div className="mb-8 animate-fade-in-up relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900 p-8 shadow-xl shadow-purple-900/20">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-purple-100 text-xs font-semibold rounded-full border border-white/20">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-200 to-fuchsia-200">{user?.name || 'Mentee'}</span> 👋
+              </h1>
+              <p className="text-purple-200/80 text-sm md:text-base max-w-xl">
+                Ready to take your skills to the next level? You have {stats.mentorships} active mentorships and {stats.jobs} new job matches waiting for you. Let's make today count!
+              </p>
+            </div>
+            
+            <div className="hidden lg:flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+              <div className="p-3 bg-purple-500/20 rounded-xl">
+                <Sparkles className="w-6 h-6 text-purple-200" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-purple-200">Learning Streak</p>
+                <p className="text-xl font-bold text-white">{Math.max(1, stats.mentorships * 2)} Days</p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, <span className="gradient-text">{user?.name || 'Mentee'}</span>
-          </h1>
-          <p className="text-gray-500 mt-1">Here&apos;s what&apos;s happening with your mentorship journey.</p>
         </div>
 
         {/* Stats Cards */}
@@ -150,18 +170,18 @@ export default function MenteeDashboard() {
             <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-1000">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-amber-500" />
+                  <Briefcase className="w-5 h-5 text-purple-500" />
                   Job Recommendations
                 </h2>
-                <button onClick={() => window.location.href = '/mentee/jobs'} className="text-indigo-600 hover:text-indigo-700 text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
+                <button onClick={() => window.location.href = '/mentee/jobs'} className="text-purple-600 hover:text-purple-700 text-sm font-semibold flex items-center gap-1 hover:gap-2 transition-all">
                   All Jobs <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
               <div className="space-y-3">
                 {recommendedJobs.length === 0 ? (
                   <div className="text-center py-10">
-                    <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Briefcase className="w-8 h-8 text-amber-300" />
+                    <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Briefcase className="w-8 h-8 text-purple-300" />
                     </div>
                     <p className="text-gray-500 font-medium">No recommendations yet</p>
                     <p className="text-gray-400 text-sm mt-1">Complete your profile for personalized matches</p>
@@ -174,15 +194,15 @@ export default function MenteeDashboard() {
                       <div key={idx} className="p-4 border border-gray-100 rounded-xl hover:border-indigo-200 hover:shadow-md transition-all group cursor-pointer card-hover">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{job.title}</h3>
+                                <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">{job.title}</h3>
                             <p className="text-sm text-gray-500">{job.company}</p>
                             <div className="flex items-center mt-2 gap-2 flex-wrap">
-                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full font-bold border border-emerald-100">{Math.round(matchScore)}% Match</span>
+                              <span className="px-2.5 py-1 bg-purple-50 text-purple-700 text-xs rounded-full font-bold border border-purple-100">{Math.round(matchScore)}% Match</span>
                               <span className="text-xs text-gray-400">{job.location}</span>
                               {job.source && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">{job.source}</span>}
                             </div>
                           </div>
-                          <button onClick={() => window.location.href = `/jobs/${job.id}`} className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm rounded-xl hover:from-indigo-500 hover:to-purple-500 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-1">
+                          <button onClick={() => window.location.href = `/jobs/${job.id}`} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-sm rounded-xl hover:from-purple-500 hover:to-fuchsia-500 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-1">
                             View <ArrowUpRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -212,8 +232,8 @@ export default function MenteeDashboard() {
                         <span className="text-gray-600 font-medium">{item.name}</span>
                         <span className="font-bold text-gray-900">{Math.round(item.progress)}%</span>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r ${['from-blue-500 to-indigo-500', 'from-emerald-500 to-teal-500', 'from-violet-500 to-purple-500', 'from-amber-500 to-orange-500'][idx % 4]}`} style={{ width: `${item.progress}%` }} />
+                      <div className="w-full bg-purple-50 rounded-full h-2.5 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r ${['from-purple-500 to-purple-600', 'from-fuchsia-500 to-purple-500', 'from-violet-500 to-purple-600', 'from-purple-600 to-indigo-500'][idx % 4]}`} style={{ width: `${item.progress}%` }} />
                       </div>
                     </div>
                   ))
@@ -226,10 +246,10 @@ export default function MenteeDashboard() {
               <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="space-y-2.5">
                 {[
-                  { label: 'Find a Mentor', icon: Search, href: '/mentee/mentors', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
-                  { label: 'Book Session', icon: Calendar, href: '/mentee/schedule', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
-                  { label: 'Browse Resources', icon: BookOpen, href: '#', color: 'text-violet-600 bg-violet-50 hover:bg-violet-100' },
-                  { label: 'Explore Jobs', icon: Briefcase, href: '/mentee/jobs', color: 'text-amber-600 bg-amber-50 hover:bg-amber-100' },
+                  { label: 'Find a Mentor', icon: Search, href: '/mentee/mentors', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-100' },
+                  { label: 'Book Session', icon: Calendar, href: '/mentee/schedule', color: 'text-fuchsia-600 bg-fuchsia-50 hover:bg-fuchsia-100 border border-fuchsia-100' },
+                  { label: 'Browse Resources', icon: BookOpen, href: '#', color: 'text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-100' },
+                  { label: 'Explore Jobs', icon: Briefcase, href: '/mentee/jobs', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100' },
                 ].map((action, i) => (
                   <button key={i} onClick={() => window.location.href = action.href} className={`w-full px-4 py-3 ${action.color} rounded-xl text-left font-medium text-sm flex items-center gap-3 transition-all group hover:scale-[1.02] transform`}>
                     <action.icon className="w-4 h-4" />
