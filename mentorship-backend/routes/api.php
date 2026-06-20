@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // File uploads
     Route::post('/upload/profile-image', [App\Http\Controllers\Api\FileUploadController::class, 'uploadProfileImage']);
     Route::post('/upload/resume', [App\Http\Controllers\Api\FileUploadController::class, 'uploadResume']);
+    Route::post('/user/parse-resume', [App\Http\Controllers\Api\ResumeParserController::class, 'parse']);
     Route::put('/user/skills', [App\Http\Controllers\Api\FileUploadController::class, 'updateSkills']);
     
     // Favorites
