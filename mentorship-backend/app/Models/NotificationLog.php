@@ -29,12 +29,16 @@ class NotificationLog extends Model
      */
     public static function notify($userId, $type, $title, $body, $data = null)
     {
-        return self::create([
+        $notification = self::create([
             'user_id' => $userId,
             'type' => $type,
             'title' => $title,
             'body' => $body,
             'data' => $data,
         ]);
+
+        broadcast(new \App\Events\NotificationCreated($notification));
+
+        return $notification;
     }
 }
