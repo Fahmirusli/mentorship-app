@@ -21,7 +21,7 @@
         "laravel/tinker": "^2.8",
         "laravel/ui": "^4.6",
         "resend/resend-php": "^1.1",
-        "smalot/pdfparser": "*",
+        "smalot/pdfparser": "^2.12",
         "symfony/css-selector": "6.4",
         "symfony/dom-crawler": "6.4"
     },

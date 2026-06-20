@@ -23,6 +23,7 @@ class User extends Authenticatable
         'interests',
         'profile_image',
         'resume_path',
+        'points',
         'is_active',
         'is_verified',
         'verified_at',
@@ -92,6 +93,13 @@ class User extends Authenticatable
     public function feedbackReceived()
     {
         return $this->hasMany(Feedback::class, 'to_user_id');
+    }
+
+    public function badges()
+    {
+        return $this->belongsToMany(Badge::class, 'user_badges')
+            ->withTimestamps()
+            ->withPivot('created_at');
     }
 
     // Helper methods
