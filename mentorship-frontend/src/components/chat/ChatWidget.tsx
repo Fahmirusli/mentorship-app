@@ -37,12 +37,22 @@ export function ChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const messagesRef = useRef<Message[]>([]);
+  const lastPollIdRef = useRef<number>(0);
 
   const currentUser = authService.getUser();
 
   // Sync messages state to ref for polling access
   useEffect(() => {
     messagesRef.current = messages;
+    
+    // Update last poll ID when messages change, ignoring temporary optimistic IDs
+    const realMessages = messages.filter(m => m.id < 10000000000);
+    if (realMessages.length > 0) {
+      const maxId = Math.max(...realMessages.map(m => Number(m.id)));
+      if (maxId > lastPollIdRef.current) {
+        lastPollIdRef.current = maxId;
+      }
+    }
   }, [messages]);
 
   // Load conversations on mount
@@ -87,7 +97,14 @@ export function ChatWidget() {
     setLoading(true);
     try {
       const res = await api.get(`/messages/${conv.other_user.id}`);
-      setMessages(res.messages || []);
+      const loadedMessages = res.messages || [];
+      setMessages(loadedMessages);
+      
+      if (loadedMessages.length > 0) {
+        lastPollIdRef.current = Math.max(...loadedMessages.map((m: Message) => Number(m.id)));
+      } else {
+        lastPollIdRef.current = 0;
+      }
       
       // Update unread count locally
       setConversations(prev => 
@@ -102,22 +119,32 @@ export function ChatWidget() {
 
   const pollMessages = async (conversationId: number) => {
     try {
-      const currentMessages = messagesRef.current;
-      let afterId = 0;
-      
-      // Filter out temporary optimistic IDs (e.g. Date.now() which is > 1 trillion)
-      const realMessages = currentMessages.filter(m => m.id < 10000000000);
-      if (realMessages.length > 0) {
-        afterId = realMessages[realMessages.length - 1].id;
-      }
+      const afterId = lastPollIdRef.current;
 
       const res = await api.get(`/messages/poll/${conversationId}?after_id=${afterId}`);
       if (res.messages && res.messages.length > 0) {
+        // Update the poll ID immediately to avoid double fetching
+        const maxNewId = Math.max(...res.messages.map((m: Message) => Number(m.id)));
+        if (maxNewId > lastPollIdRef.current) {
+          lastPollIdRef.current = maxNewId;
+        }
+
         setMessages(prev => {
-          // Prevent duplicates by checking IDs
+          // Bulletproof deduplication checking exact ID or matching body/time
           const newMessages = res.messages.filter(
-            (newMsg: Message) => !prev.some(existingMsg => existingMsg.id === newMsg.id)
+            (newMsg: Message) => !prev.some(existingMsg => {
+              if (String(existingMsg.id) === String(newMsg.id)) return true;
+              
+              // Also check if body is the same, and time is within 5 seconds (handles tempMsg edge cases)
+              if (existingMsg.body === newMsg.body && existingMsg.sender_id === newMsg.sender_id) {
+                const timeDiff = Math.abs(new Date(existingMsg.created_at).getTime() - new Date(newMsg.created_at).getTime());
+                if (timeDiff < 5000) return true;
+              }
+              return false;
+            })
           );
+          
+          if (newMessages.length === 0) return prev;
           return [...prev, ...newMessages];
         });
       }
