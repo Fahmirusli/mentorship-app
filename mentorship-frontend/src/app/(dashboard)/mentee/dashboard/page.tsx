@@ -177,7 +177,7 @@ export default function MenteeDashboard() {
                             <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">{job.title}</h3>
                             <p className="text-sm text-gray-500">{job.company}</p>
                             <div className="flex items-center mt-2 gap-2 flex-wrap">
-                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full font-bold border border-emerald-100">{matchScore}% Match</span>
+                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full font-bold border border-emerald-100">{Math.round(matchScore)}% Match</span>
                               <span className="text-xs text-gray-400">{job.location}</span>
                               {job.source && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">{job.source}</span>}
                             </div>
