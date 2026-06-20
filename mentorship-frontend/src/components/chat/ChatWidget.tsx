@@ -36,8 +36,14 @@ export function ChatWidget() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesRef = useRef<Message[]>([]);
 
   const currentUser = authService.getUser();
+
+  // Sync messages state to ref for polling access
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load conversations on mount
   useEffect(() => {
@@ -96,18 +102,24 @@ export function ChatWidget() {
 
   const pollMessages = async (conversationId: number) => {
     try {
-      // Find the last message ID
+      const currentMessages = messagesRef.current;
       let afterId = 0;
-      setMessages(currentMessages => {
-        if (currentMessages.length > 0) {
-          afterId = currentMessages[currentMessages.length - 1].id;
-        }
-        return currentMessages;
-      });
+      
+      // Filter out temporary optimistic IDs (e.g. Date.now() which is > 1 trillion)
+      const realMessages = currentMessages.filter(m => m.id < 10000000000);
+      if (realMessages.length > 0) {
+        afterId = realMessages[realMessages.length - 1].id;
+      }
 
       const res = await api.get(`/messages/poll/${conversationId}?after_id=${afterId}`);
       if (res.messages && res.messages.length > 0) {
-        setMessages(prev => [...prev, ...res.messages]);
+        setMessages(prev => {
+          // Prevent duplicates by checking IDs
+          const newMessages = res.messages.filter(
+            (newMsg: Message) => !prev.some(existingMsg => existingMsg.id === newMsg.id)
+          );
+          return [...prev, ...newMessages];
+        });
       }
     } catch (err) {
       console.error('Polling failed', err);
