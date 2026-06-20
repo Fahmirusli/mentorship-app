@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Briefcase, Save, Loader } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Save, Loader, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 
 export default function MenteeProfile() {
@@ -26,6 +26,7 @@ export default function MenteeProfile() {
     const [newCurrentSkill, setNewCurrentSkill] = useState('');
     const [newSkillToLearn, setNewSkillToLearn] = useState('');
     const [uploadingResume, setUploadingResume] = useState(false);
+    const [parsingResume, setParsingResume] = useState(false);
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
 
     useEffect(() => {
@@ -91,6 +92,39 @@ export default function MenteeProfile() {
             alert('Failed to update profile');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleParseResume = async () => {
+        const fileInput = document.getElementById('resume-upload') as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+        
+        if (!file) {
+            alert('Please upload a resume first to parse it.');
+            return;
+        }
+
+        setParsingResume(true);
+        const formData = new FormData();
+        formData.append('resume', file);
+
+        try {
+            const res = await api.post('/user/parse-resume', formData);
+            if (res.skills && Array.isArray(res.skills)) {
+                // Merge new skills, avoiding duplicates
+                const newSkills = res.skills.filter((s: string) => !profile.current_skills.includes(s));
+                if (newSkills.length > 0) {
+                    setProfile({ ...profile, current_skills: [...profile.current_skills, ...newSkills] });
+                    alert(`AI successfully extracted ${newSkills.length} new skills! Please review and click Save Profile.`);
+                } else {
+                    alert('AI analyzed your resume but found no new skills that you do not already have.');
+                }
+            }
+        } catch (err: any) {
+            console.error('Error parsing resume:', err);
+            alert(err.response?.data?.message || 'Failed to parse resume with AI.');
+        } finally {
+            setParsingResume(false);
         }
     };
 
@@ -423,36 +457,66 @@ export default function MenteeProfile() {
 
                     <div className="space-y-4 mb-8 pb-8 border-b">
                         <h2 className="text-xl font-semibold text-gray-900">Resume</h2>
-                        <div className="flex items-center gap-4">
-                            <label className="px-4 py-2 bg-gray-900 text-white rounded-lg cursor-pointer hover:bg-black">
-                                {uploadingResume ? 'Uploading...' : 'Upload Resume'}
-                                <input
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,.doc,.docx"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (!file) return;
-                                        setUploadingResume(true);
-                                        const formData = new FormData();
-                                        formData.append('resume', file);
-                                        try {
-                                            const res = await api.post('/upload/resume', formData);
-                                            setResumeUrl(res.resume_url || null);
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert('Failed to upload resume');
-                                        } finally {
-                                            setUploadingResume(false);
-                                        }
-                                    }}
-                                />
-                            </label>
-                            {resumeUrl && (
-                                <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
-                                    View current resume
-                                </a>
-                            )}
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center gap-4">
+                                <label className="px-4 py-2 bg-gray-900 text-white rounded-lg cursor-pointer hover:bg-black">
+                                    {uploadingResume ? 'Uploading...' : 'Upload Resume'}
+                                    <input
+                                        id="resume-upload"
+                                        type="file"
+                                        className="hidden"
+                                        accept=".pdf"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            setUploadingResume(true);
+                                            const formData = new FormData();
+                                            formData.append('resume', file);
+                                            try {
+                                                const res = await api.post('/upload/resume', formData);
+                                                setResumeUrl(res.resume_url || null);
+                                            } catch (err) {
+                                                console.error(err);
+                                                alert('Failed to upload resume');
+                                            } finally {
+                                                setUploadingResume(false);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                                {resumeUrl && (
+                                    <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                                        View current resume
+                                    </a>
+                                )}
+                            </div>
+                            
+                            <div className="bg-purple-50 rounded-xl p-4 border border-purple-100 mt-2">
+                                <h3 className="font-semibold text-purple-900 mb-1 flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-purple-600" />
+                                    AI Resume Parsing
+                                </h3>
+                                <p className="text-sm text-purple-700 mb-3">
+                                    Upload a PDF resume and let our AI automatically extract your skills.
+                                </p>
+                                <button
+                                    onClick={handleParseResume}
+                                    disabled={parsingResume}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition"
+                                >
+                                    {parsingResume ? (
+                                        <>
+                                            <Loader className="w-4 h-4 animate-spin" />
+                                            Analyzing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-4 h-4" />
+                                            Extract Skills with AI
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
 
