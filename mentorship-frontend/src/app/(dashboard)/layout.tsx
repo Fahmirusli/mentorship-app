@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { api } from '@/lib/api';
 import { authService } from '@/lib/auth';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="pt-16">
         {children}
       </main>
+      <ChatWidget />
     </div>
   );
 }
