@@ -44,7 +44,7 @@ export default function HomePage() {
               <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-text">MentorCore</span>
+              <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent drop-shadow-md">Uplifts</span>
             </div>
             <nav className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">Features</a>
@@ -64,33 +64,37 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-8 text-sm text-indigo-300">
-              <Zap className="w-3.5 h-3.5" />
+      <section className="relative pt-32 pb-40 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[90vh]">
+        {/* Intense center glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
+        
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full mb-10 text-sm font-medium text-indigo-300 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+              <Zap className="w-4 h-4 text-indigo-400" />
               AI-Powered Career Matching
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4 text-indigo-400" />
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
-              Find Your Perfect
+            <h1 className="text-6xl md:text-8xl font-extrabold mb-8 leading-tight tracking-tighter drop-shadow-2xl">
+              <span className="text-white">Find Your Perfect</span>
               <br />
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x">
+              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient-x drop-shadow-[0_0_40px_rgba(168,85,247,0.4)]">
                 Mentor & Career
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
               Connect with industry experts, get AI-matched job recommendations from
-              <span className="text-indigo-400 font-medium"> LinkedIn</span>,
-              <span className="text-blue-400 font-medium"> JobStreet</span> &
-              <span className="text-purple-400 font-medium"> MauKerja</span>.
+              <span className="text-indigo-400 font-medium drop-shadow-sm"> LinkedIn</span>,
+              <span className="text-blue-400 font-medium drop-shadow-sm"> JobStreet</span> &
+              <span className="text-purple-400 font-medium drop-shadow-sm"> MauKerja</span>.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register" className="group inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all font-semibold text-lg shadow-xl shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transform">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Link href="/register" className="group relative inline-flex items-center justify-center px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl transition-all font-bold text-lg shadow-[0_0_40px_rgba(99,102,241,0.4)] hover:shadow-[0_0_60px_rgba(168,85,247,0.6)] hover:scale-105 transform overflow-hidden">
+                <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -skew-x-12 -ml-8 w-1/2" />
                 Start Your Journey
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
               </Link>
-              <Link href="/login" className="inline-flex items-center justify-center px-8 py-4 bg-white/5 text-white border border-white/10 rounded-xl hover:bg-white/10 transition-all font-semibold text-lg hover:border-white/20">
+              <Link href="/login" className="inline-flex items-center justify-center px-10 py-5 bg-white/5 text-white border border-white/10 rounded-2xl hover:bg-white/10 transition-all font-bold text-lg hover:border-white/30 backdrop-blur-sm">
                 I'm a Mentor
               </Link>
             </div>
@@ -205,7 +209,7 @@ export default function HomePage() {
                 <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold text-white">MentorCore</span>
+                <span className="font-extrabold tracking-tight text-white">Uplifts</span>
               </div>
               <p className="text-gray-500 text-sm">AI-powered mentorship & career platform for the modern professional.</p>
             </div>
@@ -234,7 +238,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="border-t border-white/5 pt-8 text-center text-sm text-gray-600">
-            © 2026 MentorCore. All rights reserved.
+            © 2026 Uplifts. All rights reserved.
           </div>
         </div>
       </footer>

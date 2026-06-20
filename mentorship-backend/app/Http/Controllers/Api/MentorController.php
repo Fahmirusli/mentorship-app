@@ -14,12 +14,15 @@ class MentorController extends Controller
             ->where('is_active', true)
             ->with(['mentorProfile', 'schedules']);
 
-        // Filter by skills (from user's skills column)
+        // Filter by skills (from user's skills column OR mentor profile expertise)
         if ($request->has('skills') && !empty($request->skills)) {
             $skills = is_array($request->skills) ? $request->skills : [$request->skills];
             $query->where(function($q) use ($skills) {
                 foreach ($skills as $skill) {
-                    $q->orWhereJsonContains('skills', $skill);
+                    $q->orWhereJsonContains('skills', $skill)
+                      ->orWhereHas('mentorProfile', function($mp) use ($skill) {
+                          $mp->whereJsonContains('expertise_areas', $skill);
+                      });
                 }
             });
         }
@@ -88,19 +91,19 @@ class MentorController extends Controller
                           ->orderByDesc('avg_rating');
                     break;
                 case 'experience':
-                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
-                        $q->orderByDesc('years_of_experience');
-                    }]);
+                    $query->leftJoin('mentor_profiles as mp_sort', 'users.id', '=', 'mp_sort.user_id')
+                          ->orderByDesc('mp_sort.years_of_experience')
+                          ->select('users.*');
                     break;
                 case 'price_low':
-                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
-                        $q->orderBy('hourly_rate', 'asc');
-                    }]);
+                    $query->leftJoin('mentor_profiles as mp_sort', 'users.id', '=', 'mp_sort.user_id')
+                          ->orderBy('mp_sort.hourly_rate', 'asc')
+                          ->select('users.*');
                     break;
                 case 'price_high':
-                    $query->whereHas('mentorProfile')->with(['mentorProfile' => function($q) {
-                        $q->orderByDesc('hourly_rate');
-                    }]);
+                    $query->leftJoin('mentor_profiles as mp_sort', 'users.id', '=', 'mp_sort.user_id')
+                          ->orderByDesc('mp_sort.hourly_rate')
+                          ->select('users.*');
                     break;
             }
         }
@@ -109,11 +112,42 @@ class MentorController extends Controller
         $perPage = $request->per_page ?? 12;
         $mentors = $query->paginate($perPage);
         
-        // Add rating to each mentor
-        $mentors->getCollection()->transform(function ($mentor) {
+        // Add rating and availability info to each mentor
+        $today = now(config('app.timezone'))->toDateString();
+        $currentTime = now(config('app.timezone'))->format('H:i:s');
+
+        $mentors->getCollection()->transform(function ($mentor) use ($today, $currentTime) {
             $avgRating = $mentor->feedbackReceived()->avg('rating');
             $mentor->rating = $avgRating ? round($avgRating, 2) : null;
             $mentor->total_reviews = $mentor->feedbackReceived()->count();
+
+            // Count available future slots
+            $availableSlots = \App\Models\Schedule::where('mentor_id', $mentor->id)
+                ->where('is_available', true)
+                ->where(function ($q) use ($today, $currentTime) {
+                    $q->where('date', '>', $today)
+                      ->orWhere(function ($same) use ($today, $currentTime) {
+                          $same->where('date', $today)
+                               ->where('start_time', '>', $currentTime);
+                      });
+                })
+                ->orderBy('date')
+                ->orderBy('start_time')
+                ->get(['date', 'start_time', 'end_time', 'fee']);
+
+            $mentor->available_slots_count = $availableSlots->count();
+
+            // Next available slot
+            $next = $availableSlots->first();
+            $mentor->next_available_slot = $next
+                ? [
+                    'date'       => $next->date,
+                    'start_time' => $next->start_time,
+                    'end_time'   => $next->end_time,
+                    'fee'        => $next->fee,
+                ]
+                : null;
+
             return $mentor;
         });
 
@@ -125,6 +159,20 @@ class MentorController extends Controller
             ->with(['mentorProfile', 'feedbackReceived.fromUser'])
             ->findOrFail($id);
 
+        $today = now(config('app.timezone'))->toDateString();
+        $currentTime = now(config('app.timezone'))->format('H:i:s');
+
+        \App\Models\Schedule::where('mentor_id', $id)
+            ->whereNotNull('date')
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->where('date', '<', $today)
+                    ->orWhere(function ($sameDay) use ($today, $currentTime) {
+                        $sameDay->where('date', $today)
+                            ->where('end_time', '<=', $currentTime);
+                    });
+            })
+            ->delete();
+
         // Calculate average rating
         $avgRating = $mentor->feedbackReceived()->avg('rating');
         $mentor->rating = $avgRating ? round($avgRating, 2) : null;
@@ -135,6 +183,13 @@ class MentorController extends Controller
             ->where('is_available', true)
             ->where('date', '>=', now()->format('Y-m-d'))
             ->where('date', '<=', now()->addDays(14)->format('Y-m-d'))
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->where('date', '>', $today)
+                    ->orWhere(function ($sameDay) use ($today, $currentTime) {
+                        $sameDay->where('date', $today)
+                            ->where('start_time', '>', $currentTime);
+                    });
+            })
             ->orderBy('date')
             ->orderBy('start_time')
             ->get()
@@ -146,6 +201,13 @@ class MentorController extends Controller
         $mentor->total_available_slots = \App\Models\Schedule::where('mentor_id', $id)
             ->where('is_available', true)
             ->where('date', '>=', now()->format('Y-m-d'))
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->where('date', '>', $today)
+                    ->orWhere(function ($sameDay) use ($today, $currentTime) {
+                        $sameDay->where('date', $today)
+                            ->where('start_time', '>', $currentTime);
+                    });
+            })
             ->count();
 
         // Calculate stats
@@ -268,9 +330,88 @@ class MentorController extends Controller
     }
 
     public function getNearby(Request $request) {
-        // This fetches mentors from your 'Uplift' users table
-        $mentors = User::where('role', 'mentor')->get(); 
-        return response()->json($mentors);
+        $validated = $request->validate([
+            'lat' => 'nullable|numeric|between:-90,90',
+            'lng' => 'nullable|numeric|between:-180,180',
+            'radius_km' => 'nullable|numeric|min:1|max:5000',
+        ]);
+
+        $originLat = isset($validated['lat']) ? (float) $validated['lat'] : 3.1390;
+        $originLng = isset($validated['lng']) ? (float) $validated['lng'] : 101.6869;
+        $radiusKm = isset($validated['radius_km']) ? (float) $validated['radius_km'] : 30.0;
+
+        $mentors = User::where('role', 'mentor')
+            ->where('is_active', true)
+            ->with('mentorProfile')
+            ->get();
+
+        $fakeLocations = [
+            ['address' => 'Jalan Ampang, Kuala Lumpur, 50450', 'lat' => 3.158, 'lng' => 101.714],
+            ['address' => 'SS15, Subang Jaya, Selangor, 47500', 'lat' => 3.076, 'lng' => 101.589],
+            ['address' => 'Georgetown, Penang, 10200', 'lat' => 5.416, 'lng' => 100.332],
+            ['address' => 'Johor Bahru City Centre, Johor, 80000', 'lat' => 1.492, 'lng' => 103.741],
+            ['address' => 'Kota Kinabalu, Sabah, 88000', 'lat' => 5.980, 'lng' => 116.073],
+            ['address' => 'Kuching Waterfront, Sarawak, 93000', 'lat' => 1.553, 'lng' => 110.344],
+            ['address' => 'Cyberjaya, Selangor, 63000', 'lat' => 2.923, 'lng' => 101.653],
+            ['address' => 'Ipoh Garden East, Perak, 31400', 'lat' => 4.597, 'lng' => 101.090],
+        ];
+
+        $nearby = $mentors->map(function ($mentor) use ($originLat, $originLng, $fakeLocations) {
+            $lat = is_numeric($mentor->latitude ?? null) ? (float) $mentor->latitude : null;
+            $lng = is_numeric($mentor->longitude ?? null) ? (float) $mentor->longitude : null;
+
+            $fakeLocation = $fakeLocations[$mentor->id % count($fakeLocations)];
+            $fakeAddress = $fakeLocation['address'];
+
+            // Fallback: use actual coordinates of the fake address if mentor has no saved coordinates
+            if ($lat === null || $lng === null) {
+                // Add a very tiny deterministic offset so multiple mentors in same city don't completely overlap
+                $seed = crc32((string) $mentor->id);
+                $latOffset = ((($seed % 1000) / 1000) - 0.5) * 0.01;
+                $lngOffset = ((((int) ($seed / 1000) % 1000) / 1000) - 0.5) * 0.01;
+                $lat = $fakeLocation['lat'] + $latOffset;
+                $lng = $fakeLocation['lng'] + $lngOffset;
+            }
+
+            $earthRadiusKm = 6371;
+            $dLat = deg2rad($lat - $originLat);
+            $dLng = deg2rad($lng - $originLng);
+            $a = sin($dLat / 2) * sin($dLat / 2)
+                + cos(deg2rad($originLat)) * cos(deg2rad($lat))
+                * sin($dLng / 2) * sin($dLng / 2);
+            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+            $distanceKm = $earthRadiusKm * $c;
+
+            $mentorProfile = $mentor->mentorProfile;
+
+            return [
+                'id' => $mentor->id,
+                'name' => $mentor->name,
+                'bio' => $mentor->bio,
+                'address' => $mentor->address ?: $fakeAddress,
+                'fake_address' => $fakeAddress,
+                'skills' => $mentor->skills ?? [],
+                'title' => $mentorProfile?->job_title,
+                'hourly_rate' => $mentorProfile?->hourly_rate,
+                'rating' => $mentor->feedbackReceived()->avg('rating') ? round($mentor->feedbackReceived()->avg('rating'), 2) : null,
+                'reviews' => $mentor->feedbackReceived()->count(),
+                'latitude' => round($lat, 6),
+                'longitude' => round($lng, 6),
+                'distance_km' => round($distanceKm, 2),
+            ];
+        })
+            ->filter(fn ($mentor) => $mentor['distance_km'] <= $radiusKm)
+            ->sortBy('distance_km')
+            ->values();
+
+        return response()->json([
+            'origin' => [
+                'latitude' => $originLat,
+                'longitude' => $originLng,
+            ],
+            'radius_km' => $radiusKm,
+            'data' => $nearby,
+        ]);
     }
 
     /**

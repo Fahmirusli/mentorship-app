@@ -19,6 +19,8 @@ class ProfileController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'sometimes|string|max:20',
             'address' => 'sometimes|string|max:255',
+            'state' => 'sometimes|string|max:255',
+            'postcode' => 'sometimes|string|max:20',
             'bio' => 'sometimes|string|max:1000',
             'skills' => 'sometimes|array',
             'skills.*' => 'string|max:100',
@@ -71,7 +73,7 @@ class ProfileController extends Controller
     public function uploadImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp,heic,heif|max:5120',
         ]);
 
         $user = $request->user();
@@ -99,6 +101,8 @@ class ProfileController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
+            'state' => 'required|string|max:255',
+            'postcode' => 'required|string|max:20',
             'bio' => 'required|string|max:1000',
             'skills' => 'required|array|min:1',
             'skills.*' => 'string|max:100',
@@ -116,6 +120,8 @@ class ProfileController extends Controller
             'name' => $validated['name'],
             'phone' => $validated['phone'],
             'address' => $validated['address'],
+            'state' => $validated['state'],
+            'postcode' => $validated['postcode'],
             'bio' => $validated['bio'],
             'skills' => $validated['skills'],
             'interests' => $validated['interests'] ?? $user->interests,

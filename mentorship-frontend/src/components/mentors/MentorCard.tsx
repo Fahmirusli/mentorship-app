@@ -34,7 +34,7 @@ export default function MentorCard({
   const displayExpertise = mentor.expertise || mentorProfile?.expertise_areas || ['React', 'Node.js'];
   const displayBio = mentor.bio || 'Experienced professional helping others grow in their careers.';
   const displayLocation = mentor.location || 'Malaysia';
-  const displayRate = mentor.hourly_rate || 50;
+  const displayRate = mentor.mentor_profile?.hourly_rate || mentor.hourly_rate || 50;
   const displaySessions = mentor.sessions || mentorProfile?.total_mentees || 50;
   const displayReviews = mentor.reviews || 24;
 

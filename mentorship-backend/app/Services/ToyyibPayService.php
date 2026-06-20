@@ -14,9 +14,9 @@ class ToyyibPayService
     public function __construct()
     {
         // Use environment configuration
-        $this->url = env('TOYYIBPAY_URL', 'https://dev.toyyibpay.com'); 
-        $this->secretKey = env('TOYYIBPAY_SECRET_KEY');
-        $this->categoryCode = env('TOYYIBPAY_CATEGORY_CODE');
+        $this->url = trim((string) env('TOYYIBPAY_URL', 'https://dev.toyyibpay.com'));
+        $this->secretKey = trim((string) env('TOYYIBPAY_SECRET_KEY', ''));
+        $this->categoryCode = trim((string) env('TOYYIBPAY_CATEGORY_CODE', ''));
         
         // Validate configuration
         if (!$this->secretKey || !$this->categoryCode) {

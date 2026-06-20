@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Mentorship;
+use Carbon\Carbon;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class AppointmentController extends Controller
 {
+    private const UPCOMING_STATUSES = ['scheduled', 'pending_payment', 'rescheduled'];
+
     public function index(Request $request)
     {
         $user = $request->user();
@@ -26,7 +29,13 @@ class AppointmentController extends Controller
 
         // Filter by status
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $status = (string) $request->status;
+            if ($status === 'upcoming') {
+                $query->whereIn('status', self::UPCOMING_STATUSES)
+                    ->where('scheduled_at', '>=', now());
+            } else {
+                $query->where('status', $status);
+            }
         }
 
         // Filter by date range
@@ -38,7 +47,43 @@ class AppointmentController extends Controller
             $query->where('scheduled_at', '<=', $request->to_date);
         }
 
-        $appointments = $query->orderBy('scheduled_at', 'asc')->get();
+        $appointments = $query->orderBy('scheduled_at', 'asc')->get()
+            ->map(function (Appointment $appointment) use ($user) {
+                $scheduledAt = $appointment->scheduled_at instanceof Carbon
+                    ? $appointment->scheduled_at
+                    : Carbon::parse($appointment->scheduled_at);
+
+                $mentorship = $appointment->mentorship;
+                $mentor = $mentorship?->mentor;
+                $mentee = $mentorship?->mentee;
+
+                return [
+                    'id' => $appointment->id,
+                    'mentorship_id' => $appointment->mentorship_id,
+                    'mentor_id' => $mentor?->id,
+                    'mentee_id' => $mentee?->id,
+                    'mentor_name' => $mentor?->name,
+                    'mentee_name' => $mentee?->name,
+                    'date' => $scheduledAt->format('Y-m-d'),
+                    'time' => $scheduledAt->format('h:i A'),
+                    'scheduled_at' => $scheduledAt->toIso8601String(),
+                    'duration_minutes' => $appointment->duration_minutes,
+                    'status' => $appointment->status,
+                    'meeting_link' => $this->normalizeMeetingLink($appointment->meeting_link, $appointment->id),
+                    'notes' => $appointment->notes,
+                    'title' => $appointment->notes ?: 'Mentorship Session',
+                    'is_upcoming' => in_array((string) $appointment->status, self::UPCOMING_STATUSES, true) && $scheduledAt->isFuture(),
+                    'mentorship_detail' => [
+                        'goal' => $mentorship?->goals,
+                        'status' => $mentorship?->status,
+                        'start_date' => optional($mentorship?->start_date)->format('Y-m-d'),
+                        'end_date' => optional($mentorship?->end_date)->format('Y-m-d'),
+                        'other_party_name' => $user->id === $mentor?->id ? $mentee?->name : $mentor?->name,
+                    ],
+                    'mentorship' => $mentorship,
+                ];
+            })
+            ->values();
 
         return response()->json($appointments);
     }
@@ -49,7 +94,7 @@ class AppointmentController extends Controller
             'mentorship_id' => 'required|exists:mentorships,id',
             'scheduled_at' => 'required|date|after:now',
             'duration_minutes' => 'required|integer|min:15|max:180',
-            'meeting_link' => 'nullable|url',
+            'meeting_link' => 'nullable|string|max:2048',
             'notes' => 'nullable|string',
         ]);
 
@@ -117,6 +162,7 @@ class AppointmentController extends Controller
 
         $appointment = Appointment::create([
             ...$validated,
+            'meeting_link' => $this->normalizeInputMeetingLink($validated['meeting_link'] ?? null),
             'fee' => $fee,
         ]);
 
@@ -151,7 +197,7 @@ class AppointmentController extends Controller
             'scheduled_at' => 'sometimes|date',
             'duration_minutes' => 'sometimes|integer|min:15|max:180',
             'status' => 'sometimes|in:scheduled,completed,cancelled,rescheduled',
-            'meeting_link' => 'sometimes|url',
+            'meeting_link' => 'sometimes|string|max:2048',
             'notes' => 'sometimes|string',
         ]);
 
@@ -160,6 +206,10 @@ class AppointmentController extends Controller
         if ($appointment->mentorship->mentor_id !== $user->id && 
             $appointment->mentorship->mentee_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if (array_key_exists('meeting_link', $validated)) {
+            $validated['meeting_link'] = $this->normalizeInputMeetingLink($validated['meeting_link']);
         }
 
         $appointment->update($validated);
@@ -176,7 +226,7 @@ class AppointmentController extends Controller
 
         // Authorization
         $user = auth()->user();
-        if ($appointment->mentorship->mentee_id !== $user->id && !$user->isAdmin()) {
+        if ($appointment->mentorship->mentee_id !== $user->id && $user->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -225,7 +275,7 @@ class AppointmentController extends Controller
                   });
             })
             ->where('is_available', true)
-            ->where('start_time', '<=', $timeStr)
+            ->where('start_time', $timeStr)
             ->where('end_time', '>=', $endTimeStr)
             ->orderByRaw('date IS NOT NULL DESC')
             ->first();
@@ -269,5 +319,52 @@ class AppointmentController extends Controller
             'message' => 'Appointment rescheduled successfully',
             'appointment' => $appointment->fresh()->load('mentorship'),
         ]);
+    }
+
+    private function normalizeInputMeetingLink(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        if (preg_match('/^https?:\/\//i', $trimmed)) {
+            return $trimmed;
+        }
+
+        return 'https://' . $trimmed;
+    }
+
+    private function normalizeMeetingLink(?string $meetingLink, int $appointmentId): string
+    {
+        $normalized = $this->normalizeInputMeetingLink($meetingLink);
+
+        if ($normalized === null) {
+            return $this->buildFallbackMeetingLink($appointmentId);
+        }
+
+        $parsed = parse_url($normalized);
+        $host = strtolower((string) ($parsed['host'] ?? ''));
+        $path = trim((string) ($parsed['path'] ?? ''), '/');
+
+        if ($host === 'meet.google.com') {
+            $isValidMeetCode = (bool) preg_match('/^[a-z]{3}-[a-z]{4}-[a-z]{3}$/', $path);
+            $isPlaceholder = in_array($path, ['future-session', 'review-session', 'past-session'], true);
+
+            if (!$isValidMeetCode || $isPlaceholder) {
+                return $this->buildFallbackMeetingLink($appointmentId);
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function buildFallbackMeetingLink(int $appointmentId): string
+    {
+        return 'https://meet.google.com/new';
     }
 }

@@ -13,6 +13,17 @@ interface TimeSlot {
     fee: number;
 }
 
+interface ScheduleApiResponse {
+    schedules?: Array<{
+        id?: number;
+        date?: string;
+        start_time?: string;
+        end_time?: string;
+        is_available?: boolean | number;
+        fee?: number | string;
+    }>;
+}
+
 const toDateInputValue = (value?: string) => {
     if (!value) return '';
     const parsed = new Date(value);
@@ -42,10 +53,10 @@ export default function MentorSchedule() {
 
     const fetchSchedule = async () => {
         try {
-            const response = await api.get('/schedules/my-schedule');
+            const response = await api.get<ScheduleApiResponse>('/schedules/my-schedule');
             const rows = Array.isArray(response.schedules) ? response.schedules : [];
             setSchedule(
-                rows.map((slot: any) => ({
+                rows.map((slot) => ({
                     id: slot.id,
                     date: toDateInputValue(slot.date),
                     start_time: toTimeInputValue(slot.start_time),
@@ -99,9 +110,10 @@ export default function MentorSchedule() {
                 start_time: '09:00',
                 end_time: '17:00',
             });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error adding time slot:', error);
-            alert('Failed to add time slot');
+            const err = error as Error;
+            alert(err?.message || 'Failed to add time slot');
         }
     };
 
@@ -153,6 +165,29 @@ export default function MentorSchedule() {
                     {/* Add New Time Slot */}
                     <div className="bg-indigo-50 rounded-lg p-6 mb-8">
                         <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Availability</h2>
+                        <div className="mb-5 rounded-xl border border-indigo-200 bg-white px-5 py-4 text-sm text-gray-700 shadow-sm">
+                            <p className="font-semibold text-indigo-700 mb-3 flex items-center gap-2">
+                                <span className="text-base">📋</span> How "Add Availability" Works
+                            </p>
+                            <ul className="space-y-2">
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">1</span>
+                                    <span><strong>Set a date, start time & end time</strong> — this creates one availability block (e.g. 09:00 – 17:00 on Monday). Mentees will see each hour within that block as a selectable slot (09:00, 10:00, 11:00 … 16:00).</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">2</span>
+                                    <span><strong>Set the Price (RM)</strong> — this is the exact amount the mentee will be charged for a 1-hour session. Make sure it matches what you intend to charge.</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">3</span>
+                                    <span><strong>Once a mentee books a slot</strong>, that slot will appear greyed-out and locked on the booking page so no one else can double-book it.</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">4</span>
+                                    <span><strong>To remove a slot</strong>, click the <span className="text-red-500 font-semibold">🗑 delete</span> button next to it below. Only delete slots that have no bookings yet.</span>
+                                </li>
+                            </ul>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>

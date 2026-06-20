@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Video, MapPin, Loader, Plus } from 'lucide-react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Calendar, Clock, User, Video, Loader, Plus, CheckCircle, XCircle, X } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface Appointment {
     id: number;
+    mentor_id?: number;
     mentor_name: string;
     mentor_avatar?: string;
     date: string;
@@ -16,58 +18,174 @@ interface Appointment {
     meeting_link?: string;
 }
 
-export default function MenteeSchedule() {
+type UiStatus = Appointment['status'];
+
+interface BackendAppointment {
+    id: number;
+    mentorship?: {
+        mentor?: { id?: number; name?: string };
+    };
+    mentor_name?: string;
+    scheduled_at?: string;
+    duration_minutes?: number;
+    notes?: string;
+    status?: string;
+    meeting_link?: string;
+}
+
+function MenteeScheduleInner() {
+    const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
+    const [paymentBanner, setPaymentBanner] = useState<'success' | 'failed' | 'pending' | null>(null);
 
     useEffect(() => {
-        fetchAppointments();
-    }, []);
+        const payment = searchParams.get('payment');
+        if (payment === 'success') setPaymentBanner('success');
+        else if (payment === 'failed') setPaymentBanner('failed');
+        else if (payment === 'pending') setPaymentBanner('pending');
+    }, [searchParams]);
 
-    const fetchAppointments = async () => {
+    const formatDatePart = (datePart: string) => {
+        const [year, month, day] = datePart.split('-').map(Number);
+        const dt = new Date(year, (month || 1) - 1, day || 1);
+        return dt.toLocaleDateString();
+    };
+
+    const formatTimePart = (timePart: string) => {
+        const [h, m] = timePart.split(':').map(Number);
+        if (Number.isNaN(h) || Number.isNaN(m)) return 'TBD';
+        const dt = new Date();
+        dt.setHours(h, m, 0, 0);
+        return dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const splitScheduledAt = (scheduledAt?: string) => {
+        if (!scheduledAt) return { date: '', time: '' };
+        const normalized = scheduledAt.replace('T', ' ').trim();
+        const [datePart = '', timePartRaw = ''] = normalized.split(' ');
+        const timePart = timePartRaw.slice(0, 5);
+        return { date: datePart, time: timePart };
+    };
+
+    const normalizeStatus = (status?: string): UiStatus => {
+        if (status === 'completed') return 'completed';
+        if (status === 'cancelled') return 'cancelled';
+        if (status === 'scheduled' || status === 'pending_payment' || status === 'rescheduled') {
+            return 'upcoming';
+        }
+        return 'upcoming';
+    };
+
+    const fetchAppointments = useCallback(async () => {
         try {
-            const response = await api.get('/appointments?status=' + filter);
+            const statusParam = filter === 'completed' ? 'completed' : filter === 'all' ? '' : 'upcoming';
+            const response = await api.get(`/appointments${statusParam ? `?status=${statusParam}` : ''}`);
+            const records: BackendAppointment[] = Array.isArray(response) ? response : [];
 
-            // Mock data for now
-            const mockAppointments: Appointment[] = [
-                {
-                    id: 1,
-                    mentor_name: 'Dr. Sarah Johnson',
-                    date: '2024-01-25',
-                    time: '14:00',
-                    duration: 60,
-                    topic: 'Career Development Strategy',
-                    status: 'upcoming',
-                    meeting_link: 'https://meet.google.com/abc-defg-hij'
-                },
-                {
-                    id: 2,
-                    mentor_name: 'John Smith',
-                    date: '2024-01-28',
-                    time: '10:00',
-                    duration: 45,
-                    topic: 'React Best Practices',
-                    status: 'upcoming'
-                },
-                {
-                    id: 3,
-                    mentor_name: 'Emily Chen',
-                    date: '2024-01-20',
-                    time: '15:00',
-                    duration: 60,
-                    topic: 'Portfolio Review',
-                    status: 'completed'
-                }
-            ];
+            const mappedAppointments: Appointment[] = records.map((item) => {
+                const scheduled = splitScheduledAt(item.scheduled_at);
+                const mentorName = item.mentorship?.mentor?.name || item.mentor_name || 'Mentor';
+                const normalizedStatus = normalizeStatus(item.status);
 
-            setAppointments(mockAppointments);
+                return {
+                    id: item.id,
+                    mentor_id: item.mentorship?.mentor?.id,
+                    mentor_name: mentorName,
+                    date: scheduled.date,
+                    time: scheduled.time ? formatTimePart(scheduled.time) : 'TBD',
+                    duration: item.duration_minutes || 60,
+                    topic: item.notes || 'Mentorship Session',
+                    status: normalizedStatus,
+                    meeting_link: normalizeMeetingLink(item.meeting_link),
+                };
+            });
+
+            setAppointments(mappedAppointments);
         } catch (error) {
             console.error('Error fetching appointments:', error);
         } finally {
             setLoading(false);
         }
+    }, [filter]);
+
+    const rescheduleAppointment = async (appointment: Appointment) => {
+        if (!appointment.mentor_id) {
+            alert('Mentor information is missing for this appointment.');
+            return;
+        }
+
+        const startDate = new Date().toISOString().slice(0, 10);
+        const endDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+        let slotOptions: Array<{ date: string; time: string; label: string }> = [];
+
+        try {
+            const response: any = await api.get(`/schedules/mentor/${appointment.mentor_id}?start_date=${startDate}&end_date=${endDate}`);
+            const schedules = Array.isArray(response?.schedules) ? response.schedules : [];
+
+            slotOptions = schedules
+                .map((slot: any) => {
+                    const date = (slot?.date || '').toString().slice(0, 10);
+                    const time = (slot?.start_time || '').toString().slice(0, 5);
+                    if (!date || !time) return null;
+                    const label = `${date} ${formatTimePart(time)}`;
+                    return { date, time, label };
+                })
+                .filter(Boolean);
+        } catch (error) {
+            console.error('Error loading available slots:', error);
+            alert('Failed to load mentor available slots for reschedule.');
+            return;
+        }
+
+        if (slotOptions.length === 0) {
+            alert('No available slots found for this mentor.');
+            return;
+        }
+
+        const optionsText = slotOptions
+            .slice(0, 30)
+            .map((opt, idx) => `${idx + 1}. ${opt.label}`)
+            .join('\n');
+
+        const selected = prompt(`Select slot number:\n${optionsText}`);
+        if (!selected) return;
+
+        const selectedIndex = Number(selected) - 1;
+        const chosenSlot = slotOptions[selectedIndex];
+        if (!chosenSlot) {
+            alert('Invalid slot number selected.');
+            return;
+        }
+
+        try {
+            await api.patch(`/appointments/${appointment.id}/reschedule`, {
+                scheduled_at: `${chosenSlot.date} ${chosenSlot.time}:00`,
+                duration_minutes: appointment.duration,
+                notes: appointment.topic,
+            });
+
+            await fetchAppointments();
+            alert('Appointment rescheduled successfully');
+        } catch (error: any) {
+            console.error('Error rescheduling appointment:', error);
+            alert(error?.message || 'Failed to reschedule appointment');
+        }
     };
+
+    const normalizeMeetingLink = (value?: string) => {
+        if (!value) return undefined;
+        const trimmed = value.trim();
+        if (!trimmed) return undefined;
+        if (/^https?:\/\//i.test(trimmed)) return trimmed;
+        return `https://${trimmed}`;
+    };
+
+    useEffect(() => {
+        fetchAppointments();
+    }, [fetchAppointments]);
 
     const cancelAppointment = async (id: number) => {
         if (!confirm('Are you sure you want to cancel this appointment?')) return;
@@ -109,6 +227,47 @@ export default function MenteeSchedule() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-6xl mx-auto">
+
+                {/* Payment Result Banner */}
+                {paymentBanner === 'success' && (
+                    <div className="mb-6 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl shadow-sm">
+                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-semibold text-green-800">Payment Successful! 🎉</p>
+                            <p className="text-sm text-green-600">Your session has been booked. Check your upcoming sessions below.</p>
+                        </div>
+                        <button onClick={() => setPaymentBanner(null)} className="text-green-400 hover:text-green-600"><X className="w-5 h-5" /></button>
+                    </div>
+                )}
+
+                {paymentBanner === 'failed' && (
+                    <div className="mb-6 flex items-center gap-4 p-5 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                        <XCircle className="w-8 h-8 text-red-500 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-bold text-red-800 text-lg">Payment Failed</p>
+                            <p className="text-sm text-red-600 mt-0.5">Your payment was not completed. The slot is now available again.</p>
+                            <a
+                                href="/mentee/mentors"
+                                className="inline-flex items-center mt-3 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition"
+                            >
+                                Find Another Mentor &rarr;
+                            </a>
+                        </div>
+                        <button onClick={() => setPaymentBanner(null)} className="text-red-400 hover:text-red-600"><X className="w-5 h-5" /></button>
+                    </div>
+                )}
+
+                {paymentBanner === 'pending' && (
+                    <div className="mb-6 flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-xl shadow-sm">
+                        <Clock className="w-6 h-6 text-yellow-500 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-semibold text-yellow-800">Payment Pending</p>
+                            <p className="text-sm text-yellow-600">Your payment is being processed. We'll update your session once confirmed.</p>
+                        </div>
+                        <button onClick={() => setPaymentBanner(null)} className="text-yellow-400 hover:text-yellow-600"><X className="w-5 h-5" /></button>
+                    </div>
+                )}
+
                 <div className="bg-white rounded-xl shadow-sm p-8">
                     <div className="flex items-center justify-between mb-8">
                         <div>
@@ -194,7 +353,7 @@ export default function MenteeSchedule() {
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Calendar className="w-4 h-4" />
-                                                        <span>{new Date(appointment.date).toLocaleDateString()}</span>
+                                                        <span>{appointment.date ? formatDatePart(appointment.date) : 'TBD'}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock className="w-4 h-4" />
@@ -219,7 +378,7 @@ export default function MenteeSchedule() {
                                         {appointment.status === 'upcoming' && (
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => window.location.href = `/appointments/${appointment.id}/reschedule`}
+                                                    onClick={() => rescheduleAppointment(appointment)}
                                                     className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition text-sm"
                                                 >
                                                     Reschedule
@@ -240,5 +399,13 @@ export default function MenteeSchedule() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function MenteeSchedule() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader className="w-8 h-8 animate-spin text-indigo-600" /></div>}>
+            <MenteeScheduleInner />
+        </Suspense>
     );
 }

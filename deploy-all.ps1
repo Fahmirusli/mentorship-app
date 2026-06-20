@@ -15,7 +15,7 @@ systemctl restart php8.2-fpm
 echo 'Backend deployed'
 "@
 
-$backendCommands | ssh root@209.97.162.99 /bin/bash
+$backendCommands | ssh root@168.144.43.160 /bin/bash
 
 # Deploy frontend
 Write-Host "`n=== Deploying Frontend ===" -ForegroundColor Yellow
@@ -29,7 +29,7 @@ pm2 save
 echo 'Frontend deployed'
 "@
 
-$frontendCommands | ssh root@209.97.162.99 /bin/bash
+$frontendCommands | ssh root@168.144.43.160 /bin/bash
 
 Write-Host "`n=== Deployment Complete ===" -ForegroundColor Green
 Write-Host "Frontend: https://uplifts.dev" -ForegroundColor Cyan

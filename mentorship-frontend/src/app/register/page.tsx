@@ -249,7 +249,7 @@ export default function Register() {
                 <div className="max-w-md w-full mx-auto">
                     <div className="text-center lg:text-left mb-10">
                         <h2 className="text-3xl font-bold text-white mb-2">Create your account</h2>
-                        <p className="text-gray-400">Join MentorCore and start your journey.</p>
+                        <p className="text-gray-400">Join Uplifts and start your journey.</p>
                     </div>
 
                     {error && (

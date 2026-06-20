@@ -15,12 +15,12 @@ export function Logo({ className = '', collapsed = false, size = 'md' }: { class
 
     return (
         <Link href="/" className={`flex items-center gap-2 ${className}`}>
-            <div className={`${sizeClasses[size]} bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shrink-0`}>
+            <div className={`${sizeClasses[size]} bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center shrink-0`}>
                 <GraduationCap className={`${size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-8 h-8'} text-white`} />
             </div>
             {!collapsed && (
-                <span className={`font-bold ${textSizeClasses[size]} bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent`}>
-                    MentorCore
+                <span className={`font-bold ${textSizeClasses[size]} bg-gradient-to-r from-purple-500 to-purple-700 bg-clip-text text-transparent`}>
+                    Uplifts
                 </span>
             )}
         </Link>

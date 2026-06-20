@@ -110,7 +110,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                     className={`
                       flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200
                       ${active
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30'
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/30'
                         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                       }
                     `}
@@ -146,7 +146,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 onClick={handleProfile}
                 className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer ml-2"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center">
                   {user?.profile_image ? (
                     <img
                       src={user.profile_image}
@@ -203,7 +203,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                     className={`
                       flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200
                       ${active
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                        ? 'bg-gradient-to-r from-purple-500 to-purple-700 text-white shadow-lg'
                         : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
                       }
                     `}

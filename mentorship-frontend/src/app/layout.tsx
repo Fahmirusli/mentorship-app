@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MentorCore — Mentorship & Career Platform",
+  title: "Uplifts — Mentorship & Career Platform",
   description: "Connect with expert mentors, find your dream job, and accelerate your career growth with AI-powered skill matching from LinkedIn, JobStreet, and MauKerja.",
   keywords: "mentorship, career, jobs, mentor, mentee, skill matching, JobStreet, LinkedIn, MauKerja",
 };

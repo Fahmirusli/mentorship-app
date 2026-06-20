@@ -15,6 +15,7 @@ class MentorProfile extends Model
         'industry',
         'job_title',
         'company',
+        'hourly_rate',
         'years_of_experience',
         'mentorship_approach',
         'is_available',
@@ -26,6 +27,7 @@ class MentorProfile extends Model
         'expertise_areas' => 'array',
         'is_available' => 'boolean',
         'rating' => 'decimal:2',
+        'hourly_rate' => 'decimal:2',
     ];
 
     public function user()

@@ -14,7 +14,7 @@ class FileUploadController extends Controller
     public function uploadProfileImage(Request $request)
     {
         $request->validate([
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,svg,webp,heic,heif|max:5120'
         ]);
 
         /** @var User $user */

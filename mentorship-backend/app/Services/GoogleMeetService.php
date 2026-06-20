@@ -9,6 +9,7 @@ use Google\Service\Calendar\EventDateTime;
 use Google\Service\Calendar\ConferenceData;
 use Google\Service\Calendar\CreateConferenceRequest;
 use Google\Service\Calendar\ConferenceSolutionKey;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class GoogleMeetService
@@ -71,7 +72,7 @@ class GoogleMeetService
 
             return null;
         } catch (\Exception $e) {
-            \Log::error('Google Meet creation error: ' . $e->getMessage());
+            Log::error('Google Meet creation error: ' . $e->getMessage());
             return null;
         }
     }
@@ -81,9 +82,8 @@ class GoogleMeetService
      */
     public function generateSimpleMeetLink()
     {
-        // Generate a random 10-character code similar to Google Meet format
-        $code = $this->generateMeetCode();
-        return "https://meet.google.com/{$code}";
+        // Always use a valid Google Meet landing URL as fallback.
+        return 'https://meet.google.com/new';
     }
 
     private function generateMeetCode()

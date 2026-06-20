@@ -29,7 +29,6 @@ class PaymentController extends Controller
                 'mentorship_id' => 'nullable|exists:mentorships,id',
                 'mentor_id' => 'required_without:mentorship_id|exists:users,id',
                 'scheduled_at' => 'required|date|after:now',
-                'duration_minutes' => 'required|integer|min:15|max:180',
                 'notes' => 'nullable|string',
             ]);
 
@@ -55,32 +54,88 @@ class PaymentController extends Controller
                 $mentorship->load(['mentor.mentorProfile', 'mentee']);
             }
 
-            // 2. Calculate Fee
-            $mentorProfile = $mentorship->mentor->mentorProfile;
-            $fee = $mentorProfile ? ($mentorProfile->hourly_rate ?? 50) : 50;
-
-            // Adjust fee based on duration (proportional to 60 minutes)
-            $adjustedFee = ($fee / 60) * $validated['duration_minutes'];
-            $adjustedFee = round($adjustedFee, 2);
-
-            // 3. Mark schedule slot as booked
-            $scheduledAt = Carbon::parse($validated['scheduled_at']);
+            // 2. Resolve date/time in app timezone to avoid UTC shifts from clients
+            $scheduledAt = Carbon::parse($validated['scheduled_at'], config('app.timezone'))
+                ->setTimezone(config('app.timezone'));
             $scheduleDate = $scheduledAt->format('Y-m-d');
             $scheduleTime = $scheduledAt->format('H:i:s');
-            
+
+            // Find the availability block that *contains* the selected time.
+            // Mentors create a block e.g. 09:00–17:00; mentees pick any hour within it (09:00, 10:00 …).
+            // So we need: block.start_time <= selected_time < block.end_time
             $schedule = Schedule::where('mentor_id', $mentorship->mentor_id)
                 ->where('date', $scheduleDate)
-                ->where('start_time', $scheduleTime)
+                ->whereRaw('TIME(start_time) <= ?', [$scheduleTime])
+                ->whereRaw('TIME(end_time) > ?', [$scheduleTime])
                 ->where('is_available', true)
                 ->first();
+
+            if (!$schedule) {
+                return response()->json([
+                    'message' => 'Selected slot is no longer available. Please choose another time.'
+                ], 422);
+            }
+
+            $appointmentStart = $scheduledAt->copy();
+            // Extract just the time part from end_time (which may be stored as a full datetime)
+            $scheduleDate4Appt = $schedule->date->format('Y-m-d');
+            $endTimeOnly = Carbon::parse($schedule->end_time)->format('H:i:s');
+            $appointmentEnd = Carbon::createFromFormat('Y-m-d H:i:s', $scheduleDate4Appt . ' ' . $endTimeOnly, config('app.timezone'));
+
+            $conflict = Appointment::query()
+                ->where(function ($query) use ($mentorship) {
+                    $query->where('mentor_id', $mentorship->mentor_id)
+                        ->orWhereHas('mentorship', function ($mentorshipQuery) use ($mentorship) {
+                            $mentorshipQuery->where('mentor_id', $mentorship->mentor_id);
+                        });
+                })
+                ->whereIn('status', ['scheduled', 'pending_payment', 'rescheduled'])
+                ->where(function ($query) use ($appointmentStart, $appointmentEnd) {
+                    $query->whereBetween('scheduled_at', [$appointmentStart, $appointmentEnd])
+                        ->orWhereRaw('DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) BETWEEN ? AND ?', [$appointmentStart, $appointmentEnd])
+                        ->orWhere(function ($sub) use ($appointmentStart, $appointmentEnd) {
+                            $sub->where('scheduled_at', '<=', $appointmentStart)
+                                ->whereRaw('DATE_ADD(scheduled_at, INTERVAL duration_minutes MINUTE) >= ?', [$appointmentEnd]);
+                        });
+                })
+                ->exists();
+
+            if ($conflict) {
+                if ($schedule->is_available) {
+                    $schedule->update(['is_available' => false]);
+                }
+
+                return response()->json([
+                    'message' => 'Selected slot is no longer available. Please choose another time.'
+                ], 422);
+            }
+
+            // 3. Calculate Fee and Duration from the matched schedule block
+            $mentorProfile = $mentorship->mentor->mentorProfile;
+            $baseSessionFee = (float) ($schedule->fee ?? ($mentorProfile->hourly_rate ?? 50));
+
+            // Duration is the full length of the mentor's schedule block (not split into sub-hours)
+            // start_time/end_time may be stored as full datetimes — extract only the time component
+            $scheduleDate4Dur = $schedule->date->format('Y-m-d');
+            $startTimeOnly = Carbon::parse($schedule->start_time)->format('H:i:s');
+            $endTimeOnly2  = Carbon::parse($schedule->end_time)->format('H:i:s');
+            $scheduleStart = Carbon::createFromFormat('Y-m-d H:i:s', $scheduleDate4Dur . ' ' . $startTimeOnly, config('app.timezone'));
+            $scheduleEnd   = Carbon::createFromFormat('Y-m-d H:i:s', $scheduleDate4Dur . ' ' . $endTimeOnly2,  config('app.timezone'));
+            $durationMinutes = (int) $scheduleStart->diffInMinutes($scheduleEnd);
+            if ($durationMinutes < 15) {
+                $durationMinutes = 60; // safe fallback
+            }
+
+            // Fee is the flat fee for the entire block (exactly what mentor entered)
+            $adjustedFee = $baseSessionFee;
 
             // 4. Create Appointment with PENDING PAYMENT status
             $appointment = Appointment::create([
                 'mentorship_id' => $mentorship->id,
                 'mentor_id' => $mentorship->mentor_id,
                 'mentee_id' => $mentorship->mentee_id,
-                'scheduled_at' => $validated['scheduled_at'],
-                'duration_minutes' => $validated['duration_minutes'],
+                'scheduled_at' => $scheduledAt->format('Y-m-d H:i:s'),
+                'duration_minutes' => $durationMinutes,
                 'status' => 'pending_payment',
                 'payment_status' => 'pending',
                 'fee' => $adjustedFee,
@@ -182,9 +237,11 @@ class PaymentController extends Controller
                 ]);
 
                 // Update schedule booked_slots
+                $apptTime = $appointment->scheduled_at->format('H:i:s');
                 $schedule = Schedule::where('mentor_id', $appointment->mentor_id)
                     ->where('date', $appointment->scheduled_at->format('Y-m-d'))
-                    ->where('start_time', $appointment->scheduled_at->format('H:i:s'))
+                    ->where('start_time', '<=', $apptTime)
+                    ->where('end_time', '>', $apptTime)
                     ->first();
                 
                 if ($schedule) {
@@ -211,26 +268,31 @@ class PaymentController extends Controller
                 Log::info("Payment successful for appointment: " . $appointment->id);
                 
             } else {
-                // Payment failed or pending
-                $appointment->update([
-                    'payment_status' => $status == 2 ? 'pending' : 'failed',
-                    'notes' => $appointment->notes . "\nPayment failed: " . $reason
-                ]);
+                // Payment failed (status 3) or pending/cancelled (status 2)
+                // Restore the schedule slot so others can book it
+                $apptTime = $appointment->scheduled_at->format('H:i:s');
+                $schedule = Schedule::where('mentor_id', $appointment->mentor_id)
+                    ->where('date', $appointment->scheduled_at->format('Y-m-d'))
+                    ->where('start_time', '<=', $apptTime)
+                    ->where('end_time', '>', $apptTime)
+                    ->first();
 
-                // Release the schedule slot if payment failed
-                if ($status == 3) {
-                    $schedule = Schedule::where('mentor_id', $appointment->mentor_id)
-                        ->where('date', $appointment->scheduled_at->format('Y-m-d'))
-                        ->where('start_time', $appointment->scheduled_at->format('H:i:s'))
-                        ->first();
-                    
-                    if ($schedule && $schedule->booked_slots > 0) {
-                        $schedule->decrement('booked_slots');
-                        $schedule->update(['is_available' => true]);
-                    }
+                if ($schedule) {
+                    $schedule->update(['is_available' => true]);
                 }
 
-                Log::warning("Payment failed/pending for appointment: " . $appointment->id . ", Status: " . $status);
+                if ($status == 3) {
+                    // Hard failure — delete the appointment so no ghost booking remains
+                    Log::warning("Payment failed — deleting appointment: " . $appointment->id . ", Reason: " . $reason);
+                    $appointment->delete();
+                } else {
+                    // Status 2 = pending (user may still complete payment)
+                    $appointment->update([
+                        'payment_status' => 'pending',
+                        'notes' => ($appointment->notes ?? '') . "\nPayment pending: " . $reason,
+                    ]);
+                    Log::warning("Payment pending for appointment: " . $appointment->id);
+                }
             }
             
             return response('OK', 200);

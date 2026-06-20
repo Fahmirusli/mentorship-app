@@ -58,7 +58,7 @@ export default function AdminLogin() {
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
                         Admin Portal
                     </h1>
-                    <p className="text-gray-600 mt-2">MentorCore Platform</p>
+                    <p className="text-gray-600 mt-2">Uplifts Platform</p>
                 </div>
 
                 {/* Error Message */}
@@ -81,7 +81,7 @@ export default function AdminLogin() {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="admin@mentorcore.com"
+                            placeholder="admin@uplifts.dev"
                         />
                     </div>
 

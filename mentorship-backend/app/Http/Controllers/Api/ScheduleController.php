@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Schedule;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
@@ -12,6 +14,7 @@ class ScheduleController extends Controller
     public function getMentorSchedule(Request $request, $mentorId)
     {
         $mentor = User::where('role', 'mentor')->findOrFail($mentorId);
+        $this->purgePastSlots((int) $mentorId);
         
         $query = Schedule::where('mentor_id', $mentorId)
             ->where('is_available', true);
@@ -22,13 +25,61 @@ class ScheduleController extends Controller
         
         $query->whereBetween('date', [$startDate, $endDate]);
 
+        $bookedStartMap = Appointment::query()
+            ->where(function ($query) use ($mentorId) {
+                $query->where('mentor_id', $mentorId)
+                    ->orWhereHas('mentorship', function ($mentorshipQuery) use ($mentorId) {
+                        $mentorshipQuery->where('mentor_id', $mentorId);
+                    });
+            })
+            ->whereIn('status', ['scheduled', 'pending_payment', 'rescheduled'])
+            ->whereBetween('scheduled_at', [
+                Carbon::parse($startDate)->startOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
+            ])
+            ->get()
+            ->map(function (Appointment $appointment) {
+                $scheduled = $appointment->scheduled_at instanceof Carbon
+                    ? $appointment->scheduled_at
+                    : Carbon::parse($appointment->scheduled_at);
+
+                return $scheduled->format('Y-m-d H:i');
+            })
+            ->flip();
+
         $schedules = $query->orderBy('date')
             ->orderBy('start_time')
             ->get();
 
+        $schedules = $schedules
+            ->values()
+            ->map(function (Schedule $slot) use ($bookedStartMap) {
+                $date = Carbon::parse($slot->date);
+                $start = Carbon::parse($slot->start_time);
+                $end = Carbon::parse($slot->end_time);
+
+                $slotKey = $date->format('Y-m-d') . ' ' . $start->format('H:i');
+                $isBooked = $bookedStartMap->has($slotKey);
+
+                return [
+                    'id' => $slot->id,
+                    'mentor_id' => $slot->mentor_id,
+                    'date' => $date->format('Y-m-d'),
+                    'start_time' => $start->format('H:i'),
+                    'end_time' => $end->format('H:i'),
+                    'date_display' => $date->format('D, M d Y'),
+                    'start_time_display' => $start->format('h:i A'),
+                    'end_time_display' => $end->format('h:i A'),
+                    'slot_label' => $date->format('D, M d Y') . ' ' . $start->format('h:i A'),
+                    'fee' => $slot->fee,
+                    'is_available' => (bool) $slot->is_available,
+                    'is_booked' => $isBooked,
+                ];
+            });
+
         // Group schedules by date for easier frontend consumption
         $groupedSchedules = $schedules->groupBy(function($schedule) {
-            return \Carbon\Carbon::parse($schedule->date)->format('Y-m-d');
+            return $schedule['date'];
         });
 
         return response()->json([
@@ -45,6 +96,20 @@ class ScheduleController extends Controller
             return response()->json(['message' => 'Only mentors can create schedules'], 403);
         }
 
+        $this->purgePastSlots((int) $request->user()->id);
+
+        $normalizedStart = $this->normalizeTimeInput((string) $request->input('start_time', ''));
+        $normalizedEnd = $this->normalizeTimeInput((string) $request->input('end_time', ''));
+
+        if (!$normalizedStart || !$normalizedEnd) {
+            return response()->json(['message' => 'Invalid time format. Use HH:mm or hh:mm AM/PM.'], 422);
+        }
+
+        $request->merge([
+            'start_time' => $normalizedStart,
+            'end_time' => $normalizedEnd,
+        ]);
+
         $validated = $request->validate([
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
@@ -53,19 +118,20 @@ class ScheduleController extends Controller
             'fee' => 'required|numeric|min:0|max:9999.99',
         ]);
 
+        $slotStart = Carbon::parse($validated['date'] . ' ' . $validated['start_time'], config('app.timezone'));
+        if ($slotStart->lte(now(config('app.timezone')))) {
+            return response()->json(['message' => 'Slot start time must be in the future'], 422);
+        }
+
+        $slotDate = Carbon::parse($validated['date']);
+
         // Check for overlapping schedules
         $overlapping = Schedule::where('mentor_id', $request->user()->id)
-            ->where(function ($q) use ($validated) {
-                $q->where('date', $validated['date']);
-            })
-            ->where(function ($query) use ($validated) {
-                $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
-                      ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
-                      ->orWhere(function ($q) use ($validated) {
-                          $q->where('start_time', '<=', $validated['start_time'])
-                            ->where('end_time', '>=', $validated['end_time']);
-                      });
-            })
+            ->where('date', $validated['date'])
+            // Overlap check: existing.start < new.end AND existing.end > new.start
+            // This allows adjacent slots like 09:00-10:00 and 10:00-11:00.
+            ->where('start_time', '<', $validated['end_time'])
+            ->where('end_time', '>', $validated['start_time'])
             ->exists();
 
         if ($overlapping) {
@@ -75,11 +141,11 @@ class ScheduleController extends Controller
         $schedule = Schedule::create([
             'mentor_id' => $request->user()->id,
             'date' => $validated['date'],
+            'day_of_week' => $slotDate->dayOfWeek,
             'start_time' => $validated['start_time'],
             'end_time' => $validated['end_time'],
             'fee' => $validated['fee'],
             'is_available' => $validated['is_available'] ?? true,
-            ...$validated,
         ]);
 
         return response()->json([
@@ -97,6 +163,22 @@ class ScheduleController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        if ($request->has('start_time')) {
+            $normalizedStart = $this->normalizeTimeInput((string) $request->input('start_time', ''));
+            if (!$normalizedStart) {
+                return response()->json(['message' => 'Invalid start time format.'], 422);
+            }
+            $request->merge(['start_time' => $normalizedStart]);
+        }
+
+        if ($request->has('end_time')) {
+            $normalizedEnd = $this->normalizeTimeInput((string) $request->input('end_time', ''));
+            if (!$normalizedEnd) {
+                return response()->json(['message' => 'Invalid end time format.'], 422);
+            }
+            $request->merge(['end_time' => $normalizedEnd]);
+        }
+
         $validated = $request->validate([
             'date' => 'sometimes|date_format:Y-m-d|after_or_equal:today',
             'start_time' => 'sometimes|date_format:H:i',
@@ -104,6 +186,10 @@ class ScheduleController extends Controller
             'is_available' => 'sometimes|boolean',
             'fee' => 'sometimes|numeric|min:0|max:9999.99',
         ]);
+
+        if (isset($validated['date'])) {
+            $validated['day_of_week'] = Carbon::parse($validated['date'])->dayOfWeek;
+        }
 
         $schedule->update($validated);
 
@@ -136,6 +222,8 @@ class ScheduleController extends Controller
         if (!$user->isMentor()) {
             return response()->json(['message' => 'Only mentors have schedules'], 403);
         }
+
+        $this->purgePastSlots((int) $user->id);
         
         $query = Schedule::where('mentor_id', $user->id);
 
@@ -145,8 +233,8 @@ class ScheduleController extends Controller
                   ->orWhereNull('date'); // Include recurring weekly schedules
         }
 
-        $schedules = $query->orderByRaw('date IS NULL DESC, date ASC')
-            ->orderBy('start_time')
+        $schedules = $query->orderByRaw('date IS NULL DESC, date DESC')
+            ->orderBy('start_time', 'desc')
             ->get();
 
         // Format dates consistently
@@ -162,5 +250,44 @@ class ScheduleController extends Controller
         return response()->json([
             'schedules' => $schedules,
         ]);
+    }
+
+    private function normalizeTimeInput(string $input): ?string
+    {
+        $value = trim($input);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+
+        try {
+            return Carbon::parse($value)->format('H:i');
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function purgePastSlots(?int $mentorId = null): void
+    {
+        $now = now(config('app.timezone'));
+        $today = $now->toDateString();
+        $currentTime = $now->format('H:i:s');
+
+        Schedule::query()
+            ->when($mentorId, function ($query) use ($mentorId) {
+                $query->where('mentor_id', $mentorId);
+            })
+            ->whereNotNull('date')
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->where('date', '<', $today)
+                    ->orWhere(function ($sameDay) use ($today, $currentTime) {
+                        $sameDay->where('date', $today)
+                            ->where('end_time', '<=', $currentTime);
+                    });
+            })
+            ->delete();
     }
 }

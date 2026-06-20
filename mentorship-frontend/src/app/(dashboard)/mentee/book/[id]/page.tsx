@@ -1,33 +1,84 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import {
-    ArrowLeft, Calendar, Clock, Sparkles, CheckCircle, CreditCard
-} from 'lucide-react';
+import { ArrowLeft, Calendar, CreditCard, Lock, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
+
+interface ScheduleSlot {
+    id: number;
+    date: string;
+    start_time: string;   // "HH:mm"
+    end_time: string;     // "HH:mm"
+    fee: number;
+    is_available: boolean;
+    is_booked: boolean;
+    // Computed display strings
+    displayStart: string;
+    displayEnd: string;
+    durationLabel: string;
+}
+
+function fmt24to12(time: string): string {
+    const [h, m] = time.split(':').map(Number);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${m.toString().padStart(2, '0')} ${suffix}`;
+}
+
+function durationLabel(start: string, end: string): string {
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    const mins = (eh * 60 + em) - (sh * 60 + sm);
+    if (mins <= 0) return '';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} hr`;
+    return `${h} hr ${m} min`;
+}
 
 export default function BookSession({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [selectedDate, setSelectedDate] = useState('');
-    const [selectedTime, setSelectedTime] = useState('');
     const [topic, setTopic] = useState('');
-    const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-    const [schedules, setSchedules] = useState<any[]>([]);
+    const [allSlots, setAllSlots] = useState<ScheduleSlot[]>([]);
+    const [mentorName, setMentorName] = useState('');
+    const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null);
+
+    // Unique dates that have at least one slot
+    const availableDates = [...new Set(allSlots.map(s => s.date))].sort();
+
+    // Slots for the selected date
+    const slotsForDate = allSlots.filter(s => s.date === selectedDate);
+    const availableCount = slotsForDate.filter(s => !s.is_booked).length;
+    const bookedCount = slotsForDate.filter(s => s.is_booked).length;
 
     useEffect(() => {
         const fetchSchedule = async () => {
             try {
-                // Fetch schedules for next 14 days to match backend
                 const startDate = new Date().toISOString().split('T')[0];
-                const endDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                
+                const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 const response = await api.get(`/schedules/mentor/${id}?start_date=${startDate}&end_date=${endDate}`);
-                setSchedules(response.schedules || []);
-                console.log('Loaded schedules:', response.schedules?.length, 'slots');
+                setMentorName(response.mentor?.name || '');
+
+                const raw: any[] = response.schedules || [];
+                const slots: ScheduleSlot[] = raw.map((s: any) => ({
+                    id: s.id,
+                    date: s.date,
+                    start_time: s.start_time,
+                    end_time: s.end_time,
+                    fee: Number(s.fee ?? 50),
+                    is_available: Boolean(s.is_available),
+                    is_booked: Boolean(s.is_booked),
+                    displayStart: fmt24to12(s.start_time),
+                    displayEnd: fmt24to12(s.end_time),
+                    durationLabel: durationLabel(s.start_time, s.end_time),
+                }));
+
+                setAllSlots(slots);
             } catch (err) {
                 console.error('Error fetching schedule:', err);
                 setError('Failed to load available time slots');
@@ -36,208 +87,255 @@ export default function BookSession({ params }: { params: Promise<{ id: string }
         fetchSchedule();
     }, [id]);
 
+    // Clear selection when date changes
     useEffect(() => {
-        if (selectedDate && schedules.length > 0) {
-            generateSlots_v2();
-        }
-    }, [selectedDate, schedules]);
+        setSelectedSlot(null);
+    }, [selectedDate]);
 
-    const generateSlots_v2 = () => {
-        const selected = new Date(selectedDate);
-        const selectedDateStr = selectedDate; // Already in YYYY-MM-DD format
-
-        // Find matching schedules for the selected date
-        const relevantSchedules = schedules.filter(s => {
-            // Match exact date from backend
-            const scheduleDate = s.date ? s.date.split('T')[0] : null;
-            return scheduleDate === selectedDateStr && s.is_available;
-        });
-
-        console.log('Selected date:', selectedDateStr);
-        console.log('Matching schedules:', relevantSchedules.length);
-
-        const slots: string[] = [];
-
-        relevantSchedules.forEach(schedule => {
-            // Parse start and end times
-            const startHour = parseInt(schedule.start_time.split(':')[0]);
-            const endHour = parseInt(schedule.end_time.split(':')[0]);
-
-            // Generate hourly slots
-            for (let hour = startHour; hour < endHour; hour++) {
-                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
-                const displayTime = new Date(`2000-01-01T${timeStr}`).toLocaleTimeString('en-US', {
-                    hour: '2-digit', minute: '2-digit', hour12: true
-                });
-                if (!slots.includes(displayTime)) {
-                    slots.push(displayTime);
-                }
-            }
-        });
-
-        // Sort slots chronologically
-        slots.sort((a, b) => {
-            return new Date(`2000-01-01 ${a}`).getTime() - new Date(`2000-01-01 ${b}`).getTime();
-        });
-
-        console.log('Generated time slots:', slots);
-        setAvailableSlots(slots);
+    const handleSelectSlot = (slot: ScheduleSlot) => {
+        if (slot.is_booked) return;
+        setSelectedSlot(slot);
     };
 
     const handleBook = async () => {
+        if (!selectedSlot) return;
         setLoading(true);
         setError('');
         try {
-            // Combine date and time
-            // selectedDate is "2024-01-25", selectedTime is "09:00 AM"
-            // Convert "09:00 AM" back to "HH:mm" for backend?
-            // Actually PaymentController expects ISO String.
-            const timeParts = selectedTime.match(/(\d+):(\d+) (AM|PM)/);
-            if (!timeParts) throw new Error("Invalid time format");
+            // Send the schedule's start_time as the session start; backend derives duration from block
+            const scheduledAt = `${selectedSlot.date} ${selectedSlot.start_time}:00`;
 
-            let hour = parseInt(timeParts[1]);
-            if (timeParts[3] === 'PM' && hour < 12) hour += 12;
-            if (timeParts[3] === 'AM' && hour === 12) hour = 0;
-
-            const timeStr = `${hour.toString().padStart(2, '0')}:${timeParts[2]}:00`;
-            const dateTimeString = `${selectedDate}T${timeStr}`;
-            const scheduledAt = new Date(dateTimeString).toISOString();
-
-            // Call Payment API
             const response = await api.post('/payment/initiate', {
-                mentor_id: id, // URL param is Mentor ID
+                mentor_id: id,
                 scheduled_at: scheduledAt,
-                duration_minutes: 60,
-                notes: topic
+                notes: topic,
             });
 
             if (response.payment_url) {
-                // Redirect to ToyyibPay
                 window.location.href = response.payment_url;
             } else {
                 throw new Error('No payment URL received');
             }
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data?.message || 'Failed to initiate payment. Please try again.');
+            setError(err.response?.data?.message || err.message || 'Failed to initiate payment. Please try again.');
             setLoading(false);
         }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="max-w-lg w-full bg-white rounded-xl shadow-lg overflow-hidden">
                 {/* Header */}
                 <div className="bg-indigo-600 px-6 py-4 flex items-center">
-                    <button
-                        onClick={() => window.history.back()}
-                        className="text-white/80 hover:text-white mr-4"
-                    >
+                    <button onClick={() => window.history.back()} className="text-white/80 hover:text-white mr-4">
                         <ArrowLeft className="w-5 h-5" />
                     </button>
-                    <h1 className="text-xl font-bold text-white">Book Session</h1>
+                    <div>
+                        <h1 className="text-xl font-bold text-white">Book Session</h1>
+                        {mentorName && <p className="text-indigo-200 text-xs mt-0.5">with {mentorName}</p>}
+                    </div>
                 </div>
 
-                {step === 1 ? (
-                    <div className="p-6">
-                        <div className="space-y-6">
-                            {/* Error Message */}
-                            {error && (
-                                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
-                                    {error}
-                                </div>
-                            )}
+                <div className="p-6 space-y-6">
+                    {error && (
+                        <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-200">
+                            {error}
+                        </div>
+                    )}
 
-                            {/* Date Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Date
-                                </label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                    <input
-                                        type="date"
-                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        value={selectedDate}
-                                        onChange={(e) => setSelectedDate(e.target.value)}
-                                        min={new Date().toISOString().split('T')[0]}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Time Selection */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Time
-                                </label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {availableSlots.length === 0 ? (
-                                        <p className="col-span-3 text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                                            {selectedDate ? 'No available slots for this date' : 'Please select a date first'}
-                                        </p>
-                                    ) : (
-                                        availableSlots.map((slot) => (
-                                            <button
-                                                key={slot}
-                                                onClick={() => setSelectedTime(slot)}
-                                                className={`px-2 py-2 text-sm rounded-lg border transition ${selectedTime === slot
+                    {/* Date Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Date</label>
+                        <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="date"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                value={selectedDate}
+                                onChange={(e) => setSelectedDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                            />
+                        </div>
+                        {/* Show which dates have availability */}
+                        {availableDates.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                {availableDates.map(d => {
+                                    const hasAvail = allSlots.some(s => s.date === d && !s.is_booked);
+                                    return (
+                                        <button
+                                            key={d}
+                                            onClick={() => setSelectedDate(d)}
+                                            className={`text-xs px-2.5 py-1 rounded-full border transition ${
+                                                selectedDate === d
                                                     ? 'bg-indigo-600 text-white border-indigo-600'
-                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-indigo-300'
-                                                    }`}
+                                                    : hasAvail
+                                                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:border-indigo-400'
+                                                        : 'bg-gray-50 text-gray-400 border-gray-200'
+                                            }`}
+                                        >
+                                            {new Date(d + 'T00:00:00').toLocaleDateString('en-MY', { weekday: 'short', month: 'short', day: 'numeric' })}
+                                            {!hasAvail && ' (full)'}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Session Slots */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-gray-700">Available Sessions</label>
+                            {slotsForDate.length > 0 && (
+                                <span className="text-xs text-gray-500">
+                                    {availableCount} available · {bookedCount} booked
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Legend */}
+                        {slotsForDate.length > 0 && (
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-sm bg-indigo-100 border border-indigo-300 inline-block" />
+                                    Available
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-sm bg-gray-100 border border-gray-200 inline-block" />
+                                    Already booked
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="space-y-2">
+                            {slotsForDate.length === 0 ? (
+                                <p className="text-sm text-gray-500 text-center py-6 bg-gray-50 rounded-lg">
+                                    {selectedDate ? 'No sessions set for this date' : 'Please select a date above'}
+                                </p>
+                            ) : (
+                                slotsForDate.map(slot => {
+                                    const isSelected = selectedSlot?.id === slot.id;
+                                    if (slot.is_booked) {
+                                        return (
+                                            <div
+                                                key={slot.id}
+                                                className="flex items-center justify-between px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed select-none"
+                                                title="Already booked"
                                             >
-                                                {slot}
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Topic */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Discussion Topic
-                                </label>
-                                <textarea
-                                    rows={3}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
-                                    placeholder="What would you like to discuss?"
-                                    value={topic}
-                                    onChange={(e) => setTopic(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Summary */}
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <div className="flex justify-between items-center text-sm mb-2">
-                                    <span className="text-gray-600">Rate per hour</span>
-                                    <span className="font-semibold">RM 50</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-600">Duration</span>
-                                    <span className="font-semibold">60 mins</span>
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={handleBook}
-                                disabled={!selectedDate || !selectedTime || loading}
-                                className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
-                            >
-                                {loading ? (
-                                    <>
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CreditCard className="w-4 h-4 mr-2" />
-                                        Pay & Confirm Booking
-                                    </>
-                                )}
-                            </button>
+                                                <div className="flex items-center gap-3">
+                                                    <Clock className="w-4 h-4 text-gray-300" />
+                                                    <div>
+                                                        <p className="text-sm font-medium text-gray-400">
+                                                            {slot.displayStart} – {slot.displayEnd}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">{slot.durationLabel}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-gray-400">
+                                                    <Lock className="w-3.5 h-3.5" />
+                                                    <span className="text-xs font-medium">Booked</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <button
+                                            key={slot.id}
+                                            onClick={() => handleSelectSlot(slot)}
+                                            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border transition text-left ${
+                                                isSelected
+                                                    ? 'bg-indigo-600 border-indigo-600 shadow-md'
+                                                    : 'bg-white border-gray-200 hover:border-indigo-400 hover:bg-indigo-50'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Clock className={`w-4 h-4 ${isSelected ? 'text-indigo-200' : 'text-indigo-600'}`} />
+                                                <div>
+                                                    <p className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                                                        {slot.displayStart} – {slot.displayEnd}
+                                                    </p>
+                                                    <p className={`text-xs ${isSelected ? 'text-indigo-200' : 'text-gray-500'}`}>
+                                                        {slot.durationLabel}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className={`text-right`}>
+                                                <p className={`text-base font-bold ${isSelected ? 'text-white' : 'text-indigo-700'}`}>
+                                                    RM {slot.fee.toFixed(2)}
+                                                </p>
+                                                <p className={`text-xs ${isSelected ? 'text-indigo-200' : 'text-gray-400'}`}>
+                                                    per session
+                                                </p>
+                                            </div>
+                                        </button>
+                                    );
+                                })
+                            )}
                         </div>
                     </div>
-                ) : null}
+
+                    {/* Topic */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Discussion Topic</label>
+                        <textarea
+                            rows={3}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                            placeholder="What would you like to discuss?"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Summary */}
+                    <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-lg">
+                        {selectedSlot ? (
+                            <>
+                                <div className="flex justify-between text-sm mb-1.5">
+                                    <span className="text-gray-600">Session</span>
+                                    <span className="font-medium text-gray-800">
+                                        {selectedSlot.displayStart} – {selectedSlot.displayEnd}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-sm mb-1.5">
+                                    <span className="text-gray-600">Duration</span>
+                                    <span className="font-medium text-gray-800">{selectedSlot.durationLabel}</span>
+                                </div>
+                                <div className="border-t border-indigo-200 pt-3 mt-2 flex justify-between items-center">
+                                    <span className="font-bold text-gray-800">Total to Pay</span>
+                                    <span className="font-bold text-xl text-indigo-700">
+                                        RM {selectedSlot.fee.toFixed(2)}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-sm text-gray-400 text-center py-1">
+                                Select an available session above to see the price
+                            </p>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={handleBook}
+                        disabled={!selectedSlot || loading}
+                        className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center"
+                    >
+                        {loading ? (
+                            <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                {selectedSlot
+                                    ? `Pay RM ${selectedSlot.fee.toFixed(2)} & Confirm`
+                                    : 'Pay & Confirm Booking'
+                                }
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );

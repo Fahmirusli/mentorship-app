@@ -13,13 +13,7 @@ use App\Http\Controllers\HomeController;
 
 // Simple login routes (without full Laravel UI)
 Route::get('/', function () {
-    if (auth()->check()) {
-        if (auth()->user()->role === 'admin') {
-            return redirect('/admin/dashboard');
-        }
-        return redirect('/home');
-    }
-    return redirect()->route('login');
+    return redirect(env('FRONTEND_URL', 'https://uplifts.dev'));
 });
 
 Route::get('/login', function () {

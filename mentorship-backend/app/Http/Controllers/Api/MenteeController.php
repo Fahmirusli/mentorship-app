@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\MenteeProfile;
+use App\Models\Mentorship;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class MenteeController extends Controller
@@ -70,51 +72,51 @@ class MenteeController extends Controller
     public function stats(Request $request)
     {
         $user = $request->user();
-        
-        // 1. Active Mentorships
-        $mentorships = $user->menteeMentorships()->where('status', 'active')->count();
-        
-        // 2. Hours Mentored
-        $hours = $user->menteeMentorships()
+
+        $upcomingStatuses = ['scheduled', 'pending_payment', 'rescheduled'];
+
+        $activeMentorshipIds = Mentorship::query()
+            ->where('mentee_id', $user->id)
+            ->whereHas('appointments', function ($query) use ($upcomingStatuses) {
+                $query->whereIn('status', $upcomingStatuses)
+                    ->where('scheduled_at', '>=', now());
+            })
+            ->pluck('id');
+
+        // 1. Active Mentorships are mentorships with at least one upcoming appointment.
+        $mentorships = $activeMentorshipIds->count();
+
+        // 2. Hours Mentored is completed session duration for this mentee.
+        $totalCompletedMinutes = $user->menteeMentorships()
             ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
             ->where('appointments.status', 'completed')
-            ->count();
-            
-        // 3. Skills Learning (From Active Mentorships)
-        // We get the unique skills from the mentors of active mentorships or the mentorship goals
-        $activeMentorships = $user->menteeMentorships()
-            ->where('status', 'active')
-            ->with(['mentor.mentorProfile'])
+            ->sum('appointments.duration_minutes');
+        $hours = (int) round($totalCompletedMinutes / 60);
+
+        // 3. Learning progress is derived from completed vs total sessions per active mentorship.
+        $activeMentorships = Mentorship::with(['mentor'])
+            ->whereIn('id', $activeMentorshipIds)
             ->get();
 
-        $learningProgress = [];
-        $skillsCount = 0;
+        $formattedProgress = $activeMentorships->map(function (Mentorship $mentorship) {
+            $completedCount = $mentorship->appointments()
+                ->where('status', 'completed')
+                ->count();
 
-        foreach ($activeMentorships as $mentorship) {
-            // Assume we learn the mentor's top expertise
-            $mentorSkills = $mentorship->mentor->mentorProfile->expertise ?? [];
-            foreach ($mentorSkills as $skill) {
-                // Mock progress calculation based on time elapsed
-                // In a real app, this would be tracked explicitly
-                $daysActive = now()->diffInDays($mentorship->start_date);
-                $progress = min(100, max(10, $daysActive * 2)); // 2% per day
+            $totalCount = $mentorship->appointments()->count();
+            $progress = $totalCount > 0
+                ? (int) round(($completedCount / $totalCount) * 100)
+                : (int) min(100, max(5, Carbon::parse($mentorship->created_at)->diffInDays(now())));
 
-                // Avoid duplicates, keep highest progress
-                if (!isset($learningProgress[$skill])) {
-                    $learningProgress[$skill] = $progress;
-                    $skillsCount++;
-                }
-            }
-        }
-        
-        // Format for frontend
-        $formattedProgress = [];
-        foreach ($learningProgress as $skill => $progress) {
-             $formattedProgress[] = [
-                 'name' => $skill,
-                 'progress' => $progress
-             ];
-        }
+            return [
+                'name' => $mentorship->goals
+                    ? 'Goal: ' . \Illuminate\Support\Str::limit((string) $mentorship->goals, 30)
+                    : 'Mentor: ' . ($mentorship->mentor?->name ?? 'Mentor'),
+                'progress' => min(100, max(0, $progress)),
+            ];
+        })->values()->all();
+
+        $skillsCount = count($formattedProgress);
 
         // 4. Job Matches (Real matching logic)
         $userSkills = [];

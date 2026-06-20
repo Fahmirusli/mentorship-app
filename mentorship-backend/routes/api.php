@@ -31,9 +31,9 @@ Route::get('/auth/github/callback', [SocialAuthController::class, 'handleGithubC
 
 // Public API endpoints (no auth required)
 Route::get('/mentors', [App\Http\Controllers\Api\MentorController::class, 'index']);
-Route::get('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'show']);
 Route::get('/mentors/nearby', [App\Http\Controllers\Api\MentorController::class, 'getNearby']);
 Route::get('/mentors/all-skills', [App\Http\Controllers\Api\MentorController::class, 'getAllSkills']);
+Route::get('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'show']);
 Route::get('/schedules/mentor/{mentorId}', [App\Http\Controllers\Api\ScheduleController::class, 'getMentorSchedule']);
 Route::get('/jobs', [App\Http\Controllers\Api\JobController::class, 'index']);
 Route::get('/jobs/{id}', [App\Http\Controllers\Api\JobController::class, 'show'])->whereNumber('id');
