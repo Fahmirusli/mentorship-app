@@ -139,9 +139,18 @@ class MenteeController extends Controller
                 ->get()
                 ->filter(function ($job) use ($userSkills) {
                     $required = $job->required_skills ?? [];
+                    if (is_string($required)) {
+                        $required = json_decode($required, true) ?? [];
+                    }
+                    if (!is_array($required)) {
+                        $required = [];
+                    }
                     if (empty($required)) return false;
+
+                    $safeUserSkills = is_array($userSkills) ? $userSkills : [];
+
                     $matches = array_intersect(
-                        array_map('strtolower', $userSkills),
+                        array_map('strtolower', $safeUserSkills),
                         array_map('strtolower', $required)
                     );
                     return count($matches) > 0;
