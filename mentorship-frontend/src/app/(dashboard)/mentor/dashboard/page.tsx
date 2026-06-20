@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Calendar, Clock, TrendingUp, MessageSquare,
-  Star, DollarSign, ChevronRight, Sparkles, ArrowUpRight, BarChart3
+  Star, DollarSign, ChevronRight, Sparkles, ArrowUpRight, BarChart3, Video
 } from 'lucide-react';
 import { api, authService } from '@/lib/api';
 
@@ -124,13 +124,21 @@ export default function MentorDashboard() {
                         <h3 className="font-semibold text-gray-900">{session.title || 'Mentorship Session'}</h3>
                         <p className="text-sm text-gray-500">with {session.mentee_name || 'Mentee'}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">{session.time || 'TBD'}</p>
-                        <span className="inline-block mt-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-semibold">
-                          {session.status === 'scheduled' ? 'Upcoming' : session.status || 'Scheduled'}
-                        </span>
+                      <div className="text-right flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-gray-900">{session.time || 'TBD'}</p>
+                          <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-semibold">
+                            {session.status === 'scheduled' ? 'Upcoming' : session.status || 'Scheduled'}
+                          </span>
+                        </div>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); window.location.href = `/meeting/mentorship-app-${session.id}`; }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 shadow-md transition-all group-hover:scale-105 mt-1"
+                        >
+                          <Video className="w-3.5 h-3.5" />
+                          Join Call
+                        </button>
                       </div>
-                      <ArrowUpRight className="w-4 h-4 text-gray-300 ml-3 group-hover:text-emerald-500 transition-colors" />
                     </div>
                   ))
                 )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   Users, Calendar, BookOpen, TrendingUp, Search,
-  Briefcase, Target, Clock, ArrowUpRight, Sparkles, ChevronRight
+  Briefcase, Target, Clock, ArrowUpRight, Sparkles, ChevronRight, Video
 } from 'lucide-react';
 import { api, authService } from '@/lib/api';
 
@@ -154,12 +154,22 @@ export default function MenteeDashboard() {
                         <h3 className="font-semibold text-gray-900">{session.title || 'Mentorship Session'}</h3>
                         <p className="text-sm text-gray-500">with {session.mentor_name || 'Mentor'}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">{session.date || 'TBD'}</p>
-                        <p className="text-xs text-gray-500">{session.time || 'TBD'}</p>
-                        <span className="inline-block mt-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-semibold">Confirmed</span>
+                      <div className="text-right flex flex-col items-end gap-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{session.date || 'TBD'}</p>
+                          <p className="text-xs text-gray-500">{session.time || 'TBD'}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-semibold">Confirmed</span>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); window.location.href = `/meeting/mentorship-app-${session.id}`; }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 shadow-md transition-all group-hover:scale-105"
+                          >
+                            <Video className="w-3.5 h-3.5" />
+                            Join
+                          </button>
+                        </div>
                       </div>
-                      <ArrowUpRight className="w-4 h-4 text-gray-300 ml-3 group-hover:text-indigo-500 transition-colors" />
                     </div>
                   ))
                 )}

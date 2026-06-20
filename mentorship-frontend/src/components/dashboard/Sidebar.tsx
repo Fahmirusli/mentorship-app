@@ -9,7 +9,9 @@ import {
 import { useState, useEffect } from 'react';
 import { authService } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 import { Logo } from '@/components/Logo';
+import { toast, Toaster } from 'react-hot-toast';
 
 export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
   const pathname = usePathname();
@@ -17,6 +19,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
@@ -31,6 +34,37 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
         console.error('Failed to refresh user for navbar', error);
       });
 
+    // Fetch initial unread count
+    api.get('/notifications/unread-count')
+      .then((res) => {
+        if (res.unread_count !== undefined) {
+          setUnreadCount(res.unread_count);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch unread count', err));
+
+    const echo = getEcho();
+    if (echo && currentUser?.id) {
+      echo.private(`user.${currentUser.id}`)
+        .listen('NotificationCreated', (e: any) => {
+          setUnreadCount(prev => prev + 1);
+          if (e.notification) {
+            toast(
+              (t) => (
+                <div className="flex flex-col gap-1 cursor-pointer" onClick={() => {
+                  toast.dismiss(t.id);
+                  handleNotifications();
+                }}>
+                  <span className="font-bold text-sm text-gray-900">{e.notification.title}</span>
+                  <span className="text-sm text-gray-600 line-clamp-2">{e.notification.body}</span>
+                </div>
+              ),
+              { icon: '🔔', duration: 5000 }
+            );
+          }
+        });
+    }
+
     const handleProfileImageUpdated = (event: Event) => {
       const customEvent = event as CustomEvent<{ imageUrl?: string }>;
       if (customEvent.detail?.imageUrl) {
@@ -41,6 +75,9 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
     window.addEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
     return () => {
       window.removeEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
+      if (echo && currentUser?.id) {
+        echo.leave(`user.${currentUser.id}`);
+      }
     };
   }, []);
 
@@ -87,6 +124,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
 
   return (
     <>
+      <Toaster position="top-right" />
       {/* Top Navigation Bar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl border-b border-slate-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -130,7 +168,9 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 className="relative p-2 text-slate-300 hover:bg-slate-800/50 hover:text-white rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                )}
               </button>
 
               {/* Settings */}
@@ -224,7 +264,9 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 >
                   <Bell className="w-5 h-5" />
                   <span className="font-medium">Notifications</span>
-                  <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
+                  {unreadCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{unreadCount}</span>
+                  )}
                 </button>
 
                 <button
