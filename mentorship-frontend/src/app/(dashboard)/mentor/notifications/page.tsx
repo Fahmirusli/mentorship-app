@@ -8,8 +8,8 @@ interface Notification {
     id: number;
     type: string;
     title: string;
-    message: string;
-    read: boolean;
+    body: string;
+    is_read: boolean;
     created_at: string;
 }
 
@@ -24,35 +24,8 @@ export default function MentorNotifications() {
 
     const fetchNotifications = async () => {
         try {
-            // Mock notifications for mentors
-            const mockNotifications: Notification[] = [
-                {
-                    id: 1,
-                    type: 'booking',
-                    title: 'New Session Request',
-                    message: 'Jane Smith has requested a session for next Monday at 3:00 PM',
-                    read: false,
-                    created_at: new Date().toISOString()
-                },
-                {
-                    id: 2,
-                    type: 'message',
-                    title: 'New Message',
-                    message: 'You have a new message from Alex Johnson',
-                    read: false,
-                    created_at: new Date(Date.now() - 3600000).toISOString()
-                },
-                {
-                    id: 3,
-                    type: 'payment',
-                    title: 'Payment Received',
-                    message: 'You received RM150 for your session with Mike Brown',
-                    read: true,
-                    created_at: new Date(Date.now() - 86400000).toISOString()
-                }
-            ];
-
-            setNotifications(mockNotifications);
+            const res = await api.get('/notifications');
+            setNotifications(res.notifications || []);
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
@@ -62,25 +35,19 @@ export default function MentorNotifications() {
 
     const markAsRead = async (id: number) => {
         try {
+            await api.post(`/notifications/${id}/read`);
             setNotifications(notifications.map(n =>
-                n.id === id ? { ...n, read: true } : n
+                n.id === id ? { ...n, is_read: true } : n
             ));
         } catch (error) {
             console.error('Error marking notification as read:', error);
         }
     };
 
-    const deleteNotification = async (id: number) => {
-        try {
-            setNotifications(notifications.filter(n => n.id !== id));
-        } catch (error) {
-            console.error('Error deleting notification:', error);
-        }
-    };
-
     const markAllAsRead = async () => {
         try {
-            setNotifications(notifications.map(n => ({ ...n, read: true })));
+            await api.post('/notifications/read-all');
+            setNotifications(notifications.map(n => ({ ...n, is_read: true })));
         } catch (error) {
             console.error('Error marking all as read:', error);
         }
@@ -100,10 +67,10 @@ export default function MentorNotifications() {
     };
 
     const filteredNotifications = filter === 'unread'
-        ? notifications.filter(n => !n.read)
+        ? notifications.filter(n => !n.is_read)
         : notifications;
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     if (loading) {
         return (
@@ -174,7 +141,7 @@ export default function MentorNotifications() {
                             filteredNotifications.map((notification) => (
                                 <div
                                     key={notification.id}
-                                    className={`p-4 rounded-lg border transition ${notification.read
+                                    className={`p-4 rounded-lg border transition ${notification.is_read
                                             ? 'bg-white border-gray-200'
                                             : 'bg-indigo-50 border-indigo-200'
                                         }`}
@@ -186,14 +153,14 @@ export default function MentorNotifications() {
                                             <div className="flex items-start justify-between">
                                                 <div>
                                                     <h3 className="font-semibold text-gray-900">{notification.title}</h3>
-                                                    <p className="text-gray-600 text-sm mt-1">{notification.message}</p>
+                                                    <p className="text-gray-600 text-sm mt-1">{notification.body}</p>
                                                     <p className="text-xs text-gray-400 mt-2">
                                                         {new Date(notification.created_at).toLocaleString()}
                                                     </p>
                                                 </div>
 
                                                 <div className="flex items-center gap-2 ml-4">
-                                                    {!notification.read && (
+                                                    {!notification.is_read && (
                                                         <button
                                                             onClick={() => markAsRead(notification.id)}
                                                             className="p-2 text-indigo-600 hover:bg-indigo-100 rounded-lg transition"
@@ -202,13 +169,6 @@ export default function MentorNotifications() {
                                                             <Check className="w-4 h-4" />
                                                         </button>
                                                     )}
-                                                    <button
-                                                        onClick={() => deleteNotification(notification.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
                                                 </div>
                                             </div>
                                         </div>

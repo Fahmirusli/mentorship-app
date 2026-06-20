@@ -47,20 +47,28 @@ export default function MeetingPage() {
                     roomName={roomName}
                     configOverwrite={{
                         startWithAudioMuted: true,
+                        startWithVideoMuted: true,
                         disableModeratorIndicator: true,
-                        startScreenSharing: true,
+                        prejoinPageEnabled: false,
+                        prejoinConfig: { enabled: false },
+                        requireDisplayName: false,
                         enableEmailInStats: false
                     }}
                     interfaceConfigOverwrite={{
-                        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+                        DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+                        SHOW_PROMOTIONAL_CLOSE_PAGE: false
                     }}
                     userInfo={{
                         displayName: user.name,
                         email: user.email
                     }}
                     onApiReady={(externalApi) => {
-                        // Here you can attach custom event listeners to the Jitsi Meet External API
-                        // externalApi.addListener('videoConferenceJoined', () => console.log('Joined'));
+                        externalApi.addListener('readyToClose', () => {
+                            router.push(`/${user.role || (window.location.pathname.includes('mentor') ? 'mentor' : 'mentee')}/dashboard`);
+                        });
+                        externalApi.addListener('videoConferenceLeft', () => {
+                            router.push(`/${user.role || (window.location.pathname.includes('mentor') ? 'mentor' : 'mentee')}/dashboard`);
+                        });
                     }}
                     getIFrameRef={(iframeRef) => {
                         iframeRef.style.height = '100%';

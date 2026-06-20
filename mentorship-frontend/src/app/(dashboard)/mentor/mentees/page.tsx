@@ -121,12 +121,12 @@ export default function MyMentees() {
                                 <div className="p-6">
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                                {mentorship.mentee_name?.charAt(0) || 'M'}
+                                            <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                                {mentorship.mentee?.name?.charAt(0) || 'M'}
                                             </div>
                                             <div>
-                                                <h3 className="font-bold text-gray-900">{mentorship.mentee_name}</h3>
-                                                <p className="text-sm text-gray-500">{mentorship.mentee_bio || 'Mentee'}</p>
+                                                <h3 className="font-bold text-gray-900">{mentorship.mentee?.name || 'Unknown Mentee'}</h3>
+                                                <p className="text-sm text-gray-500">{mentorship.mentee?.bio || 'Mentee'}</p>
                                             </div>
                                         </div>
                                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${mentorship.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
@@ -138,16 +138,28 @@ export default function MyMentees() {
                                     <div className="space-y-3 mb-6">
                                         <div className="flex items-center text-sm text-gray-600">
                                             <BookOpen className="w-4 h-4 mr-2" />
-                                            <span>Goal: {mentorship.goal || 'General Mentorship'}</span>
+                                            <span>Goal: {mentorship.goals || 'General Mentorship'}</span>
                                         </div>
                                         <div className="flex items-center text-sm text-gray-600">
                                             <Calendar className="w-4 h-4 mr-2" />
-                                            <span>Sessions: {mentorship.session_count || 0} completed</span>
+                                            <span>Sessions: {mentorship.appointments?.length || 0} scheduled</span>
                                         </div>
                                     </div>
 
                                     <div className="flex space-x-2">
-                                        <button className="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 flex items-center justify-center">
+                                        <button 
+                                            onClick={() => {
+                                                window.dispatchEvent(new CustomEvent('openChat', {
+                                                    detail: {
+                                                        userId: mentorship.mentee?.id,
+                                                        name: mentorship.mentee?.name || 'Unknown Mentee',
+                                                        profile_image: null,
+                                                        role: 'mentee'
+                                                    }
+                                                }));
+                                            }}
+                                            className="flex-1 px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 flex items-center justify-center"
+                                        >
                                             <MessageSquare className="w-4 h-4 mr-2" />
                                             Message
                                         </button>

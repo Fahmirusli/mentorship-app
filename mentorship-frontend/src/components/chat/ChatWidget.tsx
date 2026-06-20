@@ -61,7 +61,26 @@ export function ChatWidget() {
       loadConversations();
       // Poll for new conversations/unread counts every 30s
       const convInterval = setInterval(loadConversations, 30000);
-      return () => clearInterval(convInterval);
+      
+      const handleOpenChat = (e: CustomEvent) => {
+        const { userId, name, profile_image, role } = e.detail;
+        setIsOpen(true);
+        // Create a dummy conversation object to open, backend will create it if needed
+        const conv: Conversation = {
+          id: Date.now(), // Temp ID until loaded
+          other_user: { id: userId, name, profile_image: profile_image || null, role: role || 'user' },
+          last_message: null,
+          unread_count: 0
+        };
+        openChat(conv);
+      };
+
+      window.addEventListener('openChat', handleOpenChat as EventListener);
+
+      return () => {
+        clearInterval(convInterval);
+        window.removeEventListener('openChat', handleOpenChat as EventListener);
+      };
     }
   }, [currentUser?.id]);
 
@@ -99,6 +118,12 @@ export function ChatWidget() {
       const res = await api.get(`/messages/${conv.other_user.id}`);
       const loadedMessages = res.messages || [];
       setMessages(loadedMessages);
+      
+      // Update the temp conversation ID with the real one from the backend
+      if (res.conversation_id) {
+        setActiveChat(prev => prev ? { ...prev, id: res.conversation_id } : null);
+        conv.id = res.conversation_id;
+      }
       
       if (loadedMessages.length > 0) {
         lastPollIdRef.current = Math.max(...loadedMessages.map((m: Message) => Number(m.id)));
@@ -237,7 +262,7 @@ export function ChatWidget() {
                 {conversations.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-400 p-6 text-center">
                     <MessageCircle className="w-12 h-12 mb-2 opacity-50" />
-                    <p className="text-sm">No messages yet. When you match with a mentor, you can chat here!</p>
+                    <p className="text-sm">No messages yet. When you match with a {currentUser.role === 'mentor' ? 'mentee' : 'mentor'}, you can chat here!</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
