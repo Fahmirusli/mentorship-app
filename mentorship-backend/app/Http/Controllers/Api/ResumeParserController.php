@@ -53,7 +53,7 @@ class ResumeParserController extends Controller
                     ]
                 ],
                 'generationConfig' => [
-                    'temperature' => 0.2, // Low temperature for more deterministic/factual extraction
+                    'temperature' => 0.1, // Low temperature for more deterministic/factual extraction
                 ]
             ]);
 
@@ -67,20 +67,31 @@ class ResumeParserController extends Controller
 
             // Clean up the response (sometimes it adds ```json even if told not to)
             $aiText = str_replace(['```json', '```'], '', $aiText);
-            $skills = json_decode(trim($aiText), true);
+            $aiText = trim($aiText);
+            $skills = json_decode($aiText, true);
 
             if (!is_array($skills)) {
                 Log::error('Gemini API returned invalid JSON: ' . $aiText);
                 return response()->json(['message' => 'Failed to extract skills cleanly.'], 500);
             }
 
-            // 3. Update the user's profile (Optional: or just return them for the user to confirm)
-            // For magic onboarding, let's just return the skills to the frontend so they can populate the input box, 
-            // and the user can click 'Save' to actually store them.
-            
+            // Normalize to a flat array of strings
+            $flatSkills = [];
+            if (isset($skills['skills']) && is_array($skills['skills'])) {
+                $flatSkills = $skills['skills'];
+            } else if (is_array($skills)) {
+                foreach ($skills as $k => $v) {
+                    if (is_string($v)) {
+                        $flatSkills[] = $v;
+                    } else if (is_array($v) && isset($v['skill'])) {
+                        $flatSkills[] = $v['skill'];
+                    }
+                }
+            }
+
             return response()->json([
                 'message' => 'Skills successfully extracted!',
-                'skills' => $skills
+                'skills' => array_values(array_filter($flatSkills))
             ]);
 
         } catch (\Exception $e) {
