@@ -73,36 +73,26 @@ class MenteeController extends Controller
     {
         $user = $request->user();
 
-        $upcomingStatuses = ['scheduled', 'pending_payment', 'rescheduled'];
-
-        $activeMentorshipIds = Mentorship::query()
+        // 1. Active Mentorships: mentorships where status = 'active'
+        $activeMentorships = Mentorship::with(['mentor'])
             ->where('mentee_id', $user->id)
-            ->whereHas('appointments', function ($query) use ($upcomingStatuses) {
-                $query->whereIn('status', $upcomingStatuses)
-                    ->where('scheduled_at', '>=', now());
-            })
-            ->pluck('id');
+            ->where('status', 'active')
+            ->get();
 
-        // 1. Active Mentorships are mentorships with at least one upcoming appointment.
-        $mentorships = $activeMentorshipIds->count();
+        $mentorships = $activeMentorships->count();
 
-        // 2. Hours Mentored is completed session duration for this mentee.
-        $totalCompletedMinutes = $user->menteeMentorships()
+        // 2. Hours Mentored: total completed appointment minutes for this mentee
+        $totalCompletedMinutes = Mentorship::where('mentee_id', $user->id)
             ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
             ->where('appointments.status', 'completed')
             ->sum('appointments.duration_minutes');
         $hours = (int) round($totalCompletedMinutes / 60);
 
-        // 3. Learning progress is derived from completed vs total sessions per active mentorship.
-        $activeMentorships = Mentorship::with(['mentor'])
-            ->whereIn('id', $activeMentorshipIds)
-            ->get();
-
+        // 3. Learning Progress: from active mentorships, track completed vs total sessions
         $formattedProgress = $activeMentorships->map(function (Mentorship $mentorship) {
             $completedCount = $mentorship->appointments()
                 ->where('status', 'completed')
                 ->count();
-
             $totalCount = $mentorship->appointments()->count();
             $progress = $totalCount > 0
                 ? (int) round(($completedCount / $totalCount) * 100)
@@ -116,32 +106,44 @@ class MenteeController extends Controller
             ];
         })->values()->all();
 
-        $skillsCount = count($formattedProgress);
+        // 4. Skills Learning: number of skills the mentee wants to learn (from profile)
+        $skillsCount = 0;
+        if ($user->menteeProfile) {
+            $skillsToLearn = $user->menteeProfile->skills_to_learn ?? [];
+            $currentSkills = $user->menteeProfile->current_skills ?? [];
+            $skillsCount = count(array_unique(array_merge(
+                is_array($skillsToLearn) ? $skillsToLearn : [],
+                is_array($currentSkills) ? $currentSkills : []
+            )));
+        }
+        // Fallback: check user->skills if no mentee profile skills
+        if ($skillsCount === 0 && !empty($user->skills)) {
+            $skillsCount = count(is_array($user->skills) ? $user->skills : []);
+        }
 
-        // 4. Job Matches (Real matching logic)
+        // 5. Job Matches (count of jobs where at least one skill intersects)
         $userSkills = [];
         if ($user->menteeProfile) {
-             $userSkills = array_merge(
-                 $user->menteeProfile->current_skills ?? [],
-                 $user->menteeProfile->skills_to_learn ?? []
-             );
+            $userSkills = array_merge(
+                is_array($user->menteeProfile->current_skills) ? $user->menteeProfile->current_skills : [],
+                is_array($user->menteeProfile->skills_to_learn) ? $user->menteeProfile->skills_to_learn : []
+            );
+        }
+        if (empty($userSkills) && !empty($user->skills)) {
+            $userSkills = is_array($user->skills) ? $user->skills : [];
         }
 
         $jobMatches = 0;
         if (!empty($userSkills)) {
-            // Count jobs where at least one skill matches
-            // This is a simplified "partial match" count
             $jobMatches = \App\Models\Job::where('is_active', true)
                 ->get()
                 ->filter(function ($job) use ($userSkills) {
                     $required = $job->required_skills ?? [];
                     if (empty($required)) return false;
-                    
                     $matches = array_intersect(
                         array_map('strtolower', $userSkills),
                         array_map('strtolower', $required)
                     );
-                    
                     return count($matches) > 0;
                 })
                 ->count();
@@ -149,10 +151,11 @@ class MenteeController extends Controller
 
         return response()->json([
             'mentorships' => $mentorships,
-            'hours' => $hours,
-            'skills' => $skillsCount,
-            'jobs' => $jobMatches,
-            'learning_progress' => $formattedProgress 
+            'hours'       => $hours,
+            'skills'      => $skillsCount,
+            'jobs'        => $jobMatches,
+            'learning_progress' => $formattedProgress,
         ]);
     }
+
 }
