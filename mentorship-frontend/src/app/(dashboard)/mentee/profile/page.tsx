@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Briefcase, Save, Loader, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
+import { GamificationCard } from '@/components/GamificationCard';
 
 export default function MenteeProfile() {
     const [loading, setLoading] = useState(true);
@@ -28,6 +29,7 @@ export default function MenteeProfile() {
     const [uploadingResume, setUploadingResume] = useState(false);
     const [parsingResume, setParsingResume] = useState(false);
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+    const [gamification, setGamification] = useState<any>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -59,6 +61,15 @@ export default function MenteeProfile() {
                 setResumeUrl(resumeValue.startsWith('data:') ? resumeValue : `${appBase}/storage/${resumeValue}`);
             } else {
                 setResumeUrl(null);
+            }
+
+            try {
+                const gamificationRes = await api.get('/gamification');
+                if (gamificationRes) {
+                    setGamification(gamificationRes);
+                }
+            } catch (err) {
+                console.error('Gamification fetch error', err);
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
@@ -172,6 +183,8 @@ export default function MenteeProfile() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-4xl mx-auto">
+                {gamification && <GamificationCard data={gamification} />}
+                
                 <div className="bg-white rounded-xl shadow-sm p-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8">My Profile</h1>
 

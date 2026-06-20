@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, DollarSign, Save, Loader, Award } from 'lucide-react';
 import { api } from '@/lib/api';
+import { GamificationCard } from '@/components/GamificationCard';
 
 export default function MentorProfile() {
     const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function MentorProfile() {
     const [newSkill, setNewSkill] = useState('');
     const [uploadingResume, setUploadingResume] = useState(false);
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+    const [gamification, setGamification] = useState<any>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -63,6 +65,15 @@ export default function MentorProfile() {
                 setResumeUrl(resumeValue.startsWith('data:') ? resumeValue : `${appBase}/storage/${resumeValue}`);
             } else {
                 setResumeUrl(null);
+            }
+
+            try {
+                const gamificationRes = await api.get('/gamification');
+                if (gamificationRes) {
+                    setGamification(gamificationRes);
+                }
+            } catch (err) {
+                console.error('Gamification fetch error', err);
             }
         } catch (error) {
             console.error('Error fetching profile:', error);
@@ -135,6 +146,8 @@ export default function MentorProfile() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-4xl mx-auto">
+                {gamification && <GamificationCard data={gamification} />}
+                
                 <div className="bg-white rounded-xl shadow-sm p-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8">Mentor Profile</h1>
 
