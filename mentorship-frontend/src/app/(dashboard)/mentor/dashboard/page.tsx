@@ -54,10 +54,10 @@ export default function MentorDashboard() {
   }
 
   const statCards = [
-    { label: 'Total Mentees', value: stats.total_mentees, icon: Users, gradient: 'from-blue-500 to-indigo-600', bg: 'bg-blue-50' },
-    { label: 'Upcoming Sessions', value: stats.upcoming_sessions, icon: Calendar, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50' },
-    { label: 'Hours Taught', value: stats.hours_taught, icon: Clock, gradient: 'from-violet-500 to-purple-600', bg: 'bg-violet-50' },
-    { label: 'Avg. Rating', value: stats.rating ? `${stats.rating}/5` : '—', icon: Star, gradient: 'from-amber-500 to-orange-600', bg: 'bg-amber-50' },
+    { label: 'Total Mentees', value: stats.total_mentees, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
+    { label: 'Upcoming Sessions', value: stats.upcoming_sessions, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-200' },
+    { label: 'Hours Taught', value: stats.hours_taught, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-100', border: 'border-violet-200' },
+    { label: 'Avg. Rating', value: stats.rating ? `${stats.rating}/5` : '—', icon: Star, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
   ];
 
   return (
@@ -70,7 +70,7 @@ export default function MentorDashboard() {
             <span className="text-sm font-medium text-emerald-600">Mentor Dashboard</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{user?.name || 'Mentor'}</span>
+            Welcome back, <span className="text-emerald-600">{user?.name || 'Mentor'}</span>
           </h1>
           <p className="text-gray-500 mt-1">Here&apos;s your mentorship overview for today.</p>
         </div>
@@ -78,14 +78,14 @@ export default function MentorDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 stagger-children">
           {statCards.map((stat, i) => (
-            <div key={i} className="group bg-white rounded-2xl shadow-sm p-6 border border-gray-100 card-hover cursor-default">
+            <div key={i} className="group glass-panel rounded-2xl p-6 card-hover cursor-default">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
                 </div>
-                <div className={`${stat.bg} p-3.5 rounded-xl group-hover:scale-110 transition-transform`}>
-                  <stat.icon className="w-6 h-6" />
+                <div className={`${stat.bg} ${stat.border} border p-3.5 rounded-xl group-hover:scale-110 transition-transform`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
                 </div>
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function MentorDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             {/* Today's Sessions */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-emerald-500" />
@@ -117,7 +117,7 @@ export default function MentorDashboard() {
                 ) : (
                   upcomingSessions.slice(0, 5).map((session: any, idx: number) => (
                     <div key={idx} className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-emerald-50/50 transition-all cursor-pointer group border border-transparent hover:border-emerald-100">
-                      <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <div className="w-14 h-14 bg-emerald-600 rounded-xl flex items-center justify-center shadow-md">
                         <Clock className="w-6 h-6 text-white" />
                       </div>
                       <div className="ml-4 flex-1">
@@ -133,7 +133,7 @@ export default function MentorDashboard() {
                         </div>
                         <button 
                             onClick={(e) => { e.stopPropagation(); window.location.href = `/meeting/mentorship-app-${session.id}`; }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-semibold rounded-lg hover:from-emerald-600 hover:to-teal-700 shadow-md transition-all group-hover:scale-105 mt-1"
+                            className="flex items-center gap-1 px-3 py-1.5 solid-primary-btn text-xs font-semibold rounded-lg mt-1"
                         >
                           <Video className="w-3.5 h-3.5" />
                           Join Call
@@ -146,18 +146,18 @@ export default function MentorDashboard() {
             </div>
 
             {/* Recent Activity */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-1000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1000">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-6">
                 <BarChart3 className="w-5 h-5 text-violet-500" />
                 Quick Overview
               </h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100">
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                   <DollarSign className="w-8 h-8 text-emerald-600 mb-2" />
                   <p className="text-2xl font-bold text-gray-900">RM {stats.total_earnings || 0}</p>
                   <p className="text-sm text-gray-500">Total Earnings</p>
                 </div>
-                <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100">
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                   <TrendingUp className="w-8 h-8 text-amber-600 mb-2" />
                   <p className="text-2xl font-bold text-gray-900">{stats.pending_requests || 0}</p>
                   <p className="text-sm text-gray-500">Pending Requests</p>
@@ -169,14 +169,14 @@ export default function MentorDashboard() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Messages */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-1000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1000">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-blue-500" />
                 Messages
               </h2>
-              <button onClick={() => window.location.href = '/mentor/mentees'} className="w-full p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 hover:shadow-md transition-all group cursor-pointer text-left">
+              <button onClick={() => window.location.href = '/mentor/mentees'} className="w-full p-4 bg-blue-50 rounded-xl border border-blue-100 hover:shadow-md transition-all group cursor-pointer text-left">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
                     <MessageSquare className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
@@ -189,7 +189,7 @@ export default function MentorDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-2000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-2000">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="space-y-2.5">
                 {[

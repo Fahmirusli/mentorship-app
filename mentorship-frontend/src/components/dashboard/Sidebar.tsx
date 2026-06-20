@@ -126,7 +126,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
     <>
       <Toaster position="top-right" />
       {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl border-b border-slate-700/50">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-900 text-white shadow-xl border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo Section */}
@@ -169,7 +169,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-slate-900 animate-pulse-glow"></span>
                 )}
               </button>
 
@@ -240,16 +240,14 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`
-                      flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200
-                      ${active
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-700 text-white shadow-lg'
-                        : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
-                      }
-                    `}
+                    className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? 'bg-purple-600 text-white'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    }`}
                   >
-                    <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-slate-400'}`} />
-                    <span className="font-medium">{link.label}</span>
+                    <Icon className={`w-5 h-5 mr-3 ${active ? 'text-white' : 'text-slate-400'}`} />
+                    {link.label}
                   </Link>
                 );
               })}

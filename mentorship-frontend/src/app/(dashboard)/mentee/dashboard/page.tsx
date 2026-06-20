@@ -58,10 +58,10 @@ export default function MenteeDashboard() {
   }
 
   const statCards = [
-    { label: 'Active Mentorships', value: stats.mentorships, icon: Users, gradient: 'from-purple-500 to-purple-600', bg: 'bg-purple-50' },
-    { label: 'Hours Mentored', value: stats.hours, icon: Clock, gradient: 'from-fuchsia-500 to-purple-600', bg: 'bg-fuchsia-50' },
-    { label: 'Skills Learning', value: stats.skills, icon: Target, gradient: 'from-violet-500 to-purple-600', bg: 'bg-violet-50' },
-    { label: 'Job Matches', value: stats.jobs, icon: Briefcase, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50' },
+    { label: 'Active Mentorships', value: stats.mentorships, icon: Users, color: 'text-purple-600', bg: 'bg-purple-100', border: 'border-purple-200' },
+    { label: 'Hours Mentored', value: stats.hours, icon: Clock, color: 'text-fuchsia-600', bg: 'bg-fuchsia-100', border: 'border-fuchsia-200' },
+    { label: 'Skills Learning', value: stats.skills, icon: Target, color: 'text-violet-600', bg: 'bg-violet-100', border: 'border-violet-200' },
+    { label: 'Job Matches', value: stats.jobs, icon: Briefcase, color: 'text-indigo-600', bg: 'bg-indigo-100', border: 'border-indigo-200' },
   ];
 
   return (
@@ -80,9 +80,9 @@ export default function MenteeDashboard() {
                 </span>
               </div>
               <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-200 to-fuchsia-200">{user?.name || 'Mentee'}</span> 👋
+                Welcome back, <span className="text-purple-200">{user?.name || 'Mentee'}</span> 👋
               </h1>
-              <p className="text-purple-200/80 text-sm md:text-base max-w-xl">
+              <p className="text-purple-100 text-sm md:text-base max-w-xl">
                 Ready to take your skills to the next level? You have {stats.mentorships} active mentorships and {stats.jobs} new job matches waiting for you. Let's make today count!
               </p>
             </div>
@@ -102,18 +102,18 @@ export default function MenteeDashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 stagger-children">
           {statCards.map((stat, i) => (
-            <div key={i} className="group bg-white rounded-2xl shadow-sm p-6 border border-gray-100 card-hover cursor-default">
+            <div key={i} className="group glass-panel rounded-2xl p-6 card-hover cursor-default">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
                   <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
                 </div>
-                <div className={`${stat.bg} p-3.5 rounded-xl group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`w-6 h-6 bg-gradient-to-br ${stat.gradient} bg-clip-text`} style={{color: 'inherit'}} />
+                <div className={`${stat.bg} ${stat.border} border p-3.5 rounded-xl group-hover:scale-110 transition-transform`}>
+                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
                 </div>
               </div>
-              <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full bg-gradient-to-r ${stat.gradient} rounded-full transition-all duration-1000`} style={{width: `${Math.min((stat.value || 0) * 10, 100)}%`}} />
+              <div className="mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className={`h-full ${stat.bg.replace('100', '500')} rounded-full transition-all duration-1000`} style={{width: `${Math.min((stat.value || 0) * 10, 100)}%`}} />
               </div>
             </div>
           ))}
@@ -122,7 +122,7 @@ export default function MenteeDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Upcoming Sessions */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-indigo-500" />
@@ -177,7 +177,7 @@ export default function MenteeDashboard() {
             </div>
 
             {/* Recommended Jobs */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-1000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1000">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <Briefcase className="w-5 h-5 text-purple-500" />
@@ -212,7 +212,7 @@ export default function MenteeDashboard() {
                               {job.source && <span className="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">{job.source}</span>}
                             </div>
                           </div>
-                          <button onClick={() => window.location.href = `/jobs/${job.id}`} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-sm rounded-xl hover:from-purple-500 hover:to-fuchsia-500 font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-1">
+                          <button onClick={() => window.location.href = `/jobs/${job.id}`} className="px-4 py-2 solid-primary-btn text-sm rounded-xl font-semibold flex items-center gap-1">
                             View <ArrowUpRight className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -227,7 +227,7 @@ export default function MenteeDashboard() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Learning Progress */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-1000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1000">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-violet-500" />
                 Learning Progress
@@ -242,8 +242,8 @@ export default function MenteeDashboard() {
                         <span className="text-gray-600 font-medium">{item.name}</span>
                         <span className="font-bold text-gray-900">{Math.round(item.progress)}%</span>
                       </div>
-                      <div className="w-full bg-purple-50 rounded-full h-2.5 overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r ${['from-purple-500 to-purple-600', 'from-fuchsia-500 to-purple-500', 'from-violet-500 to-purple-600', 'from-purple-600 to-indigo-500'][idx % 4]}`} style={{ width: `${item.progress}%` }} />
+                      <div className="w-full bg-purple-100 rounded-full h-2.5 overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-1000 bg-purple-600`} style={{ width: `${item.progress}%` }} />
                       </div>
                     </div>
                   ))
@@ -252,7 +252,7 @@ export default function MenteeDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 animate-fade-in-up animation-delay-2000">
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-2000">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="space-y-2.5">
                 {[
