@@ -5,13 +5,18 @@ import { useParams, useRouter } from 'next/navigation';
 import { BookOpen, CheckCircle, ArrowLeft, Loader, User } from 'lucide-react';
 import { api } from '@/lib/api';
 
+interface SyllabusItem {
+    title: string;
+    link?: string;
+}
+
 interface Course {
     id: number;
     title: string;
     description: string;
     price: number;
     tags: string[];
-    syllabus: string[];
+    syllabus: SyllabusItem[];
     mentor?: {
         id: number;
         name: string;
@@ -175,9 +180,22 @@ export default function MenteeCourseDetails() {
                                                 <div className="w-6 h-6 rounded-full border-2 border-gray-300"></div>
                                             )}
                                         </div>
-                                        <span className={`text-lg ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900 font-medium'}`}>
-                                            {task}
-                                        </span>
+                                        <div className="flex flex-col">
+                                            <span className={`text-lg ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900 font-medium'}`}>
+                                                {task.title}
+                                            </span>
+                                            {task.link && (
+                                                <a 
+                                                    href={task.link} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer" 
+                                                    className="text-sm text-blue-500 hover:underline mt-1"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {task.link}
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}

@@ -4,13 +4,18 @@ import { useState, useEffect } from 'react';
 import { BookOpen, Plus, Trash2, Loader, Save } from 'lucide-react';
 import { api } from '@/lib/api';
 
+interface SyllabusItem {
+    title: string;
+    link?: string;
+}
+
 interface Course {
     id?: number;
     title: string;
     description: string;
     price: number;
     tags: string[];
-    syllabus: string[];
+    syllabus: SyllabusItem[];
 }
 
 export default function MentorCourses() {
@@ -27,7 +32,8 @@ export default function MentorCourses() {
         syllabus: [],
     });
     const [tagInput, setTagInput] = useState('');
-    const [syllabusInput, setSyllabusInput] = useState('');
+    const [syllabusTitle, setSyllabusTitle] = useState('');
+    const [syllabusLink, setSyllabusLink] = useState('');
 
     useEffect(() => {
         fetchCourses();
@@ -52,9 +58,13 @@ export default function MentorCourses() {
     };
 
     const handleAddSyllabus = () => {
-        if (syllabusInput.trim()) {
-            setNewCourse({ ...newCourse, syllabus: [...newCourse.syllabus, syllabusInput.trim()] });
-            setSyllabusInput('');
+        if (syllabusTitle.trim()) {
+            setNewCourse({ 
+                ...newCourse, 
+                syllabus: [...newCourse.syllabus, { title: syllabusTitle.trim(), link: syllabusLink.trim() || undefined }] 
+            });
+            setSyllabusTitle('');
+            setSyllabusLink('');
         }
     };
 
@@ -194,9 +204,16 @@ export default function MentorCourses() {
                                 <div className="space-y-2 mb-4">
                                     {newCourse.syllabus.map((item, idx) => (
                                         <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                                            <div className="flex items-center gap-3">
-                                                <span className="w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-xs font-bold">{idx + 1}</span>
-                                                <span className="text-gray-800">{item}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="w-6 h-6 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-xs font-bold">{idx + 1}</span>
+                                                    <span className="text-gray-800 font-medium">{item.title}</span>
+                                                </div>
+                                                {item.link && (
+                                                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline ml-9">
+                                                        {item.link}
+                                                    </a>
+                                                )}
                                             </div>
                                             <button onClick={() => handleRemoveSyllabus(idx)} className="text-red-500 hover:text-red-700 p-1">
                                                 <Trash2 className="w-4 h-4" />
@@ -205,12 +222,19 @@ export default function MentorCourses() {
                                     ))}
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-col md:flex-row gap-2">
                                     <input
                                         type="text"
-                                        placeholder="e.g. Build a portfolio website using React"
-                                        value={syllabusInput}
-                                        onChange={(e) => setSyllabusInput(e.target.value)}
+                                        placeholder="Topic (e.g. Build a portfolio)"
+                                        value={syllabusTitle}
+                                        onChange={(e) => setSyllabusTitle(e.target.value)}
+                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Resource Link (Optional)"
+                                        value={syllabusLink}
+                                        onChange={(e) => setSyllabusLink(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddSyllabus()}
                                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     />

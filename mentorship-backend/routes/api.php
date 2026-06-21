@@ -125,8 +125,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications/unread-count', [App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
     Route::post('/notifications/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
+    
     // Gamification
     Route::get('/gamification', [App\Http\Controllers\Api\GamificationController::class, 'getGamificationData']);
+
+    // Mentor Courses
+    Route::get('/courses', [App\Http\Controllers\Api\CourseController::class, 'index']);
+    Route::get('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'show']);
+    Route::post('/courses', [App\Http\Controllers\Api\CourseController::class, 'store']);
+    Route::put('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'update']);
+    Route::delete('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'destroy']);
+    
+    // Mentee Course Enrollments
+    Route::post('/courses/{id}/enroll', [App\Http\Controllers\Api\CourseController::class, 'enroll']);
+    Route::get('/my-courses', [App\Http\Controllers\Api\CourseController::class, 'myCourses']);
+    Route::patch('/enrollments/{enrollmentId}/progress', [App\Http\Controllers\Api\CourseController::class, 'updateProgress']);
 });
 
 // Admin Routes

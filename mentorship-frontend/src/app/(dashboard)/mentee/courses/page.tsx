@@ -5,13 +5,18 @@ import { useRouter } from 'next/navigation';
 import { BookOpen, User, CheckCircle, Play, Loader } from 'lucide-react';
 import { api } from '@/lib/api';
 
+interface SyllabusItem {
+    title: string;
+    link?: string;
+}
+
 interface Course {
     id: number;
     title: string;
     description: string;
     price: number;
     tags: string[];
-    syllabus: string[];
+    syllabus: SyllabusItem[];
     mentor?: {
         id: number;
         name: string;
