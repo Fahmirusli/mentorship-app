@@ -148,7 +148,8 @@ function MenteeScheduleInner() {
                     const label = `${formatDatePart(date)} - ${formatTimePart(time)}`;
                     return { date, time, label };
                 })
-                .filter(Boolean);
+                .filter(Boolean)
+                .filter((slot: any) => formatTimePart(slot.time) === appointment.time);
         } catch (error) {
             console.error('Error loading available slots:', error);
             alert('Failed to load mentor available slots for reschedule.');
