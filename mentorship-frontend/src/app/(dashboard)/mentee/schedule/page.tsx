@@ -39,6 +39,19 @@ function MenteeScheduleInner() {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
     const [paymentBanner, setPaymentBanner] = useState<'success' | 'failed' | 'pending' | null>(null);
+    const [rescheduleModal, setRescheduleModal] = useState<{
+        isOpen: boolean;
+        appointment: Appointment | null;
+        slotOptions: Array<{ date: string; time: string; label: string }>;
+        selectedSlotIndex: number | null;
+        loading: boolean;
+    }>({
+        isOpen: false,
+        appointment: null,
+        slotOptions: [],
+        selectedSlotIndex: null,
+        loading: false,
+    });
 
     useEffect(() => {
         const payment = searchParams.get('payment');
@@ -110,11 +123,13 @@ function MenteeScheduleInner() {
         }
     }, [filter]);
 
-    const rescheduleAppointment = async (appointment: Appointment) => {
+    const openRescheduleModal = async (appointment: Appointment) => {
         if (!appointment.mentor_id) {
             alert('Mentor information is missing for this appointment.');
             return;
         }
+
+        setRescheduleModal(prev => ({ ...prev, isOpen: true, loading: true, appointment, slotOptions: [], selectedSlotIndex: null }));
 
         const startDate = new Date().toISOString().slice(0, 10);
         const endDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -130,35 +145,26 @@ function MenteeScheduleInner() {
                     const date = (slot?.date || '').toString().slice(0, 10);
                     const time = (slot?.start_time || '').toString().slice(0, 5);
                     if (!date || !time) return null;
-                    const label = `${date} ${formatTimePart(time)}`;
+                    const label = `${formatDatePart(date)} - ${formatTimePart(time)}`;
                     return { date, time, label };
                 })
                 .filter(Boolean);
         } catch (error) {
             console.error('Error loading available slots:', error);
             alert('Failed to load mentor available slots for reschedule.');
+            setRescheduleModal(prev => ({ ...prev, isOpen: false }));
             return;
         }
 
-        if (slotOptions.length === 0) {
-            alert('No available slots found for this mentor.');
-            return;
-        }
+        setRescheduleModal(prev => ({ ...prev, loading: false, slotOptions }));
+    };
 
-        const optionsText = slotOptions
-            .slice(0, 30)
-            .map((opt, idx) => `${idx + 1}. ${opt.label}`)
-            .join('\n');
+    const confirmReschedule = async () => {
+        const { appointment, slotOptions, selectedSlotIndex } = rescheduleModal;
+        if (!appointment || selectedSlotIndex === null) return;
 
-        const selected = prompt(`Select slot number:\n${optionsText}`);
-        if (!selected) return;
-
-        const selectedIndex = Number(selected) - 1;
-        const chosenSlot = slotOptions[selectedIndex];
-        if (!chosenSlot) {
-            alert('Invalid slot number selected.');
-            return;
-        }
+        const chosenSlot = slotOptions[selectedSlotIndex];
+        if (!chosenSlot) return;
 
         try {
             await api.patch(`/appointments/${appointment.id}/reschedule`, {
@@ -169,6 +175,7 @@ function MenteeScheduleInner() {
 
             await fetchAppointments();
             alert('Appointment rescheduled successfully');
+            setRescheduleModal({ isOpen: false, appointment: null, slotOptions: [], selectedSlotIndex: null, loading: false });
         } catch (error: any) {
             console.error('Error rescheduling appointment:', error);
             alert(error?.message || 'Failed to reschedule appointment');
@@ -332,7 +339,7 @@ function MenteeScheduleInner() {
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex gap-4 flex-1">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                            <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
                                                 {appointment.mentor_name.charAt(0)}
                                             </div>
 
@@ -378,8 +385,8 @@ function MenteeScheduleInner() {
                                         {appointment.status === 'upcoming' && (
                                             <div className="flex gap-2">
                                                 <button
-                                                    onClick={() => rescheduleAppointment(appointment)}
-                                                    className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition text-sm"
+                                                    onClick={() => openRescheduleModal(appointment)}
+                                                    className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition text-sm font-medium border border-indigo-100"
                                                 >
                                                     Reschedule
                                                 </button>
@@ -398,6 +405,74 @@ function MenteeScheduleInner() {
                     </div>
                 </div>
             </div>
+
+            {/* Reschedule Modal */}
+            {rescheduleModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-gray-900">Reschedule Session</h3>
+                            <button 
+                                onClick={() => setRescheduleModal({ isOpen: false, appointment: null, slotOptions: [], selectedSlotIndex: null, loading: false })}
+                                className="text-gray-400 hover:text-gray-600 transition"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            {rescheduleModal.loading ? (
+                                <div className="flex flex-col items-center justify-center py-8">
+                                    <Loader className="w-8 h-8 animate-spin text-indigo-600 mb-2" />
+                                    <p className="text-gray-500 text-sm">Loading available slots...</p>
+                                </div>
+                            ) : rescheduleModal.slotOptions.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-600 font-medium">No available slots found.</p>
+                                    <p className="text-gray-500 text-sm mt-1">This mentor hasn't opened any upcoming slots.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <p className="text-sm font-medium text-gray-700 mb-4">Select a new time for your session with {rescheduleModal.appointment?.mentor_name}:</p>
+                                    {rescheduleModal.slotOptions.map((slot, idx) => (
+                                        <div 
+                                            key={idx}
+                                            onClick={() => setRescheduleModal(prev => ({ ...prev, selectedSlotIndex: idx }))}
+                                            className={`p-4 border rounded-xl cursor-pointer transition-all ${rescheduleModal.selectedSlotIndex === idx ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${rescheduleModal.selectedSlotIndex === idx ? 'border-indigo-600' : 'border-gray-300'}`}>
+                                                    {rescheduleModal.selectedSlotIndex === idx && <div className="w-2.5 h-2.5 bg-indigo-600 rounded-full"></div>}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className={`font-semibold ${rescheduleModal.selectedSlotIndex === idx ? 'text-indigo-900' : 'text-gray-900'}`}>{formatDatePart(slot.date)}</span>
+                                                    <span className={`text-sm ${rescheduleModal.selectedSlotIndex === idx ? 'text-indigo-700' : 'text-gray-500'}`}>{formatTimePart(slot.time)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        {!rescheduleModal.loading && rescheduleModal.slotOptions.length > 0 && (
+                            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+                                <button 
+                                    onClick={() => setRescheduleModal({ isOpen: false, appointment: null, slotOptions: [], selectedSlotIndex: null, loading: false })}
+                                    className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-200 rounded-xl transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={confirmReschedule}
+                                    disabled={rescheduleModal.selectedSlotIndex === null}
+                                    className="px-5 py-2.5 bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Confirm Reschedule
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
