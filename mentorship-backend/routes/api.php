@@ -138,10 +138,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'update']);
     Route::delete('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'destroy']);
     
+    // Mentor Course Submissions
+    Route::get('/mentor/submissions', [App\Http\Controllers\Api\CourseController::class, 'mentorSubmissions']);
+    Route::patch('/submissions/{id}/review', [App\Http\Controllers\Api\CourseController::class, 'reviewSubmission']);
+
     // Mentee Course Enrollments
     Route::post('/courses/{id}/enroll', [App\Http\Controllers\Api\CourseController::class, 'enroll']);
     Route::get('/my-courses', [App\Http\Controllers\Api\CourseController::class, 'myCourses']);
-    Route::patch('/enrollments/{enrollmentId}/progress', [App\Http\Controllers\Api\CourseController::class, 'updateProgress']);
+    Route::post('/enrollments/{id}/submissions', [App\Http\Controllers\Api\CourseController::class, 'submitTask']);
 });
 
 // Admin Routes

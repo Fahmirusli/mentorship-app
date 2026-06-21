@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { BookOpen, CheckCircle, ArrowLeft, Loader, User } from 'lucide-react';
+import { BookOpen, CheckCircle, ArrowLeft, Loader, User, Upload, Clock, XCircle, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface SyllabusItem {
@@ -24,12 +24,23 @@ interface Course {
     };
 }
 
+interface CourseSubmission {
+    id: number;
+    task_index: number;
+    status: 'pending' | 'approved' | 'rejected';
+    file_url?: string;
+    link?: string;
+    notes?: string;
+    mentor_feedback?: string;
+}
+
 interface Enrollment {
     id: number;
     course: Course;
     progress_percent: number;
     status: string;
     completed_tasks: number[];
+    submissions?: CourseSubmission[];
 }
 
 export default function MenteeCourseDetails() {
@@ -39,6 +50,15 @@ export default function MenteeCourseDetails() {
     
     const [loading, setLoading] = useState(true);
     const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
+
+    // Modal State
+    const [submitModalOpen, setSubmitModalOpen] = useState(false);
+    const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
+    const [submitLink, setSubmitLink] = useState('');
+    const [submitNotes, setSubmitNotes] = useState('');
+    const [submitFile, setSubmitFile] = useState<File | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (enrollmentId) {
@@ -52,6 +72,22 @@ export default function MenteeCourseDetails() {
             const target = (res.enrollments || []).find((e: any) => e.id.toString() === enrollmentId);
             if (target) {
                 setEnrollment(target);
+                
+                // Fire confetti if newly completed
+                if (target.progress_percent === 100) {
+                    const confettiKey = `confetti_${target.id}`;
+                    if (!localStorage.getItem(confettiKey)) {
+                        import('canvas-confetti').then((confetti) => {
+                            confetti.default({
+                                particleCount: 150,
+                                spread: 70,
+                                origin: { y: 0.6 },
+                                zIndex: 9999
+                            });
+                        });
+                        localStorage.setItem(confettiKey, 'fired');
+                    }
+                }
             } else {
                 alert('Course enrollment not found.');
                 router.push('/mentee/courses');
@@ -63,47 +99,37 @@ export default function MenteeCourseDetails() {
         }
     };
 
-    const toggleTask = async (taskIndex: number, currentCompleted: number[]) => {
-        if (!enrollment) return;
-        
-        const isCompleted = currentCompleted.includes(taskIndex);
-        const newStatus = !isCompleted;
+    const openSubmitModal = (taskIndex: number) => {
+        const existingSub = enrollment?.submissions?.find(s => s.task_index === taskIndex);
+        if (existingSub?.status === 'pending' || existingSub?.status === 'approved') return;
 
-        // Optimistic UI update
-        const updatedCompleted = newStatus 
-            ? [...currentCompleted, taskIndex]
-            : currentCompleted.filter(i => i !== taskIndex);
-            
-        const total = enrollment.course.syllabus.length;
-        const newPercent = total > 0 ? Math.round((updatedCompleted.length / total) * 100) : 0;
-        
-        if (newPercent === 100 && newStatus === true && enrollment.progress_percent !== 100) {
-            import('canvas-confetti').then((confetti) => {
-                confetti.default({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    zIndex: 9999
-                });
-            });
-        }
+        setSelectedTaskIndex(taskIndex);
+        setSubmitLink(existingSub?.link || '');
+        setSubmitNotes(existingSub?.notes || '');
+        setSubmitFile(null);
+        setSubmitModalOpen(true);
+    };
 
-        setEnrollment({
-            ...enrollment,
-            completed_tasks: updatedCompleted,
-            progress_percent: newPercent,
-            status: newPercent >= 100 ? 'completed' : 'active'
-        });
+    const handleSubmitWork = async () => {
+        if (!enrollment || selectedTaskIndex === null) return;
+        
+        setSubmitting(true);
+        const formData = new FormData();
+        formData.append('task_index', selectedTaskIndex.toString());
+        if (submitLink) formData.append('link', submitLink);
+        if (submitNotes) formData.append('notes', submitNotes);
+        if (submitFile) formData.append('file', submitFile);
 
         try {
-            await api.patch(`/enrollments/${enrollment.id}/progress`, {
-                task_index: taskIndex,
-                completed: newStatus
-            });
-        } catch (error) {
-            console.error('Error updating progress:', error);
-            alert('Failed to update progress. Reverting.');
-            await fetchEnrollment(); // Revert on failure
+            await api.post(`/enrollments/${enrollment.id}/submissions`, formData);
+            alert('Work submitted successfully! Waiting for mentor approval.');
+            setSubmitModalOpen(false);
+            await fetchEnrollment(); // Refresh data
+        } catch (error: any) {
+            console.error('Submit error:', error);
+            alert(error?.message || 'Failed to submit work');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -174,39 +200,67 @@ export default function MenteeCourseDetails() {
                         <div className="space-y-3">
                             {course.syllabus?.map((task, idx) => {
                                 const isCompleted = completedTasks.includes(idx);
+                                const submission = enrollment.submissions?.find(s => s.task_index === idx);
+                                
+                                let statusColor = 'bg-white border-gray-200 hover:border-indigo-300';
+                                if (isCompleted || submission?.status === 'approved') statusColor = 'bg-green-50 border-green-200';
+                                else if (submission?.status === 'pending') statusColor = 'bg-yellow-50 border-yellow-200';
+                                else if (submission?.status === 'rejected') statusColor = 'bg-red-50 border-red-200';
+
                                 return (
                                     <div 
                                         key={idx} 
-                                        onClick={() => toggleTask(idx, completedTasks)}
-                                        className={`flex items-center p-4 rounded-xl border transition cursor-pointer hover:shadow-sm ${
-                                            isCompleted 
-                                            ? 'bg-green-50 border-green-200' 
-                                            : 'bg-white border-gray-200 hover:border-indigo-300'
-                                        }`}
+                                        onClick={() => openSubmitModal(idx)}
+                                        className={`flex flex-col p-4 rounded-xl border transition cursor-pointer hover:shadow-sm ${statusColor}`}
                                     >
-                                        <div className="flex-shrink-0 mr-4">
-                                            {isCompleted ? (
-                                                <CheckCircle className="w-6 h-6 text-green-500" />
-                                            ) : (
-                                                <div className="w-6 h-6 rounded-full border-2 border-gray-300"></div>
-                                            )}
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 mr-4">
+                                                {(isCompleted || submission?.status === 'approved') ? (
+                                                    <CheckCircle className="w-6 h-6 text-green-500" />
+                                                ) : submission?.status === 'pending' ? (
+                                                    <Clock className="w-6 h-6 text-yellow-500" />
+                                                ) : submission?.status === 'rejected' ? (
+                                                    <XCircle className="w-6 h-6 text-red-500" />
+                                                ) : (
+                                                    <div className="w-6 h-6 rounded-full border-2 border-gray-300 group-hover:border-indigo-400"></div>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col flex-1">
+                                                <span className={`text-lg ${(isCompleted || submission?.status === 'approved') ? 'text-gray-500 line-through' : 'text-gray-900 font-medium'}`}>
+                                                    {task.title}
+                                                </span>
+                                                {task.link && (
+                                                    <a 
+                                                        href={task.link} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="text-sm text-blue-500 hover:underline mt-1 flex items-center gap-1 w-fit"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                        View Resource
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <div>
+                                                {(isCompleted || submission?.status === 'approved') ? (
+                                                    <span className="text-sm font-medium text-green-600 bg-green-100 px-3 py-1 rounded-full">Approved</span>
+                                                ) : submission?.status === 'pending' ? (
+                                                    <span className="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">Pending Review</span>
+                                                ) : submission?.status === 'rejected' ? (
+                                                    <span className="text-sm font-medium text-red-600 bg-red-100 px-3 py-1 rounded-full">Rejected: Resubmit</span>
+                                                ) : (
+                                                    <button className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full hover:bg-indigo-100 transition">
+                                                        Submit Work
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className={`text-lg ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900 font-medium'}`}>
-                                                {task.title}
-                                            </span>
-                                            {task.link && (
-                                                <a 
-                                                    href={task.link} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    className="text-sm text-blue-500 hover:underline mt-1"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    {task.link}
-                                                </a>
-                                            )}
-                                        </div>
+                                        {submission?.status === 'rejected' && submission.mentor_feedback && (
+                                            <div className="mt-3 ml-10 p-3 bg-red-100/50 rounded-lg border border-red-100 text-sm text-red-800">
+                                                <strong>Mentor Feedback:</strong> {submission.mentor_feedback}
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -214,6 +268,69 @@ export default function MenteeCourseDetails() {
                     </div>
                 </div>
             </div>
+
+            {submitModalOpen && selectedTaskIndex !== null && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Submit Your Work</h3>
+                        <p className="text-gray-500 text-sm mb-6">
+                            Task: {course.syllabus[selectedTaskIndex]?.title}
+                        </p>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Upload File (PDF, Image, etc.)</label>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={(e) => setSubmitFile(e.target.files?.[0] || null)}
+                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Or paste a Link (Github, Figma, etc.)</label>
+                                <input
+                                    type="url"
+                                    placeholder="https://"
+                                    value={submitLink}
+                                    onChange={(e) => setSubmitLink(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes for your mentor</label>
+                                <textarea
+                                    rows={3}
+                                    placeholder="Any context or questions..."
+                                    value={submitNotes}
+                                    onChange={(e) => setSubmitNotes(e.target.value)}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setSubmitModalOpen(false)}
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+                                disabled={submitting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitWork}
+                                disabled={submitting || (!submitFile && !submitLink && !submitNotes)}
+                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition flex items-center gap-2"
+                            >
+                                {submitting && <Loader className="w-4 h-4 animate-spin" />}
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

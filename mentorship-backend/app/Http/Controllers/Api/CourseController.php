@@ -148,7 +148,7 @@ class CourseController extends Controller
     {
         $user = $request->user();
         
-        $enrollments = CourseEnrollment::with(['course.mentor'])
+        $enrollments = CourseEnrollment::with(['course.mentor', 'submissions'])
             ->where('mentee_id', $user->id)
             ->get();
 
@@ -156,9 +156,9 @@ class CourseController extends Controller
     }
 
     /**
-     * Mentee: Update progress (check off a task)
+     * Mentee: Submit work for a task
      */
-    public function updateProgress(Request $request, $enrollmentId)
+    public function submitTask(Request $request, $enrollmentId)
     {
         $user = $request->user();
         $enrollment = CourseEnrollment::with('course')->findOrFail($enrollmentId);
@@ -169,38 +169,113 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'task_index' => 'required|integer|min:0',
-            'completed' => 'required|boolean',
+            'file' => 'nullable|file|max:51200',
+            'link' => 'nullable|url',
+            'notes' => 'nullable|string'
         ]);
 
         $taskIndex = $validated['task_index'];
-        $completed = $validated['completed'];
-
-        $completedTasks = $enrollment->completed_tasks ?? [];
-        $syllabus = $enrollment->course->syllabus ?? [];
-        $totalTasks = count($syllabus);
+        $totalTasks = count($enrollment->course->syllabus ?? []);
 
         if ($taskIndex >= $totalTasks) {
             return response()->json(['message' => 'Invalid task index'], 400);
         }
 
-        if ($completed) {
-            if (!in_array($taskIndex, $completedTasks)) {
-                $completedTasks[] = $taskIndex;
-            }
-        } else {
-            $completedTasks = array_values(array_diff($completedTasks, [$taskIndex]));
+        $fileUrl = null;
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('course_submissions', 'public');
+            $fileUrl = asset('storage/' . $path);
         }
 
-        $progressPercent = $totalTasks > 0 ? round((count($completedTasks) / $totalTasks) * 100) : 0;
-        $status = $progressPercent >= 100 ? 'completed' : 'active';
+        $submission = \App\Models\CourseSubmission::updateOrCreate(
+            [
+                'course_enrollment_id' => $enrollment->id,
+                'task_index' => $taskIndex,
+            ],
+            [
+                'link' => $validated['link'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'pending'
+            ]
+        );
 
-        $enrollment->update([
-            'completed_tasks' => $completedTasks,
-            'progress_percent' => $progressPercent,
-            'status' => $status,
+        if ($fileUrl) {
+            $submission->file_url = $fileUrl;
+            $submission->save();
+        }
+
+        return response()->json(['message' => 'Task submitted successfully', 'submission' => $submission]);
+    }
+
+    /**
+     * Mentor: View pending submissions for their courses
+     */
+    public function mentorSubmissions(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isMentor()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $courseIds = Course::where('mentor_id', $user->id)->pluck('id');
+
+        $submissions = \App\Models\CourseSubmission::with(['enrollment.course', 'enrollment.mentee'])
+            ->whereHas('enrollment', function ($q) use ($courseIds) {
+                $q->whereIn('course_id', $courseIds);
+            })
+            ->where('status', 'pending')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json(['submissions' => $submissions]);
+    }
+
+    /**
+     * Mentor: Review (Approve/Reject) a submission
+     */
+    public function reviewSubmission(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user->isMentor()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $submission = \App\Models\CourseSubmission::with(['enrollment.course'])->findOrFail($id);
+
+        if ($submission->enrollment->course->mentor_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'mentor_feedback' => 'nullable|string'
         ]);
 
-        return response()->json(['message' => 'Progress updated', 'enrollment' => $enrollment]);
+        $submission->update([
+            'status' => $validated['status'],
+            'mentor_feedback' => $validated['mentor_feedback']
+        ]);
+
+        if ($validated['status'] === 'approved') {
+            $enrollment = $submission->enrollment;
+            $completedTasks = $enrollment->completed_tasks ?? [];
+            
+            if (!in_array($submission->task_index, $completedTasks)) {
+                $completedTasks[] = $submission->task_index;
+                
+                $totalTasks = count($enrollment->course->syllabus ?? []);
+                $progressPercent = $totalTasks > 0 ? round((count($completedTasks) / $totalTasks) * 100) : 0;
+                $status = $progressPercent >= 100 ? 'completed' : 'active';
+
+                $enrollment->update([
+                    'completed_tasks' => $completedTasks,
+                    'progress_percent' => $progressPercent,
+                    'status' => $status
+                ]);
+            }
+        }
+
+        return response()->json(['message' => 'Submission reviewed successfully']);
     }
 
     /**
