@@ -180,10 +180,14 @@ export default function MentorSchedule() {
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">3</span>
-                                    <span><strong>Once a mentee books a slot</strong>, that slot will appear greyed-out and locked on the booking page so no one else can double-book it.</span>
+                                    <span><strong>Targeted Skills Sessions:</strong> Please ensure your single-session availability blocks are <strong>2 hours or more</strong>, as mentees booking single sessions usually need in-depth help.</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">4</span>
+                                    <span><strong>Once a mentee books a slot</strong>, that slot will appear greyed-out and locked on the booking page so no one else can double-book it.</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                    <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">5</span>
                                     <span><strong>To remove a slot</strong>, click the <span className="text-red-500 font-semibold">🗑 delete</span> button next to it below. Only delete slots that have no bookings yet.</span>
                                 </li>
                             </ul>

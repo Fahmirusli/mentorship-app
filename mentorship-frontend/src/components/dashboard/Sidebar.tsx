@@ -83,6 +83,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
 
   const menteeLinks = [
     { href: '/mentee/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/mentee/courses', label: 'Courses', icon: BookOpen },
     { href: '/mentee/jobs', label: 'Job Market', icon: Briefcase },
     { href: '/mentee/mentors', label: 'Find Mentors', icon: Users },
     { href: '/mentee/schedule', label: 'Schedule', icon: Calendar },
@@ -90,6 +91,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
 
   const mentorLinks = [
     { href: '/mentor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/mentor/courses', label: 'Courses', icon: BookOpen },
     { href: '/mentor/mentees', label: 'My Mentees', icon: Users },
     { href: '/mentor/schedule', label: 'Schedule', icon: Calendar },
     { href: '/mentor/resources', label: 'Resources', icon: BookOpen },
