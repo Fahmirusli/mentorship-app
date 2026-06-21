@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Payment Initiate (Protected)
     Route::post('/payment/initiate', [App\Http\Controllers\Api\PaymentController::class, 'initiate']);
+    Route::post('/payment/initiate-course', [App\Http\Controllers\Api\PaymentController::class, 'initiateCourse']);
 
     // Chat / Messaging
     Route::get('/conversations', [App\Http\Controllers\Api\ChatController::class, 'getConversations']);
@@ -130,6 +131,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gamification', [App\Http\Controllers\Api\GamificationController::class, 'getGamificationData']);
 
     // Mentor Courses
+    Route::post('/courses/upload-material', [App\Http\Controllers\Api\CourseController::class, 'uploadMaterial']);
     Route::get('/courses', [App\Http\Controllers\Api\CourseController::class, 'index']);
     Route::get('/courses/{id}', [App\Http\Controllers\Api\CourseController::class, 'show']);
     Route::post('/courses', [App\Http\Controllers\Api\CourseController::class, 'store']);
@@ -156,4 +158,5 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'admin'])->group(function ()
 
 // Payment Callbacks (Public)
 Route::post('/payment/callback', [App\Http\Controllers\Api\PaymentController::class, 'callback'])->name('api.payment.callback');
+Route::post('/payment/course-callback', [App\Http\Controllers\Api\PaymentController::class, 'courseCallback'])->name('api.payment.course_callback');
 Route::get('/payment/return', [App\Http\Controllers\Api\PaymentController::class, 'returnPage'])->name('api.payment.return');

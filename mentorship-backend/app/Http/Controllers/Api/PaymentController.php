@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Mentorship;
 use App\Models\Schedule;
+use App\Models\Course;
+use App\Models\CourseEnrollment;
 use App\Services\ToyyibPayService;
 use App\Services\GoogleMeetService;
 use Carbon\Carbon;
@@ -304,6 +306,111 @@ class PaymentController extends Controller
             ]);
             
             return response('Error processing callback', 500);
+        }
+    }
+
+    public function initiateCourse(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'course_id' => 'required|exists:courses,id'
+            ]);
+
+            $user = $request->user();
+            $course = Course::findOrFail($validated['course_id']);
+
+            // Check if already enrolled
+            $existing = CourseEnrollment::where('mentee_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            if ($existing) {
+                return response()->json(['message' => 'You are already enrolled in this course'], 400);
+            }
+
+            // Create pending enrollment
+            $enrollment = CourseEnrollment::create([
+                'mentee_id' => $user->id,
+                'course_id' => $course->id,
+                'progress_percent' => 0,
+                'completed_tasks' => [],
+                'status' => 'pending_payment',
+            ]);
+
+            // Create Bill
+            $billCode = $this->toyyibPay->createBill(
+                "Course #" . $course->id,
+                "Enrollment for " . $course->title,
+                $course->price,
+                'C-' . $enrollment->id, // Add prefix to distinguish from appointments
+                $user->email,
+                $user->name,
+                $user->phone ?? '0123456789'
+            );
+
+            if ($billCode) {
+                // We'll store the bill code in a temp column, but course_enrollments doesn't have bill_code.
+                // We can use completed_tasks temporarily, but it's JSON.
+                // Let's create a Transaction record instead, or just pass it in redirect.
+                // Or just add a 'bill_code' column to course_enrollments?
+                // Actually, let's just create a Transaction immediately.
+                \App\Models\Transaction::create([
+                    'user_id' => $user->id,
+                    'bill_code' => $billCode,
+                    'amount' => $course->price,
+                    'status' => 'pending',
+                    'payment_provider' => 'toyyibpay',
+                    'payment_metadata' => json_encode(['course_enrollment_id' => $enrollment->id])
+                ]);
+
+                $baseUrl = env('TOYYIBPAY_URL', 'https://dev.toyyibpay.com');
+                
+                return response()->json([
+                    'message' => 'Payment initiated',
+                    'payment_url' => $baseUrl . '/' . $billCode,
+                    'bill_code' => $billCode
+                ]);
+            }
+
+            $enrollment->delete();
+            return response()->json(['message' => 'Failed to initiate payment gateway'], 500);
+
+        } catch (\Exception $e) {
+            Log::error('Course Payment Error: ' . $e->getMessage());
+            return response()->json(['message' => 'An error occurred'], 500);
+        }
+    }
+
+    public function courseCallback(Request $request)
+    {
+        try {
+            $status = $request->input('status');
+            $billCode = $request->input('billcode');
+
+            $transaction = \App\Models\Transaction::where('bill_code', $billCode)->first();
+            if (!$transaction) return response('Transaction not found', 404);
+
+            $meta = json_decode($transaction->payment_metadata, true);
+            $enrollmentId = $meta['course_enrollment_id'] ?? null;
+
+            if (!$enrollmentId) return response('Enrollment ID not found', 404);
+
+            $enrollment = CourseEnrollment::find($enrollmentId);
+            if (!$enrollment) return response('Enrollment not found', 404);
+
+            if ($status == 1) {
+                $transaction->update(['status' => 'paid', 'paid_at' => now()]);
+                $enrollment->update(['status' => 'active']);
+            } else if ($status == 3) {
+                $transaction->update(['status' => 'failed']);
+                $enrollment->delete();
+            }
+
+            return response('OK', 200);
+
+        } catch (\Exception $e) {
+            Log::error('Course Callback Error: ' . $e->getMessage());
+            return response('Error', 500);
         }
     }
 

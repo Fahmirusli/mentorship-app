@@ -66,17 +66,19 @@ export default function MenteeCourses() {
     };
 
     const handleEnroll = async (courseId: number) => {
-        if (!confirm('This will enroll you in the course and deduct the payment. Proceed?')) return;
+        if (!confirm('This will redirect you to the payment gateway to purchase this course. Proceed?')) return;
         
         setEnrollingId(courseId);
         try {
-            await api.post(`/courses/${courseId}/enroll`, {});
-            alert('Enrolled successfully!');
-            await fetchData();
-            setActiveTab('my-courses');
+            const res = await api.post(`/payment/initiate-course`, { course_id: courseId });
+            if (res.payment_url) {
+                window.location.href = res.payment_url;
+            } else {
+                alert('Payment gateway could not be initiated.');
+            }
         } catch (error: any) {
             console.error('Enrollment error:', error);
-            alert(error?.message || 'Failed to enroll');
+            alert(error?.message || 'Failed to initiate payment');
         } finally {
             setEnrollingId(null);
         }

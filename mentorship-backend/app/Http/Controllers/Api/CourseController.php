@@ -42,7 +42,7 @@ class CourseController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'tags' => 'nullable|array',
-            'syllabus' => 'nullable|array',
+            'syllabus' => 'required|array|min:1',
         ]);
 
         $course = Course::create([
@@ -83,7 +83,7 @@ class CourseController extends Controller
             'description' => 'sometimes|string',
             'price' => 'sometimes|numeric|min:0',
             'tags' => 'nullable|array',
-            'syllabus' => 'nullable|array',
+            'syllabus' => 'sometimes|required|array|min:1',
         ]);
 
         $course->update($validated);
@@ -201,5 +201,29 @@ class CourseController extends Controller
         ]);
 
         return response()->json(['message' => 'Progress updated', 'enrollment' => $enrollment]);
+    }
+
+    /**
+     * Mentor: Upload material for a course
+     */
+    public function uploadMaterial(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->isMentor()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:51200' // 50MB max
+        ]);
+
+        $file = $request->file('file');
+        $path = $file->store('course_materials', 'public');
+        $url = asset('storage/' . $path);
+
+        return response()->json([
+            'message' => 'File uploaded successfully',
+            'url' => $url
+        ]);
     }
 }

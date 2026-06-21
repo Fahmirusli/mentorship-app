@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BookOpen, Plus, Trash2, Loader, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { BookOpen, Plus, Trash2, Loader, Save, Upload, Edit } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface SyllabusItem {
@@ -22,6 +22,9 @@ export default function MentorCourses() {
     const [loading, setLoading] = useState(true);
     const [courses, setCourses] = useState<Course[]>([]);
     const [isCreating, setIsCreating] = useState(false);
+    const [editingId, setEditingId] = useState<number | null>(null);
+    const [uploadingFile, setUploadingFile] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     // New Course State
     const [newCourse, setNewCourse] = useState<Course>({
@@ -57,6 +60,31 @@ export default function MentorCourses() {
         }
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 50 * 1024 * 1024) {
+            alert('File size exceeds 50MB limit.');
+            return;
+        }
+
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await api.post('/courses/upload-material', formData);
+            setSyllabusLink(res.url);
+        } catch (error: any) {
+            console.error('Error uploading file:', error);
+            alert('Failed to upload file.');
+        } finally {
+            setUploadingFile(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const handleAddSyllabus = () => {
         if (syllabusTitle.trim()) {
             setNewCourse({ 
@@ -81,17 +109,35 @@ export default function MentorCourses() {
             alert('Title and description are required.');
             return;
         }
+        if (newCourse.syllabus.length === 0) {
+            alert('Please add at least one task to the syllabus.');
+            return;
+        }
 
         try {
-            const response = await api.post('/courses', newCourse);
-            setCourses([...courses, response.course]);
+            if (editingId) {
+                const response = await api.put(`/courses/${editingId}`, newCourse);
+                setCourses(courses.map(c => c.id === editingId ? response.course : c));
+                alert('Course updated successfully!');
+            } else {
+                const response = await api.post('/courses', newCourse);
+                setCourses([...courses, response.course]);
+                alert('Course created successfully!');
+            }
             setIsCreating(false);
+            setEditingId(null);
             setNewCourse({ title: '', description: '', price: 0, tags: [], syllabus: [] });
-            alert('Course created successfully!');
         } catch (error: any) {
-            console.error('Error creating course:', error);
-            alert(error?.message || 'Failed to create course');
+            console.error('Error saving course:', error);
+            alert(error?.message || 'Failed to save course');
         }
+    };
+
+    const handleEditCourse = (course: Course) => {
+        setNewCourse({ ...course });
+        setEditingId(course.id!);
+        setIsCreating(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDeleteCourse = async (id: number) => {
@@ -123,7 +169,11 @@ export default function MentorCourses() {
                     </div>
                     {!isCreating && (
                         <button
-                            onClick={() => setIsCreating(true)}
+                            onClick={() => {
+                                setIsCreating(true);
+                                setEditingId(null);
+                                setNewCourse({ title: '', description: '', price: 0, tags: [], syllabus: [] });
+                            }}
                             className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 transition"
                         >
                             <Plus className="w-5 h-5" />
@@ -135,8 +185,10 @@ export default function MentorCourses() {
                 {isCreating && (
                     <div className="bg-white rounded-xl shadow-sm p-8 mb-8 border border-indigo-100">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-900">Create a New Course</h2>
-                            <button onClick={() => setIsCreating(false)} className="text-gray-500 hover:text-gray-700">Cancel</button>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                {editingId ? 'Edit Course' : 'Create a New Course'}
+                            </h2>
+                            <button onClick={() => { setIsCreating(false); setEditingId(null); }} className="text-gray-500 hover:text-gray-700">Cancel</button>
                         </div>
 
                         <div className="space-y-6">
@@ -222,7 +274,7 @@ export default function MentorCourses() {
                                     ))}
                                 </div>
 
-                                <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex flex-col md:flex-row gap-2 items-center">
                                     <input
                                         type="text"
                                         placeholder="Topic (e.g. Build a portfolio)"
@@ -230,15 +282,34 @@ export default function MentorCourses() {
                                         onChange={(e) => setSyllabusTitle(e.target.value)}
                                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                     />
-                                    <input
-                                        type="text"
-                                        placeholder="Resource Link (Optional)"
-                                        value={syllabusLink}
-                                        onChange={(e) => setSyllabusLink(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddSyllabus()}
-                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                    />
-                                    <button onClick={handleAddSyllabus} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Add Task</button>
+                                    <div className="flex-1 flex gap-2 w-full md:w-auto relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Resource Link (Optional)"
+                                            value={syllabusLink}
+                                            onChange={(e) => setSyllabusLink(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddSyllabus()}
+                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none pr-12"
+                                        />
+                                        <button 
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={uploadingFile}
+                                            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 disabled:opacity-50"
+                                            title="Upload Material"
+                                        >
+                                            {uploadingFile ? <Loader className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                                        </button>
+                                        <input 
+                                            type="file" 
+                                            ref={fileInputRef} 
+                                            onChange={handleFileUpload} 
+                                            className="hidden" 
+                                        />
+                                    </div>
+                                    <button onClick={handleAddSyllabus} disabled={uploadingFile} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition whitespace-nowrap disabled:opacity-50">
+                                        Add Task
+                                    </button>
                                 </div>
                             </div>
 
@@ -248,7 +319,7 @@ export default function MentorCourses() {
                                     className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 transition"
                                 >
                                     <Save className="w-5 h-5" />
-                                    Publish Course
+                                    {editingId ? 'Save Changes' : 'Publish Course'}
                                 </button>
                             </div>
                         </div>
@@ -283,12 +354,22 @@ export default function MentorCourses() {
                                         <BookOpen className="w-4 h-4" />
                                         {course.syllabus?.length || 0} Topics
                                     </div>
-                                    <button 
-                                        onClick={() => course.id && handleDeleteCourse(course.id)}
-                                        className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => handleEditCourse(course)}
+                                            className="text-blue-500 hover:text-blue-700 p-2 rounded hover:bg-blue-50 transition"
+                                            title="Edit Course"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => course.id && handleDeleteCourse(course.id)}
+                                            className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition"
+                                            title="Delete Course"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
