@@ -68,7 +68,7 @@ export default function MenteeDashboard() {
     <div className="min-h-screen bg-gray-50 page-enter">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
-        <div className="mb-8 animate-fade-in-up relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-900 p-8 shadow-xl shadow-purple-900/20">
+        <div className="mb-8 animate-fade-in-up relative overflow-hidden rounded-3xl bg-indigo-900 p-8 shadow-xl shadow-indigo-900/20">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
           <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
           
@@ -140,14 +140,14 @@ export default function MenteeDashboard() {
                     </div>
                     <p className="text-gray-500 font-medium">No upcoming sessions</p>
                     <p className="text-gray-400 text-sm mt-1">Book a session with a mentor to get started</p>
-                    <button onClick={() => window.location.href = '/mentee/mentors'} className="mt-4 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-105 transform">
+                    <button onClick={() => window.location.href = '/mentee/mentors'} className="mt-4 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all text-sm font-semibold shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 hover:scale-105 transform">
                       Find a Mentor
                     </button>
                   </div>
                 ) : (
                   upcomingSessions.map((session: any, idx: number) => (
                     <div key={idx} className="flex items-center p-4 bg-gray-50 rounded-xl hover:bg-indigo-50/50 transition-all cursor-pointer group border border-transparent hover:border-indigo-100">
-                      <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                      <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                         <Calendar className="w-6 h-6 text-white" />
                       </div>
                       <div className="ml-4 flex-1">
@@ -163,7 +163,7 @@ export default function MenteeDashboard() {
                           <span className="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full font-semibold">Confirmed</span>
                           <button 
                             onClick={(e) => { e.stopPropagation(); window.location.href = `/meeting/mentorship-app-${session.id}`; }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-semibold rounded-lg hover:from-blue-600 hover:to-indigo-700 shadow-md transition-all group-hover:scale-105"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 shadow-md transition-all group-hover:scale-105"
                           >
                             <Video className="w-3.5 h-3.5" />
                             Join

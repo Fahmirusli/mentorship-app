@@ -220,7 +220,7 @@ export function ChatWidget() {
       {isOpen && (
         <div className="bg-white w-80 sm:w-96 h-[500px] mb-4 rounded-2xl shadow-2xl border border-purple-100 flex flex-col overflow-hidden animate-fade-in-up">
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-fuchsia-600 p-4 text-white flex items-center justify-between shrink-0">
+          <div className="bg-indigo-600 p-4 text-white flex items-center justify-between shrink-0">
             {activeChat ? (
               <div className="flex items-center gap-3">
                 <button 
@@ -324,7 +324,7 @@ export function ChatWidget() {
                           <div 
                             className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
                               isMe 
-                                ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white rounded-tr-sm' 
+                                ? 'bg-indigo-600 text-white rounded-tr-sm' 
                                 : 'bg-white border border-gray-100 text-gray-800 rounded-tl-sm shadow-sm'
                             }`}
                           >
@@ -363,7 +363,7 @@ export function ChatWidget() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-gradient-to-r from-purple-600 to-fuchsia-600 rounded-full shadow-lg shadow-purple-500/30 flex items-center justify-center text-white hover:scale-105 hover:shadow-xl transition-all relative z-50"
+        className="w-14 h-14 bg-indigo-600 rounded-full shadow-lg shadow-indigo-500/30 flex items-center justify-center text-white hover:scale-105 hover:shadow-xl transition-all relative z-50"
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageCircle className="w-6 h-6" />}
         

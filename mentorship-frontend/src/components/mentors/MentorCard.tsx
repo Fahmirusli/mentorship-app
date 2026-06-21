@@ -63,7 +63,7 @@ export default function MentorCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-lg transition overflow-hidden">
-      <div className="p-6 bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+      <div className="p-6 bg-indigo-600 text-white">
         <div className="flex items-start justify-between mb-4">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-indigo-600 font-bold text-2xl shadow-sm overflow-hidden bg-white border-2 border-white/20">
             {mentor.profile_image ? (

@@ -25,16 +25,16 @@ export function GamificationCard({ data }: { data: GamificationData }) {
     const progress = ((data.points % 100) / 100) * 100;
 
     return (
-        <div className="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-2xl shadow-xl overflow-hidden text-white mb-8 relative">
+        <div className="bg-indigo-900 rounded-2xl shadow-xl overflow-hidden text-white mb-8 relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-500/10 rounded-full blur-3xl -ml-20 -mb-20"></div>
             
             <div className="p-8 relative z-10">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10">
                     <div className="flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-300 to-orange-500 p-1 shadow-lg shadow-orange-500/30">
+                        <div className="w-20 h-20 rounded-full bg-orange-500 p-1 shadow-lg shadow-orange-500/30">
                             <div className="w-full h-full rounded-full bg-indigo-950 flex items-center justify-center border-2 border-indigo-900">
-                                <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-orange-400">
+                                <span className="text-3xl font-bold text-orange-400">
                                     {level}
                                 </span>
                             </div>
@@ -52,7 +52,7 @@ export function GamificationCard({ data }: { data: GamificationData }) {
                         </div>
                         <div className="h-3 w-full bg-indigo-950/50 rounded-full overflow-hidden border border-indigo-500/30">
                             <div 
-                                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full relative"
+                                className="h-full bg-orange-500 rounded-full relative"
                                 style={{ width: `${progress}%` }}
                             >
                                 <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
