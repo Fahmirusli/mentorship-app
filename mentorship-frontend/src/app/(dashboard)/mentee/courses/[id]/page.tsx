@@ -77,6 +77,17 @@ export default function MenteeCourseDetails() {
         const total = enrollment.course.syllabus.length;
         const newPercent = total > 0 ? Math.round((updatedCompleted.length / total) * 100) : 0;
         
+        if (newPercent === 100 && newStatus === true && enrollment.progress_percent !== 100) {
+            import('canvas-confetti').then((confetti) => {
+                confetti.default({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    zIndex: 9999
+                });
+            });
+        }
+
         setEnrollment({
             ...enrollment,
             completed_tasks: updatedCompleted,
