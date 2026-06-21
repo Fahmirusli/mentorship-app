@@ -92,7 +92,6 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
   const mentorLinks = [
     { href: '/mentor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/mentor/courses', label: 'Courses', icon: BookOpen },
-    { href: '/mentor/courses/submissions', label: 'Submissions', icon: CheckCircle },
     { href: '/mentor/mentees', label: 'My Mentees', icon: Users },
     { href: '/mentor/schedule', label: 'Schedule', icon: Calendar },
     { href: '/mentor/resources', label: 'Resources', icon: BookOpen },

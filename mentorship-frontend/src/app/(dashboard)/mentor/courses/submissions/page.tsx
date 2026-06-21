@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Loader, CheckCircle, XCircle, Clock, FileText, User, BookOpen, ExternalLink } from 'lucide-react';
 
@@ -95,6 +96,15 @@ export default function MentorSubmissions() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-5xl mx-auto">
+                <div className="flex items-center gap-6 mb-8 border-b border-gray-200">
+                    <Link href="/mentor/courses" className="px-1 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition">
+                        My Courses
+                    </Link>
+                    <Link href="/mentor/courses/submissions" className="px-1 py-3 border-b-2 border-indigo-600 text-indigo-600 font-semibold">
+                        Review Submissions
+                    </Link>
+                </div>
+
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Review Submissions</h1>
