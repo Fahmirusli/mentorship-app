@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { Loader, CheckCircle, XCircle, Clock, FileText, User, BookOpen, ExternalLink } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Submission {
     id: number;
@@ -74,7 +75,28 @@ export default function MentorSubmissions() {
                 status: action,
                 mentor_feedback: feedback
             });
-            alert(`Submission ${action} successfully!`);
+            if (action === 'approved') {
+                toast.success('Submission approved successfully! 🎉', {
+                    duration: 4000,
+                    position: 'top-center',
+                    style: {
+                        background: '#10B981',
+                        color: '#fff',
+                        fontWeight: 'bold',
+                        padding: '16px',
+                        borderRadius: '12px',
+                    },
+                    iconTheme: {
+                        primary: '#fff',
+                        secondary: '#10B981',
+                    },
+                });
+            } else {
+                toast.success('Submission rejected and sent back to mentee.', {
+                    position: 'top-center',
+                });
+            }
+            
             setReviewModalOpen(false);
             await fetchSubmissions(); // Refresh the list
         } catch (error: any) {
@@ -95,6 +117,7 @@ export default function MentorSubmissions() {
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">
+            <Toaster />
             <div className="max-w-5xl mx-auto">
                 <div className="flex items-center gap-6 mb-8 border-b border-gray-200">
                     <Link href="/mentor/courses" className="px-1 py-3 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium transition">
