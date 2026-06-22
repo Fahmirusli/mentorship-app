@@ -86,8 +86,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'destroy']);
     
     // Resources and Management
-    Route::apiResource('appointments', App\Http\Controllers\Api\AppointmentController::class);
-    Route::patch('/appointments/{id}/reschedule', [App\Http\Controllers\Api\AppointmentController::class, 'reschedule']);
+    Route::apiResource('appointments', \App\Http\Controllers\Api\AppointmentController::class);
+    Route::patch('/appointments/{appointment}/reschedule', [\App\Http\Controllers\Api\AppointmentController::class, 'reschedule']);
+    Route::post('/appointments/{appointment}/mark-completed', [\App\Http\Controllers\Api\AppointmentController::class, 'markCompleted']);
+    Route::post('/appointments/{appointment}/mark-missed', [\App\Http\Controllers\Api\AppointmentController::class, 'markMissed']);
     Route::apiResource('resources', App\Http\Controllers\Api\ResourceController::class);
     Route::apiResource('mentorships', App\Http\Controllers\Api\MentorshipController::class);
     

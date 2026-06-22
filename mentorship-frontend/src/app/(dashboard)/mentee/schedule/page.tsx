@@ -14,8 +14,9 @@ interface Appointment {
     time: string;
     duration: number;
     topic: string;
-    status: 'upcoming' | 'completed' | 'cancelled';
+    status: 'upcoming' | 'completed' | 'cancelled' | 'missed';
     meeting_link?: string;
+    payment_status?: string;
 }
 
 type UiStatus = Appointment['status'];
@@ -31,13 +32,14 @@ interface BackendAppointment {
     notes?: string;
     status?: string;
     meeting_link?: string;
+    payment_status?: string;
 }
 
 function MenteeScheduleInner() {
     const searchParams = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
+    const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed' | 'missed'>('upcoming');
     const [paymentBanner, setPaymentBanner] = useState<'success' | 'failed' | 'pending' | null>(null);
     const [rescheduleModal, setRescheduleModal] = useState<{
         isOpen: boolean;
@@ -85,6 +87,7 @@ function MenteeScheduleInner() {
     const normalizeStatus = (status?: string): UiStatus => {
         if (status === 'completed') return 'completed';
         if (status === 'cancelled') return 'cancelled';
+        if (status === 'missed') return 'missed';
         if (status === 'scheduled' || status === 'pending_payment' || status === 'rescheduled') {
             return 'upcoming';
         }
@@ -112,6 +115,7 @@ function MenteeScheduleInner() {
                     topic: item.notes || 'Mentorship Session',
                     status: normalizedStatus,
                     meeting_link: normalizeMeetingLink(item.meeting_link),
+                    payment_status: item.payment_status || 'pending',
                 };
             });
 
@@ -213,6 +217,8 @@ function MenteeScheduleInner() {
                 return 'bg-blue-100 text-blue-700';
             case 'completed':
                 return 'bg-green-100 text-green-700';
+            case 'missed':
+                return 'bg-orange-100 text-orange-700';
             case 'cancelled':
                 return 'bg-red-100 text-red-700';
             default:
@@ -312,6 +318,15 @@ function MenteeScheduleInner() {
                             Completed
                         </button>
                         <button
+                            onClick={() => setFilter('missed')}
+                            className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'missed'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                        >
+                            Missed
+                        </button>
+                        <button
                             onClick={() => setFilter('all')}
                             className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'all'
                                     ? 'bg-indigo-600 text-white'
@@ -391,11 +406,35 @@ function MenteeScheduleInner() {
                                                 >
                                                     Reschedule
                                                 </button>
+                                                {appointment.payment_status === 'paid' ? (
+                                                    <a
+                                                        href="mailto:support@uplifts.dev?subject=Cancel%20Paid%20Mentorship"
+                                                        className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition text-sm font-medium border border-gray-200 flex items-center justify-center"
+                                                        title="Contact support to cancel and request a refund"
+                                                    >
+                                                        Contact Support to Cancel
+                                                    </a>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => cancelAppointment(appointment.id)}
+                                                        className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition text-sm"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                        {appointment.status === 'missed' && (
+                                            <div className="flex flex-col gap-2 items-end">
+                                                <p className="text-xs text-orange-600">You missed this session. Chat with your mentor to reschedule.</p>
                                                 <button
-                                                    onClick={() => cancelAppointment(appointment.id)}
-                                                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition text-sm"
+                                                    onClick={() => {
+                                                        // Fallback alert if chat isn't mounted, or handle chat opening
+                                                        alert('Please open your messages to chat with the mentor to arrange a new date.');
+                                                    }}
+                                                    className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition text-sm font-medium"
                                                 >
-                                                    Cancel
+                                                    Chat with Mentor
                                                 </button>
                                             </div>
                                         )}

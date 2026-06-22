@@ -1,8 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Plus, Trash2, Loader } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, Trash2, Loader, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
+
+interface Appointment {
+    id: number;
+    mentee_name: string;
+    date: string;
+    time: string;
+    duration_minutes: number;
+    status: string;
+    scheduled_at: string;
+}
 
 interface TimeSlot {
     id?: number;
@@ -46,10 +56,22 @@ export default function MentorSchedule() {
         is_available: true,
         fee: 50,
     });
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
 
     useEffect(() => {
         fetchSchedule();
+        fetchAppointments();
     }, []);
+
+    const fetchAppointments = async () => {
+        try {
+            const response = await api.get('/appointments');
+            const data = Array.isArray(response) ? response : response.data;
+            if (data) setAppointments(data);
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+        }
+    };
 
     const fetchSchedule = async () => {
         try {
@@ -127,6 +149,28 @@ export default function MentorSchedule() {
         }
     };
 
+    const markCompleted = async (id: number) => {
+        if (!confirm('Are you sure you want to mark this as completed? Funds will be released to your wallet.')) return;
+        try {
+            await api.post(`/appointments/${id}/mark-completed`, {});
+            alert('Session completed! Funds added to your wallet.');
+            fetchAppointments();
+        } catch (error: any) {
+            alert(error?.message || 'Failed to complete session');
+        }
+    };
+
+    const markMissed = async (id: number) => {
+        if (!confirm('Are you sure the mentee missed this session? They will be notified to reschedule.')) return;
+        try {
+            await api.post(`/appointments/${id}/mark-missed`, {});
+            alert('Session marked as missed.');
+            fetchAppointments();
+        } catch (error: any) {
+            alert(error?.message || 'Failed to mark as missed');
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -148,6 +192,12 @@ export default function MentorSchedule() {
         if (a === 'unscheduled') return 1;
         if (b === 'unscheduled') return -1;
         return a.localeCompare(b);
+    });
+
+    const pastAppointments = appointments.filter(a => {
+        if (a.status !== 'scheduled' && a.status !== 'rescheduled') return false;
+        const apptDate = new Date(a.scheduled_at);
+        return apptDate < new Date();
     });
 
     return (
@@ -290,6 +340,47 @@ export default function MentorSchedule() {
                             </div>
                         )}
                     </div>
+
+                    {/* Past Appointments to Verify */}
+                    {pastAppointments.length > 0 && (
+                        <div className="mt-12 bg-orange-50 border border-orange-200 rounded-xl p-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <Clock className="w-5 h-5 text-orange-600" />
+                                Action Required: Verify Past Sessions
+                            </h2>
+                            <p className="text-sm text-gray-600 mb-4">
+                                The following sessions have passed. Please mark them as completed to receive your funds, or mark them as missed if the mentee did not attend.
+                            </p>
+                            <div className="space-y-4">
+                                {pastAppointments.map(appt => (
+                                    <div key={appt.id} className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-white border border-orange-100 rounded-lg shadow-sm">
+                                        <div>
+                                            <p className="font-semibold text-gray-900">{appt.mentee_name}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {new Date(appt.scheduled_at).toLocaleString()} ({appt.duration_minutes} mins)
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-2 mt-3 md:mt-0">
+                                            <button
+                                                onClick={() => markMissed(appt.id)}
+                                                className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center gap-1 transition"
+                                            >
+                                                <XCircle className="w-4 h-4" />
+                                                Mark Missed
+                                            </button>
+                                            <button
+                                                onClick={() => markCompleted(appt.id)}
+                                                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-1 transition"
+                                            >
+                                                <CheckCircle className="w-4 h-4" />
+                                                Mark Completed
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

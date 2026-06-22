@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Mentorship;
+use App\Models\WalletTransaction;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
@@ -318,6 +319,66 @@ class AppointmentController extends Controller
         return response()->json([
             'message' => 'Appointment rescheduled successfully',
             'appointment' => $appointment->fresh()->load('mentorship'),
+        ]);
+    }
+
+    public function markCompleted(Request $request, $id)
+    {
+        $appointment = Appointment::with(['mentorship.mentor'])->findOrFail($id);
+
+        $user = $request->user();
+        // Only Mentor can mark as completed (or admin)
+        if ($appointment->mentorship->mentor_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($appointment->status !== 'scheduled' && $appointment->status !== 'rescheduled') {
+            return response()->json(['message' => 'Appointment is not in a valid state to be marked completed.'], 400);
+        }
+
+        // Release funds to mentor
+        $mentor = $appointment->mentorship->mentor;
+        $fee = $appointment->fee ?? 0;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($appointment, $mentor, $fee) {
+            $appointment->update(['status' => 'completed']);
+            
+            if ($fee > 0) {
+                $mentor->increment('wallet_balance', $fee);
+                WalletTransaction::create([
+                    'user_id' => $mentor->id,
+                    'appointment_id' => $appointment->id,
+                    'amount' => $fee,
+                    'type' => 'credit',
+                    'description' => 'Escrow release for completed appointment #' . $appointment->id,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Appointment marked as completed. Funds have been released to your wallet.',
+            'appointment' => $appointment->fresh(),
+        ]);
+    }
+
+    public function markMissed(Request $request, $id)
+    {
+        $appointment = Appointment::with(['mentorship.mentor'])->findOrFail($id);
+
+        $user = $request->user();
+        if ($appointment->mentorship->mentor_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($appointment->status !== 'scheduled' && $appointment->status !== 'rescheduled') {
+            return response()->json(['message' => 'Appointment is not in a valid state.'], 400);
+        }
+
+        $appointment->update(['status' => 'missed']);
+
+        return response()->json([
+            'message' => 'Appointment marked as missed. Mentee must contact you to reschedule.',
+            'appointment' => $appointment->fresh(),
         ]);
     }
 
