@@ -441,6 +441,7 @@ export default function MentorSchedule() {
                             </div>
                         )}
                     </div>
+                        </div>
                     )}
 
                     {activeTab === 'calendar' && renderCalendar()}
