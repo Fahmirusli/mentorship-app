@@ -152,22 +152,28 @@ export default function MentorSchedule() {
     const markCompleted = async (id: number) => {
         if (!confirm('Are you sure you want to mark this as completed? Funds will be released to your wallet.')) return;
         try {
+            // Optimistic update
+            setAppointments(prev => prev.filter(a => a.id !== id));
             await api.post(`/appointments/${id}/mark-completed`, {});
             alert('Session completed! Funds added to your wallet.');
             fetchAppointments();
         } catch (error: any) {
             alert(error?.message || 'Failed to complete session');
+            fetchAppointments(); // Revert on failure
         }
     };
 
     const markMissed = async (id: number) => {
         if (!confirm('Are you sure the mentee missed this session? They will be notified to reschedule.')) return;
         try {
+            // Optimistic update
+            setAppointments(prev => prev.filter(a => a.id !== id));
             await api.post(`/appointments/${id}/mark-missed`, {});
             alert('Session marked as missed.');
             fetchAppointments();
         } catch (error: any) {
             alert(error?.message || 'Failed to mark as missed');
+            fetchAppointments(); // Revert on failure
         }
     };
 
@@ -198,7 +204,7 @@ export default function MentorSchedule() {
         if (a.status !== 'scheduled' && a.status !== 'rescheduled') return false;
         const apptDate = new Date(a.scheduled_at);
         return apptDate < new Date();
-    });
+    }).sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
     return (
         <div className="min-h-screen bg-gray-50 p-8">

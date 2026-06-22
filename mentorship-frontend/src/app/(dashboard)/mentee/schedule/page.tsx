@@ -17,6 +17,7 @@ interface Appointment {
     status: 'upcoming' | 'completed' | 'cancelled' | 'missed';
     meeting_link?: string;
     payment_status?: string;
+    scheduled_at_obj?: any;
 }
 
 type UiStatus = Appointment['status'];
@@ -84,10 +85,18 @@ function MenteeScheduleInner() {
         return { date: datePart, time: timePart };
     };
 
-    const normalizeStatus = (status?: string): UiStatus => {
+    const normalizeStatus = (status?: string, scheduledAt?: string): UiStatus => {
         if (status === 'completed') return 'completed';
         if (status === 'cancelled') return 'cancelled';
         if (status === 'missed') return 'missed';
+        
+        if (scheduledAt) {
+            const apptDate = new Date(scheduledAt);
+            if (apptDate < new Date()) {
+                return 'missed';
+            }
+        }
+
         if (status === 'scheduled' || status === 'pending_payment' || status === 'rescheduled') {
             return 'upcoming';
         }
@@ -103,7 +112,7 @@ function MenteeScheduleInner() {
             const mappedAppointments: Appointment[] = records.map((item) => {
                 const scheduled = splitScheduledAt(item.scheduled_at);
                 const mentorName = item.mentorship?.mentor?.name || item.mentor_name || 'Mentor';
-                const normalizedStatus = normalizeStatus(item.status);
+                const normalizedStatus = normalizeStatus(item.status, item.scheduled_at);
 
                 return {
                     id: item.id,
@@ -116,8 +125,12 @@ function MenteeScheduleInner() {
                     status: normalizedStatus,
                     meeting_link: normalizeMeetingLink(item.meeting_link),
                     payment_status: item.payment_status || 'pending',
+                    scheduled_at_obj: item.scheduled_at ? new Date(item.scheduled_at) : new Date(0),
                 };
             });
+
+            // Sort appointments: Latest at the top (descending)
+            mappedAppointments.sort((a, b) => b.scheduled_at_obj.getTime() - a.scheduled_at_obj.getTime());
 
             setAppointments(mappedAppointments);
         } catch (error) {
