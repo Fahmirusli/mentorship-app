@@ -89,13 +89,6 @@ function MenteeScheduleInner() {
         if (status === 'completed') return 'completed';
         if (status === 'cancelled') return 'cancelled';
         if (status === 'missed') return 'missed';
-        
-        if (scheduledAt) {
-            const apptDate = new Date(scheduledAt);
-            if (apptDate < new Date()) {
-                return 'missed';
-            }
-        }
 
         if (status === 'scheduled' || status === 'pending_payment' || status === 'rescheduled') {
             return 'upcoming';

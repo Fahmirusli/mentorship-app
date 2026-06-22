@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, ChevronLeft, Send, User } from 'lucide-react';
 import { api, authService } from '@/lib/api';
+import { getEcho } from '@/lib/echo';
 
 type Conversation = {
   id: number;
@@ -59,8 +60,20 @@ export function ChatWidget() {
   useEffect(() => {
     if (currentUser?.id) {
       loadConversations();
-      // Poll for new conversations/unread counts every 30s
+      // Poll as fallback
       const convInterval = setInterval(loadConversations, 30000);
+
+      // Listen for real-time notifications to update badge instantly
+      const echo = getEcho();
+      if (echo) {
+        echo.private(`App.Models.User.${currentUser.id}`)
+          .listen('NotificationCreated', (e: any) => {
+             // If it's a message, update the unread count instantly
+             if (e.notification && e.notification.type === 'message') {
+               loadConversations();
+             }
+          });
+      }
       
       const handleOpenChat = (e: CustomEvent) => {
         const { userId, name, profile_image, role } = e.detail;
@@ -80,6 +93,9 @@ export function ChatWidget() {
       return () => {
         clearInterval(convInterval);
         window.removeEventListener('openChat', handleOpenChat as EventListener);
+        if (echo) {
+           echo.leave(`App.Models.User.${currentUser.id}`);
+        }
       };
     }
   }, [currentUser?.id]);
