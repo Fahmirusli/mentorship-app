@@ -35,7 +35,7 @@ interface Enrollment {
 export default function MenteeCourses() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'browse' | 'my-courses'>('browse');
+    const [activeTab, setActiveTab] = useState<'browse' | 'in-progress' | 'completed'>('browse');
     const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
     const [myEnrollments, setMyEnrollments] = useState<Enrollment[]>([]);
     const [enrollingId, setEnrollingId] = useState<number | null>(null);
@@ -116,14 +116,24 @@ export default function MenteeCourses() {
                             Browse Courses
                         </button>
                         <button
-                            onClick={() => setActiveTab('my-courses')}
+                            onClick={() => setActiveTab('in-progress')}
                             className={`px-6 py-3 font-medium transition border-b-2 ${
-                                activeTab === 'my-courses'
+                                activeTab === 'in-progress'
                                     ? 'border-indigo-600 text-indigo-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                         >
-                            My Learning
+                            In Progress
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('completed')}
+                            className={`px-6 py-3 font-medium transition border-b-2 ${
+                                activeTab === 'completed'
+                                    ? 'border-indigo-600 text-indigo-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                            Completed
                         </button>
                     </div>
 
@@ -171,14 +181,16 @@ export default function MenteeCourses() {
                         </div>
                     )}
 
-                    {activeTab === 'my-courses' && (
+                    {(activeTab === 'in-progress' || activeTab === 'completed') && (
                         <div className="space-y-6">
-                            {myEnrollments.map(enrollment => {
+                            {myEnrollments
+                                .filter(enrollment => activeTab === 'completed' ? enrollment.status === 'completed' : enrollment.status !== 'completed')
+                                .map(enrollment => {
                                 const course = enrollment.course;
                                 return (
                                     <div key={enrollment.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-indigo-300 transition p-6 flex flex-col md:flex-row gap-6">
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-xl text-gray-900 mb-2">{course.title}</h3>
+                                        <div className="flex-1 cursor-pointer" onClick={() => router.push(`/mentee/courses/${enrollment.id}`)}>
+                                            <h3 className="font-bold text-xl text-gray-900 mb-2 hover:text-indigo-600 transition">{course.title}</h3>
                                             <div className="flex items-center gap-2 mb-6">
                                                 <User className="w-4 h-4 text-gray-400" />
                                                 <span className="text-sm text-gray-600">Mentor: {course.mentor?.name || 'Mentor'}</span>
@@ -213,13 +225,15 @@ export default function MenteeCourses() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col justify-center gap-3 min-w-[200px]">
-                                            <button 
-                                                onClick={() => router.push(`/mentee/courses/${enrollment.id}`)}
-                                                className="w-full px-5 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 flex items-center justify-center gap-2 transition"
-                                            >
-                                                <Play className="w-4 h-4" />
-                                                Continue Learning
-                                            </button>
+                                            {enrollment.status !== 'completed' && (
+                                                <button 
+                                                    onClick={() => router.push(`/mentee/courses/${enrollment.id}`)}
+                                                    className="w-full px-5 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 flex items-center justify-center gap-2 transition"
+                                                >
+                                                    <Play className="w-4 h-4" />
+                                                    Continue Learning
+                                                </button>
+                                            )}
                                             {enrollment.status === 'completed' && (
                                                 <div className="w-full px-5 py-3 bg-green-50 text-green-700 font-medium rounded-xl flex items-center justify-center gap-2">
                                                     <CheckCircle className="w-5 h-5" />
@@ -230,10 +244,12 @@ export default function MenteeCourses() {
                                     </div>
                                 );
                             })}
-                            {myEnrollments.length === 0 && (
+                            {myEnrollments.filter(e => activeTab === 'completed' ? e.status === 'completed' : e.status !== 'completed').length === 0 && (
                                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500">You haven't enrolled in any courses yet</p>
+                                    <p className="text-gray-500">
+                                        {activeTab === 'completed' ? 'You haven\'t completed any courses yet' : 'You don\'t have any courses in progress'}
+                                    </p>
                                     <button 
                                         onClick={() => setActiveTab('browse')}
                                         className="mt-4 px-4 py-2 text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition"

@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
 use App\Models\CourseEnrollment;
+use App\Models\Badge;
+use Illuminate\Http\Request;
 use Illuminate\Http\Request;
 
 class CourseController extends Controller
@@ -266,16 +267,56 @@ class CourseController extends Controller
                 $totalTasks = count($enrollment->course->syllabus ?? []);
                 $progressPercent = $totalTasks > 0 ? round((count($completedTasks) / $totalTasks) * 100) : 0;
                 $status = $progressPercent >= 100 ? 'completed' : 'active';
-
                 $enrollment->update([
                     'completed_tasks' => $completedTasks,
                     'progress_percent' => $progressPercent,
                     'status' => $status
                 ]);
+
+                // Gamification for completing courses
+                if ($status === 'completed') {
+                    $mentee = $enrollment->mentee;
+                    // Count how many courses this mentee has completed
+                    $completedCoursesCount = \App\Models\CourseEnrollment::where('mentee_id', $mentee->id)
+                        ->where('status', 'completed')
+                        ->count();
+
+                    // Rule 1: First course completed
+                    if ($completedCoursesCount === 1) {
+                        $badgeName = "Course Pioneer";
+                        $badgeDesc = "Completed your very first course!";
+                        $this->awardCourseBadge($mentee, $badgeName, $badgeDesc);
+                    }
+                    // Rule 2: Every 5th course completed
+                    elseif ($completedCoursesCount > 0 && $completedCoursesCount % 5 === 0) {
+                        $badgeName = "Dedicated Learner ({$completedCoursesCount})";
+                        $badgeDesc = "Completed {$completedCoursesCount} courses!";
+                        $this->awardCourseBadge($mentee, $badgeName, $badgeDesc);
+                    }
+                }
             }
         }
 
         return response()->json(['message' => 'Submission reviewed successfully']);
+    }
+
+    private function awardCourseBadge($user, $name, $description)
+    {
+        $badge = Badge::firstOrCreate(
+            ['name' => $name],
+            [
+                'description' => $description,
+                'icon_url' => 'https://api.dicebear.com/7.x/shapes/svg?seed=' . urlencode($name),
+                'required_points' => 0,
+            ]
+        );
+
+        if (!$user->badges()->where('badge_id', $badge->id)->exists()) {
+            $user->badges()->attach($badge->id);
+            // Optionally, we can also give them some points
+            $user->points += 50;
+            $user->save();
+        }
     }
 
     /**
