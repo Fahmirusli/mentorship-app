@@ -57,7 +57,7 @@ export default function MentorDashboard() {
     { label: 'Total Mentees', value: stats.total_mentees, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
     { label: 'Upcoming Sessions', value: stats.upcoming_sessions, icon: Calendar, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-200' },
     { label: 'Hours Taught', value: stats.hours_taught, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-100', border: 'border-violet-200' },
-    { label: 'Avg. Rating', value: stats.rating ? `${stats.rating}/5` : '—', icon: Star, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
+    { label: 'Avg. Rating', value: stats.rating > 0 ? `${stats.rating}/5` : '0.0/5', icon: Star, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
   ];
 
   return (
@@ -171,20 +171,20 @@ export default function MentorDashboard() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Messages */}
+            {/* My Mentees Quick Link */}
             <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1000">
               <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-blue-500" />
-                Messages
+                <Users className="w-5 h-5 text-blue-500" />
+                My Mentees
               </h2>
               <button onClick={() => window.location.href = '/mentor/mentees'} className="w-full p-4 bg-blue-50 rounded-xl border border-blue-100 hover:shadow-md transition-all group cursor-pointer text-left">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-md">
-                    <MessageSquare className="w-5 h-5 text-white" />
+                    <Users className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">Chat with mentees</p>
-                    <p className="text-xs text-gray-500">View conversations</p>
+                    <p className="font-semibold text-gray-900 text-sm">Manage Mentees</p>
+                    <p className="text-xs text-gray-500">View mentee progress</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
                 </div>

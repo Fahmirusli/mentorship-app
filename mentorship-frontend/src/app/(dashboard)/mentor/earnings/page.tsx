@@ -9,6 +9,9 @@ export default function MentorEarnings() {
         total_earnings: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState('1');
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -49,7 +52,7 @@ export default function MentorEarnings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 stagger-children">
                     {/* Wallet Card */}
-                    <div className="md:col-span-2 glass-panel rounded-2xl p-8 bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-lg relative overflow-hidden">
+                    <div className="md:col-span-2 rounded-2xl p-8 bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-lg relative overflow-hidden border border-emerald-700">
                         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
                         <div className="absolute right-20 -bottom-10 w-32 h-32 bg-emerald-400 opacity-20 rounded-full blur-xl"></div>
                         
@@ -58,7 +61,10 @@ export default function MentorEarnings() {
                             <h2 className="text-5xl font-bold mb-6">RM {stats.total_earnings || 0}</h2>
                             
                             <div className="flex gap-4">
-                                <button className="px-6 py-2.5 bg-white text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition shadow-sm flex items-center gap-2">
+                                <button 
+                                    onClick={() => setShowWithdrawModal(true)}
+                                    className="px-6 py-2.5 bg-white text-emerald-700 font-bold rounded-xl hover:bg-emerald-50 transition shadow-sm flex items-center gap-2"
+                                >
                                     <ArrowUpRight className="w-5 h-5" />
                                     Withdraw Funds
                                 </button>
@@ -97,9 +103,20 @@ export default function MentorEarnings() {
                             <History className="w-5 h-5 text-gray-500" />
                             Recent Transactions
                         </h2>
-                        <button className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
-                            <Download className="w-4 h-4" /> Export CSV
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <select 
+                                value={filter} 
+                                onChange={(e) => setFilter(e.target.value)}
+                                className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2"
+                            >
+                                <option value="1">Past 1 Month</option>
+                                <option value="3">Past 3 Months</option>
+                                <option value="5">Past 5 Months</option>
+                            </select>
+                            <button className="text-emerald-600 hover:text-emerald-700 font-medium text-sm flex items-center gap-1">
+                                <Download className="w-4 h-4" /> Export CSV
+                            </button>
+                        </div>
                     </div>
 
                     <div className="text-center py-12">
@@ -111,6 +128,46 @@ export default function MentorEarnings() {
                     </div>
                 </div>
             </div>
+
+            {/* Withdraw Modal */}
+            {showWithdrawModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-gray-100">
+                            <h3 className="text-xl font-bold text-gray-900">Withdraw Funds</h3>
+                            <p className="text-sm text-gray-500 mt-1">Available balance: RM {stats.total_earnings || 0}</p>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Amount to withdraw (RM)</label>
+                            <input 
+                                type="number" 
+                                value={withdrawAmount}
+                                onChange={(e) => setWithdrawAmount(e.target.value)}
+                                placeholder="0.00"
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none mb-6 text-lg"
+                            />
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setShowWithdrawModal(false)}
+                                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        alert('Withdrawal request submitted! (Placeholder)');
+                                        setShowWithdrawModal(false);
+                                        setWithdrawAmount('');
+                                    }}
+                                    className="flex-1 px-4 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition shadow-sm"
+                                >
+                                    Confirm
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
