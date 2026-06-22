@@ -87,6 +87,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
     { href: '/mentee/jobs', label: 'Job Market', icon: Briefcase },
     { href: '/mentee/mentors', label: 'Find Mentors', icon: Users },
     { href: '/mentee/schedule', label: 'Schedule', icon: Calendar },
+    { href: '/mentee/resources', label: 'Resources', icon: BookOpen },
   ];
 
   const mentorLinks = [

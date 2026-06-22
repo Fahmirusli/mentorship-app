@@ -96,7 +96,7 @@ class MenteeController extends Controller
             $totalCount = $mentorship->appointments()->count();
             $progress = $totalCount > 0
                 ? (int) round(($completedCount / $totalCount) * 100)
-                : (int) min(100, max(5, Carbon::parse($mentorship->created_at)->diffInDays(now())));
+                : 0;
 
             return [
                 'name' => $mentorship->goals
@@ -171,4 +171,19 @@ class MenteeController extends Controller
         ]);
     }
 
+    public function resources(Request $request)
+    {
+        $user = $request->user();
+        
+        $mentorIds = $user->menteeMentorships()
+            ->where('status', 'active')
+            ->pluck('mentor_id');
+            
+        $resources = \App\Models\Resource::whereIn('mentor_id', $mentorIds)
+            ->with('mentor:id,name')
+            ->latest()
+            ->get();
+            
+        return response()->json($resources);
+    }
 }

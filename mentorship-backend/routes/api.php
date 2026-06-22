@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Mentee & Mentor stats
     Route::get('/mentee/stats', [App\Http\Controllers\Api\MenteeController::class, 'stats']);
+    Route::get('/mentee/resources', [App\Http\Controllers\Api\MenteeController::class, 'resources']);
     Route::get('/mentor/stats', [App\Http\Controllers\Api\MentorController::class, 'stats']);
     
     // Mentor management (protected operations)

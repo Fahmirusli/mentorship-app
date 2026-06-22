@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 export default function MentorEarnings() {
     const [stats, setStats] = useState({
         total_earnings: 0,
+        recent_transactions: [] as any[],
     });
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('1');
@@ -119,13 +120,43 @@ export default function MentorEarnings() {
                         </div>
                     </div>
 
-                    <div className="text-center py-12">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Calendar className="w-8 h-8 text-gray-400" />
+                    {stats.recent_transactions && stats.recent_transactions.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                                        <th className="pb-4 font-medium">Mentee</th>
+                                        <th className="pb-4 font-medium">Date</th>
+                                        <th className="pb-4 font-medium text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {stats.recent_transactions
+                                        .filter((tx) => {
+                                            const txDate = new Date(tx.date);
+                                            const monthsAgo = new Date();
+                                            monthsAgo.setMonth(monthsAgo.getMonth() - parseInt(filter));
+                                            return txDate >= monthsAgo;
+                                        })
+                                        .map((tx, idx) => (
+                                        <tr key={idx} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                                            <td className="py-4 font-medium text-gray-900">{tx.mentee_name}</td>
+                                            <td className="py-4 text-gray-500">{new Date(tx.date).toLocaleDateString()}</td>
+                                            <td className="py-4 font-bold text-emerald-600 text-right">+ RM {tx.amount}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        <p className="text-gray-500 font-medium">No recent transactions</p>
-                        <p className="text-gray-400 text-sm mt-1">Your payouts and earnings history will appear here once you complete sessions.</p>
-                    </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Calendar className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 font-medium">No recent transactions</p>
+                            <p className="text-gray-400 text-sm mt-1">Your payouts and earnings history will appear here once you complete sessions.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 

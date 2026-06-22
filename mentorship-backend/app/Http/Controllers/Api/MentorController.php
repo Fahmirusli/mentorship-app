@@ -344,6 +344,15 @@ class MentorController extends Controller
             ];
         }
 
+        // 8. Recent Transactions
+        $recentTransactions = $user->mentorships()
+            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
+            ->join('users as mentee', 'mentorships.mentee_id', '=', 'mentee.id')
+            ->where('appointments.status', 'completed')
+            ->orderBy('appointments.updated_at', 'desc')
+            ->select('appointments.id', 'appointments.updated_at as date', 'appointments.fee as amount', 'mentee.name as mentee_name')
+            ->get();
+
         return response()->json([
             'total_mentees' => $totalMentees,
             'hours_taught' => $hoursProvided,
@@ -352,6 +361,7 @@ class MentorController extends Controller
             'upcoming_sessions' => $upcomingSessions,
             'pending_requests' => $pendingRequests,
             'monthly_earnings' => $monthlyEarnings,
+            'recent_transactions' => $recentTransactions,
         ]);
     }
 
