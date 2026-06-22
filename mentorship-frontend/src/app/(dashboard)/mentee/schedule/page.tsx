@@ -55,6 +55,9 @@ function MenteeScheduleInner() {
         selectedSlotIndex: null,
         loading: false,
     });
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     useEffect(() => {
         const payment = searchParams.get('payment');
@@ -236,6 +239,74 @@ function MenteeScheduleInner() {
         filter === 'all' || a.status === filter
     );
 
+    const renderCalendar = () => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        const days = [];
+        for (let i = 0; i < firstDay; i++) {
+            days.push(<div key={`empty-${i}`} className="min-h-[100px] bg-gray-50/50 rounded-lg"></div>);
+        }
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const d = new Date(year, month, i);
+            const dateStr = [
+                d.getFullYear(),
+                String(d.getMonth() + 1).padStart(2, '0'),
+                String(d.getDate()).padStart(2, '0')
+            ].join('-');
+
+            const dayAppointments = appointments.filter(a => a.date === dateStr);
+
+            days.push(
+                <div key={i} className="min-h-[100px] p-2 bg-white border border-gray-200 rounded-lg shadow-sm hover:border-indigo-400 transition flex flex-col">
+                    <span className="text-sm font-semibold text-gray-700">{i}</span>
+                    <div className="flex-1 mt-1 overflow-y-auto space-y-1 scrollbar-hide">
+                        {dayAppointments.map(a => (
+                            <div 
+                                key={`appt-${a.id}`} 
+                                onClick={() => setSelectedAppointment(a)}
+                                className={`text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer transition ${
+                                    a.status === 'completed' ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                                    a.status === 'missed' ? 'bg-orange-100 text-orange-800 hover:bg-orange-200' :
+                                    a.status === 'cancelled' ? 'bg-red-100 text-red-800 hover:bg-red-200' :
+                                    'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                }`} 
+                                title={`${a.topic} with ${a.mentor_name}`}
+                            >
+                                📅 {a.topic}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-white rounded-xl shadow-sm p-2 md:p-6 mt-6 border border-gray-100">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-900">
+                        {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    </h2>
+                    <div className="flex gap-2">
+                        <button onClick={() => setCurrentMonth(new Date(year, month - 1, 1))} className="p-2 border rounded-lg hover:bg-gray-50 transition">&larr;</button>
+                        <button onClick={() => setCurrentMonth(new Date(year, month + 1, 1))} className="p-2 border rounded-lg hover:bg-gray-50 transition">&rarr;</button>
+                    </div>
+                </div>
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                        <div key={d} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">{d}</div>
+                    ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1 md:gap-2">
+                    {days}
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -303,8 +374,26 @@ function MenteeScheduleInner() {
                         </button>
                     </div>
 
-                    {/* Filter Tabs */}
-                    <div className="flex gap-2 mb-6">
+                    {/* View Tabs */}
+                    <div className="flex space-x-1 border-b border-gray-200 mb-6">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`px-4 py-3 text-sm font-medium rounded-t-lg transition ${viewMode === 'list' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                        >
+                            List View
+                        </button>
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            className={`px-4 py-3 text-sm font-medium rounded-t-lg transition ${viewMode === 'calendar' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                        >
+                            Calendar View
+                        </button>
+                    </div>
+
+                    {viewMode === 'list' && (
+                        <div>
+                            {/* Filter Tabs */}
+                            <div className="flex gap-2 mb-6">
                         <button
                             onClick={() => setFilter('upcoming')}
                             className={`px-4 py-2 rounded-lg font-medium transition ${filter === 'upcoming'
@@ -449,6 +538,10 @@ function MenteeScheduleInner() {
                             ))
                         )}
                     </div>
+                        </div>
+                    )}
+
+                    {viewMode === 'calendar' && renderCalendar()}
                 </div>
             </div>
 
@@ -516,6 +609,66 @@ function MenteeScheduleInner() {
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Appointment Details Modal */}
+            {selectedAppointment && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">Session Details</h3>
+                            <button onClick={() => setSelectedAppointment(null)} className="text-gray-400 hover:text-gray-600">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Mentor</label>
+                                <p className="font-semibold text-gray-900">{selectedAppointment.mentor_name}</p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Topic</label>
+                                <p className="font-semibold text-gray-900">{selectedAppointment.topic}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Date</label>
+                                    <p className="font-semibold text-gray-900">{selectedAppointment.date ? formatDatePart(selectedAppointment.date) : 'TBD'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Time</label>
+                                    <p className="font-semibold text-gray-900">{selectedAppointment.time}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Duration</label>
+                                <p className="font-semibold text-gray-900">{selectedAppointment.duration} minutes</p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Status</label>
+                                <p className="font-semibold text-gray-900 capitalize">{selectedAppointment.status}</p>
+                            </div>
+                            {selectedAppointment.meeting_link && selectedAppointment.status === 'upcoming' && (
+                                <div className="mt-2">
+                                    <a
+                                        href={selectedAppointment.meeting_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm w-full justify-center font-medium"
+                                    >
+                                        <Video className="w-4 h-4" />
+                                        Join Meeting
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-6 border-t border-gray-100 pt-4">
+                            <button onClick={() => setSelectedAppointment(null)} className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

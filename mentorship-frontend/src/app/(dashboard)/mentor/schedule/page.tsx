@@ -59,6 +59,7 @@ export default function MentorSchedule() {
         fee: 50,
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
     useEffect(() => {
         fetchSchedule();
@@ -237,7 +238,12 @@ export default function MentorSchedule() {
                     <span className="text-sm font-semibold text-gray-700">{i}</span>
                     <div className="flex-1 mt-1 overflow-y-auto space-y-1 scrollbar-hide">
                         {dayAppointments.map(a => (
-                            <div key={`appt-${a.id}`} className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded truncate" title={`${a.mentee_name} - ${a.status}`}>
+                            <div 
+                                key={`appt-${a.id}`} 
+                                onClick={() => setSelectedAppointment(a)}
+                                className="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded truncate cursor-pointer hover:bg-indigo-200 transition" 
+                                title={`${a.mentee_name} - ${a.status}`}
+                            >
                                 📅 {a.mentee_name}
                             </div>
                         ))}
@@ -496,6 +502,49 @@ export default function MentorSchedule() {
                     )}
                 </div>
             </div>
+
+            {/* Appointment Details Modal */}
+            {selectedAppointment && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">Session Details</h3>
+                            <button onClick={() => setSelectedAppointment(null)} className="text-gray-400 hover:text-gray-600">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Mentee</label>
+                                <p className="font-semibold text-gray-900">{selectedAppointment.mentee_name}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Date</label>
+                                    <p className="font-semibold text-gray-900">{new Date(selectedAppointment.scheduled_at).toLocaleDateString()}</p>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Time</label>
+                                    <p className="font-semibold text-gray-900">{new Date(selectedAppointment.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Duration</label>
+                                <p className="font-semibold text-gray-900">{selectedAppointment.duration_minutes} minutes</p>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Status</label>
+                                <p className="font-semibold text-gray-900 capitalize">{selectedAppointment.status}</p>
+                            </div>
+                        </div>
+                        <div className="mt-6">
+                            <button onClick={() => setSelectedAppointment(null)} className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
