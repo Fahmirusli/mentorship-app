@@ -184,7 +184,7 @@ export default function MenteeCourses() {
                     {(activeTab === 'in-progress' || activeTab === 'completed') && (
                         <div className="space-y-6">
                             {myEnrollments
-                                .filter(enrollment => activeTab === 'completed' ? enrollment.status === 'completed' : enrollment.status !== 'completed')
+                                .filter(enrollment => activeTab === 'completed' ? (enrollment.status === 'completed' || enrollment.progress_percent >= 100) : (enrollment.status !== 'completed' && enrollment.progress_percent < 100))
                                 .map(enrollment => {
                                 const course = enrollment.course;
                                 return (
@@ -219,13 +219,13 @@ export default function MenteeCourses() {
                                                 <div>
                                                     <div className="flex justify-between text-sm mb-2">
                                                         <span className="text-gray-600 truncate mr-2">Status</span>
-                                                        <span className="font-bold text-gray-900">{enrollment.status === 'completed' ? 'Completed' : 'In Progress'}</span>
+                                                        <span className="font-bold text-gray-900">{(enrollment.status === 'completed' || enrollment.progress_percent >= 100) ? 'Completed' : 'In Progress'}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="flex flex-col justify-center gap-3 min-w-[200px]">
-                                            {enrollment.status !== 'completed' && (
+                                            {!(enrollment.status === 'completed' || enrollment.progress_percent >= 100) && (
                                                 <button 
                                                     onClick={() => router.push(`/mentee/courses/${enrollment.id}`)}
                                                     className="w-full px-5 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 flex items-center justify-center gap-2 transition"
@@ -234,7 +234,7 @@ export default function MenteeCourses() {
                                                     Continue Learning
                                                 </button>
                                             )}
-                                            {enrollment.status === 'completed' && (
+                                            {(enrollment.status === 'completed' || enrollment.progress_percent >= 100) && (
                                                 <div className="w-full px-5 py-3 bg-green-50 text-green-700 font-medium rounded-xl flex items-center justify-center gap-2">
                                                     <CheckCircle className="w-5 h-5" />
                                                     Course Completed
@@ -244,7 +244,7 @@ export default function MenteeCourses() {
                                     </div>
                                 );
                             })}
-                            {myEnrollments.filter(e => activeTab === 'completed' ? e.status === 'completed' : e.status !== 'completed').length === 0 && (
+                            {myEnrollments.filter(e => activeTab === 'completed' ? (e.status === 'completed' || e.progress_percent >= 100) : (e.status !== 'completed' && e.progress_percent < 100)).length === 0 && (
                                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                     <p className="text-gray-500">

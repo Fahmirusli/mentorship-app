@@ -98,7 +98,7 @@ function MenteeScheduleInner() {
 
     const fetchAppointments = useCallback(async () => {
         try {
-            const statusParam = filter === 'completed' ? 'completed' : filter === 'all' ? '' : 'upcoming';
+            const statusParam = filter === 'all' ? '' : filter;
             const response = await api.get(`/appointments${statusParam ? `?status=${statusParam}` : ''}`);
             const records: BackendAppointment[] = Array.isArray(response) ? response : [];
 
