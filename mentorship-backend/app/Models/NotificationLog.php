@@ -37,7 +37,11 @@ class NotificationLog extends Model
             'data' => $data,
         ]);
 
-        broadcast(new \App\Events\NotificationCreated($notification));
+        try {
+            broadcast(new \App\Events\NotificationCreated($notification));
+        } catch (\Exception $e) {
+            \Log::error('Broadcast failed: ' . $e->getMessage());
+        }
 
         return $notification;
     }
