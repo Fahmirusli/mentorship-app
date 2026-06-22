@@ -21,7 +21,7 @@ export default function MentorDashboard() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({
     total_mentees: 0, upcoming_sessions: 0, hours_taught: 0,
-    rating: 0, total_earnings: 0, pending_requests: 0
+    rating: 0, total_earnings: 0, pending_requests: 0, monthly_earnings: [] as any[]
   });
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +67,7 @@ export default function MentorDashboard() {
     { label: 'Total Mentees', value: stats.total_mentees, icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-200' },
     { label: 'Hours Taught', value: stats.hours_taught, icon: Clock, color: 'text-violet-600', bg: 'bg-violet-100', border: 'border-violet-200' },
     { label: 'Avg. Rating', value: stats.rating > 0 ? `${stats.rating}/5` : '0.0/5', icon: Star, color: 'text-amber-600', bg: 'bg-amber-100', border: 'border-amber-200' },
-    { label: 'Pending Requests', value: stats.pending_requests, icon: Activity, color: 'text-rose-600', bg: 'bg-rose-100', border: 'border-rose-200' },
+    { label: 'Upcoming Sessions', value: stats.upcoming_sessions, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-100', border: 'border-emerald-200' },
   ];
 
   return (
@@ -145,7 +145,7 @@ export default function MentorDashboard() {
               </div>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                  <AreaChart data={stats.monthly_earnings && stats.monthly_earnings.length > 0 ? stats.monthly_earnings : mockChartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>

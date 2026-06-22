@@ -325,13 +325,33 @@ class MentorController extends Controller
             ->where('status', 'pending')
             ->count();
 
+        $monthlyEarnings = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = \Carbon\Carbon::now()->subMonths($i);
+            $monthName = $month->format('M');
+            $monthStart = $month->copy()->startOfMonth();
+            $monthEnd = $month->copy()->endOfMonth();
+
+            $monthEarnings = $user->mentorships()
+                ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
+                ->where('appointments.status', 'completed')
+                ->whereBetween('appointments.updated_at', [$monthStart, $monthEnd])
+                ->sum('appointments.fee');
+
+            $monthlyEarnings[] = [
+                'name' => $monthName,
+                'earnings' => (float)($monthEarnings ?: 0),
+            ];
+        }
+
         return response()->json([
             'total_mentees' => $totalMentees,
             'hours_taught' => $hoursProvided,
             'total_earnings' => $earnings,
             'rating' => $rating,
             'upcoming_sessions' => $upcomingSessions,
-            'pending_requests' => $pendingRequests
+            'pending_requests' => $pendingRequests,
+            'monthly_earnings' => $monthlyEarnings,
         ]);
     }
 

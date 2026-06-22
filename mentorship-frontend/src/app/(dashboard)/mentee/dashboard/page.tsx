@@ -69,52 +69,52 @@ export default function MenteeDashboard() {
     <div className="min-h-screen bg-gray-50 page-enter">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Header */}
-        <div className="mb-8 animate-fade-in-up relative overflow-hidden rounded-3xl bg-indigo-900 p-8 shadow-xl shadow-indigo-900/20">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob"></div>
-          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-fuchsia-500 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div className="mb-8 relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 md:p-10 shadow-2xl animate-fade-in-up">
+          <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-blob"></div>
+          <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-[80px] opacity-60 animate-blob animation-delay-2000"></div>
           
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-purple-100 text-xs font-semibold rounded-full border border-white/20">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="px-3 py-1 bg-white/10 backdrop-blur-md text-purple-300 text-xs font-semibold rounded-full border border-purple-500/30">
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </span>
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                Welcome back, <span className="text-purple-200">{user?.name || 'Mentee'}</span> 👋
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
+                Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">{user?.name || 'Mentee'}</span>
               </h1>
-              <p className="text-purple-100 text-sm md:text-base max-w-xl">
-                Ready to take your skills to the next level? You have {stats.mentorships} active mentorships and {stats.jobs} new job matches waiting for you. Let's make today count!
+              <p className="text-slate-300 text-sm md:text-base max-w-xl">
+                Ready to take your skills to the next level? You have <strong className="text-white">{stats.mentorships}</strong> active mentorships and <strong className="text-white">{stats.jobs}</strong> new job matches waiting for you. Let's make today count!
               </p>
             </div>
             
-            <div className="hidden lg:flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-              <div className="p-3 bg-purple-500/20 rounded-xl">
-                <Sparkles className="w-6 h-6 text-purple-200" />
+            <div className="hidden lg:flex items-center gap-4 bg-white/10 backdrop-blur-md p-5 rounded-3xl border border-white/10 shadow-inner">
+              <div className="p-4 bg-purple-500/20 rounded-2xl">
+                <Sparkles className="w-8 h-8 text-purple-300" />
               </div>
               <div>
                 <p className="text-sm font-medium text-purple-200">Learning Streak</p>
-                <p className="text-xl font-bold text-white">{Math.max(1, stats.mentorships * 2)} Days</p>
+                <p className="text-3xl font-bold text-white">{Math.max(1, stats.mentorships * 2)} Days</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8 stagger-children">
+        {/* Bento Grid Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 stagger-children">
           {statCards.map((stat, i) => (
-            <div key={i} className="group glass-panel rounded-2xl p-6 card-hover cursor-default">
-              <div className="flex items-center justify-between">
+            <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all group relative overflow-hidden">
+              <div className={`absolute -right-6 -top-6 w-24 h-24 ${stat.bg} rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 ease-out`} />
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex justify-between items-start mb-4">
+                  <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color}`}>
+                    <stat.icon className="w-6 h-6" />
+                  </div>
+                </div>
                 <div>
-                  <p className="text-gray-500 text-sm font-medium">{stat.label}</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                  <h3 className="text-3xl font-black text-gray-900 tracking-tight">{stat.value}</h3>
+                  <p className="text-sm font-semibold text-gray-500 mt-1">{stat.label}</p>
                 </div>
-                <div className={`${stat.bg} ${stat.border} border p-3.5 rounded-xl group-hover:scale-110 transition-transform`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div className={`h-full ${stat.bg.replace('100', '500')} rounded-full transition-all duration-1000`} style={{width: `${Math.min((stat.value || 0) * 10, 100)}%`}} />
               </div>
             </div>
           ))}
