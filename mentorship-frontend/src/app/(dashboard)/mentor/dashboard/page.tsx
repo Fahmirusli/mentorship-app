@@ -152,10 +152,13 @@ export default function MentorDashboard() {
                 Quick Overview
               </h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                <div 
+                    onClick={() => window.location.href = '/mentor/earnings'}
+                    className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 cursor-pointer hover:bg-emerald-100 hover:shadow-sm transition-all"
+                >
                   <DollarSign className="w-8 h-8 text-emerald-600 mb-2" />
                   <p className="text-2xl font-bold text-gray-900">RM {stats.total_earnings || 0}</p>
-                  <p className="text-sm text-gray-500">Total Earnings</p>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">Total Earnings <ChevronRight className="w-3 h-3" /></p>
                 </div>
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                   <TrendingUp className="w-8 h-8 text-amber-600 mb-2" />

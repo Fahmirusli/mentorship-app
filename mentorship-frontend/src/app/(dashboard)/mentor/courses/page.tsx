@@ -65,8 +65,8 @@ export default function MentorCourses() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 50 * 1024 * 1024) {
-            alert('File size exceeds 50MB limit.');
+        if (file.size > 150 * 1024 * 1024) {
+            alert('File size exceeds 150MB limit.');
             return;
         }
 

@@ -320,12 +320,18 @@ class MentorController extends Controller
             ->where('appointments.status', 'upcoming')
             ->count();
 
+        // 6. Pending requests
+        $pendingRequests = $user->mentorships()
+            ->where('status', 'pending')
+            ->count();
+
         return response()->json([
-            'totalMentees' => $totalMentees,
-            'hoursProvided' => $hoursProvided,
-            'earnings' => $earnings,
+            'total_mentees' => $totalMentees,
+            'hours_taught' => $hoursProvided,
+            'total_earnings' => $earnings,
             'rating' => $rating,
-            'upcomingSessions' => $upcomingSessions
+            'upcoming_sessions' => $upcomingSessions,
+            'pending_requests' => $pendingRequests
         ]);
     }
 

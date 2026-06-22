@@ -330,7 +330,7 @@ class CourseController extends Controller
         }
 
         $request->validate([
-            'file' => 'required|file|max:51200' // 50MB max
+            'file' => 'required|file|max:153600' // 150MB max
         ]);
 
         $file = $request->file('file');

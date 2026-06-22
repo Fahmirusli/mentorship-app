@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Briefcase, Users, Calendar,
-  BookOpen, LogOut, Settings, Bell, User, Menu, X, CheckCircle
+  BookOpen, LogOut, Settings, Bell, User, Menu, X, CheckCircle, DollarSign
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { authService } from '@/lib/auth';
@@ -94,6 +94,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
     { href: '/mentor/courses', label: 'Courses', icon: BookOpen },
     { href: '/mentor/mentees', label: 'My Mentees', icon: Users },
     { href: '/mentor/schedule', label: 'Schedule', icon: Calendar },
+    { href: '/mentor/earnings', label: 'Earnings', icon: DollarSign },
     { href: '/mentor/resources', label: 'Resources', icon: BookOpen },
   ];
 
