@@ -235,7 +235,7 @@ export default function MenteeDashboard() {
               </h2>
               <div className="space-y-4">
                 {stats.learning_progress.length === 0 ? (
-                  <p className="text-gray-400 text-sm py-4 text-center">No active mentorships to track.</p>
+                  <p className="text-gray-400 text-sm py-4 text-center">No enrolled courses to track.</p>
                 ) : (
                   stats.learning_progress.map((item, idx) => (
                     <div key={idx}>

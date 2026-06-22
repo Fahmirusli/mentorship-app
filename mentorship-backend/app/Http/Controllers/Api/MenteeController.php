@@ -88,21 +88,15 @@ class MenteeController extends Controller
             ->sum('appointments.duration_minutes');
         $hours = (int) round($totalCompletedMinutes / 60);
 
-        // 3. Learning Progress: from active mentorships, track completed vs total sessions
-        $formattedProgress = $activeMentorships->map(function (Mentorship $mentorship) {
-            $completedCount = $mentorship->appointments()
-                ->where('status', 'completed')
-                ->count();
-            $totalCount = $mentorship->appointments()->count();
-            $progress = $totalCount > 0
-                ? (int) round(($completedCount / $totalCount) * 100)
-                : 0;
+        // 3. Learning Progress: from course enrollments
+        $courseEnrollments = \App\Models\CourseEnrollment::with('course')
+            ->where('mentee_id', $user->id)
+            ->get();
 
+        $formattedProgress = $courseEnrollments->map(function ($enrollment) {
             return [
-                'name' => $mentorship->goals
-                    ? 'Goal: ' . \Illuminate\Support\Str::limit((string) $mentorship->goals, 30)
-                    : 'Mentor: ' . ($mentorship->mentor?->name ?? 'Mentor'),
-                'progress' => min(100, max(0, $progress)),
+                'name' => $enrollment->course ? $enrollment->course->title : 'Course',
+                'progress' => $enrollment->progress_percent ?? 0,
             ];
         })->values()->all();
 
