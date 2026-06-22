@@ -158,12 +158,16 @@ class MenteeController extends Controller
                 ->count();
         }
 
+        // 6. User Badges
+        $badges = $user->badges()->select('badges.id', 'badges.name', 'badges.description', 'badges.icon_url')->get();
+
         return response()->json([
             'mentorships' => $mentorships,
             'hours'       => $hours,
             'skills'      => $skillsCount,
             'jobs'        => $jobMatches,
             'learning_progress' => $formattedProgress,
+            'badges'      => $badges,
         ]);
     }
 

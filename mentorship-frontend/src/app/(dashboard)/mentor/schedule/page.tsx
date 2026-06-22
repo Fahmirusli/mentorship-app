@@ -60,6 +60,12 @@ export default function MentorSchedule() {
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        action: 'completed' | 'missed' | null;
+        appointmentId: number | null;
+        menteeName: string;
+    }>({ isOpen: false, action: null, appointmentId: null, menteeName: '' });
 
     useEffect(() => {
         fetchSchedule();
@@ -152,30 +158,25 @@ export default function MentorSchedule() {
         }
     };
 
-    const markCompleted = async (id: number) => {
-        if (!confirm('Are you sure you want to mark this as completed? Funds will be released to your wallet.')) return;
+    const handleConfirmAction = async () => {
+        if (!confirmModal.appointmentId || !confirmModal.action) return;
+        const id = confirmModal.appointmentId;
+        const action = confirmModal.action;
+        
         try {
-            // Optimistic update
             setAppointments(prev => prev.filter(a => a.id !== id));
-            await api.post(`/appointments/${id}/mark-completed`, {});
-            alert('Session completed! Funds added to your wallet.');
+            setConfirmModal({ isOpen: false, action: null, appointmentId: null, menteeName: '' });
+            
+            if (action === 'completed') {
+                await api.post(`/appointments/${id}/mark-completed`, {});
+                alert('Session completed! Funds added to your wallet.');
+            } else {
+                await api.post(`/appointments/${id}/mark-missed`, {});
+                alert('Session marked as missed.');
+            }
             fetchAppointments();
         } catch (error: any) {
-            alert(error?.message || 'Failed to complete session');
-            fetchAppointments(); // Revert on failure
-        }
-    };
-
-    const markMissed = async (id: number) => {
-        if (!confirm('Are you sure the mentee missed this session? They will be notified to reschedule.')) return;
-        try {
-            // Optimistic update
-            setAppointments(prev => prev.filter(a => a.id !== id));
-            await api.post(`/appointments/${id}/mark-missed`, {});
-            alert('Session marked as missed.');
-            fetchAppointments();
-        } catch (error: any) {
-            alert(error?.message || 'Failed to mark as missed');
+            alert(error?.message || `Failed to mark as ${action}`);
             fetchAppointments(); // Revert on failure
         }
     };
@@ -474,14 +475,14 @@ export default function MentorSchedule() {
                                         </div>
                                         <div className="flex gap-2 mt-3 md:mt-0">
                                             <button
-                                                onClick={() => markMissed(appt.id)}
+                                                onClick={() => setConfirmModal({ isOpen: true, action: 'missed', appointmentId: appt.id, menteeName: appt.mentee_name })}
                                                 className="px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center gap-1 transition"
                                             >
                                                 <XCircle className="w-4 h-4" />
                                                 Mark Missed
                                             </button>
                                             <button
-                                                onClick={() => markCompleted(appt.id)}
+                                                onClick={() => setConfirmModal({ isOpen: true, action: 'completed', appointmentId: appt.id, menteeName: appt.mentee_name })}
                                                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg flex items-center gap-1 transition"
                                             >
                                                 <CheckCircle className="w-4 h-4" />
@@ -541,6 +542,48 @@ export default function MentorSchedule() {
                             <button onClick={() => setSelectedAppointment(null)} className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition">
                                 Close
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {confirmModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+                        <div className={`p-6 text-white ${confirmModal.action === 'completed' ? 'bg-gradient-to-br from-green-500 to-green-700' : 'bg-gradient-to-br from-orange-500 to-orange-700'}`}>
+                            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mx-auto mb-4 shadow-inner">
+                                {confirmModal.action === 'completed' ? <CheckCircle className="w-8 h-8" /> : <XCircle className="w-8 h-8" />}
+                            </div>
+                            <h3 className="text-2xl font-bold text-center">
+                                {confirmModal.action === 'completed' ? 'Mark as Completed?' : 'Mark as Missed?'}
+                            </h3>
+                        </div>
+                        <div className="p-6 text-center">
+                            <p className="text-gray-600 mb-6 font-medium">
+                                {confirmModal.action === 'completed' 
+                                    ? `Are you sure you want to mark the session with ${confirmModal.menteeName} as completed? Funds will be released to your wallet.`
+                                    : `Are you sure ${confirmModal.menteeName} missed this session? They will be notified to reschedule.`
+                                }
+                            </p>
+                            <div className="flex gap-3">
+                                <button 
+                                    onClick={() => setConfirmModal({ isOpen: false, action: null, appointmentId: null, menteeName: '' })}
+                                    className="flex-1 px-4 py-3.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleConfirmAction}
+                                    className={`flex-1 px-4 py-3.5 text-white font-bold rounded-xl transition shadow-lg ${
+                                        confirmModal.action === 'completed' 
+                                            ? 'bg-green-600 hover:bg-green-700 hover:shadow-green-500/30' 
+                                            : 'bg-orange-600 hover:bg-orange-700 hover:shadow-orange-500/30'
+                                    }`}
+                                >
+                                    Yes, Confirm
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

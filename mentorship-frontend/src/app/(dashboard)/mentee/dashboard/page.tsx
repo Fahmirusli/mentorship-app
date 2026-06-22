@@ -11,7 +11,8 @@ export default function MenteeDashboard() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({
     mentorships: 0, hours: 0, skills: 0, jobs: 0,
-    learning_progress: [] as { name: string; progress: number }[]
+    learning_progress: [] as { name: string; progress: number }[],
+    badges: [] as any[]
   });
   const [upcomingSessions, setUpcomingSessions] = useState<any[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
@@ -247,6 +248,36 @@ export default function MenteeDashboard() {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            </div>
+
+            {/* My Achievements */}
+            <div className="glass-panel rounded-2xl p-6 animate-fade-in-up animation-delay-1500">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-amber-500" />
+                My Achievements
+              </h2>
+              <div className="space-y-3">
+                {stats.badges?.length === 0 ? (
+                  <p className="text-gray-400 text-sm py-4 text-center">Complete courses to earn badges!</p>
+                ) : (
+                  stats.badges?.slice(0, 3).map((badge, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50/50 rounded-xl border border-amber-100">
+                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-xl shadow-sm">
+                        {badge.icon_url || '🏆'}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-gray-900">{badge.name}</p>
+                        <p className="text-xs text-gray-500 line-clamp-1">{badge.description}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+                {stats.badges?.length > 3 && (
+                  <button className="w-full text-center text-xs font-semibold text-amber-600 hover:text-amber-700 mt-2">
+                    View All Badges ({stats.badges.length})
+                  </button>
                 )}
               </div>
             </div>
