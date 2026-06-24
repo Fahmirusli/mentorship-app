@@ -139,6 +139,26 @@ export default function MenteeProfile() {
         }
     };
 
+    const handleViewResume = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (resumeUrl?.startsWith('data:')) {
+            const arr = resumeUrl.split(',');
+            const mimeMatch = arr[0].match(/:(.*?);/);
+            const mime = mimeMatch ? mimeMatch[1] : 'application/pdf';
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            const blob = new Blob([u8arr], { type: mime });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        } else {
+            window.open(resumeUrl || '', '_blank');
+        }
+    };
+
     const addSkill = () => {
         if (newCurrentSkill && !profile.current_skills.includes(newCurrentSkill)) {
             setProfile({ ...profile, current_skills: [...profile.current_skills, newCurrentSkill] });
@@ -498,9 +518,9 @@ export default function MenteeProfile() {
                                     />
                                 </label>
                                 {resumeUrl && (
-                                    <a href={resumeUrl} target="_blank" rel="noreferrer" download="resume.pdf" className="text-indigo-600 hover:text-indigo-800 underline">
+                                    <button onClick={handleViewResume} className="text-indigo-600 hover:text-indigo-800 underline ml-4 text-sm font-medium">
                                         View current resume
-                                    </a>
+                                    </button>
                                 )}
                             </div>
                             
