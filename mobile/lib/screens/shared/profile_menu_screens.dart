@@ -376,30 +376,51 @@ class AccountSettingsScreen extends StatefulWidget {
 class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _notificationsEnabled = true;
   bool _locationEnabled = true;
+  bool _darkModeEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThemePreference();
+  }
+
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _darkModeEnabled = prefs.getBool('is_dark_mode') ?? false;
+    });
+  }
+
+  void _toggleDarkMode(bool value) {
+    setState(() => _darkModeEnabled = value);
+    UpliftsApp.setThemeMode(context, value ? ThemeMode.dark : ThemeMode.light);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F3FB),
-      appBar: AppBar(title: const Text("Account Settings", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, iconTheme: const IconThemeData(color: Colors.black87), centerTitle: true),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(title: Text("Account Settings", style: TextStyle(color: Theme.of(context).textTheme.displayLarge?.color, fontWeight: FontWeight.bold)), backgroundColor: Colors.transparent, elevation: 0, iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           const Text("Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 10),
-          _buildToggleCard("Push Notifications", Icons.notifications_active_outlined, _notificationsEnabled, (val) => setState(() => _notificationsEnabled = val)),
+          _buildToggleCard("Push Notifications", Icons.notifications_active_outlined, _notificationsEnabled, (val) => setState(() => _notificationsEnabled = val), context),
           const SizedBox(height: 15),
-          _buildToggleCard("Location Services (Nearby Mentors)", Icons.location_on_outlined, _locationEnabled, (val) => setState(() => _locationEnabled = val)),
+          _buildToggleCard("Location Services (Nearby Mentors)", Icons.location_on_outlined, _locationEnabled, (val) => setState(() => _locationEnabled = val), context),
+          const SizedBox(height: 15),
+          _buildToggleCard("Dark Mode", Icons.dark_mode_outlined, _darkModeEnabled, _toggleDarkMode, context),
 
           const SizedBox(height: 30),
           const Text("Security", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 10),
 
           Container(
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 15)]),
+            decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 15)]),
             child: ListTile(
               leading: const Icon(Icons.lock_outline, color: Color(0xFF6B4EE6)),
-              title: const Text("Change Password", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A))),
+              title: Text("Change Password", style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
               onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password reset link sent to email."))),
             ),
@@ -409,12 +430,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
-  Widget _buildToggleCard(String title, IconData icon, bool value, Function(bool) onChanged) {
+  Widget _buildToggleCard(String title, IconData icon, bool value, Function(bool) onChanged, BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 15)]),
+      decoration: BoxDecoration(color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 15)]),
       child: SwitchListTile(
         secondary: Icon(icon, color: const Color(0xFF6B4EE6)),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A))),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color)),
         value: value,
         activeColor: const Color(0xFF6B4EE6),
         onChanged: onChanged,

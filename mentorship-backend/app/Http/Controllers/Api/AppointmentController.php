@@ -19,7 +19,7 @@ class AppointmentController extends Controller
     {
         $user = $request->user();
         
-        $query = Appointment::with(['mentorship.mentor', 'mentorship.mentee']);
+        $query = Appointment::with(['mentorship.mentor', 'mentorship.mentee', 'feedback']);
 
         // Get appointments for user's mentorships
         $mentorshipIds = Mentorship::where('mentor_id', $user->id)
@@ -80,7 +80,9 @@ class AppointmentController extends Controller
                         'start_date' => optional($mentorship?->start_date)->format('Y-m-d'),
                         'end_date' => optional($mentorship?->end_date)->format('Y-m-d'),
                         'other_party_name' => $user->id === $mentor?->id ? $mentee?->name : $mentor?->name,
+                        'other_party_id' => $user->id === $mentor?->id ? $mentee?->id : $mentor?->id,
                     ],
+                    'has_feedback' => $appointment->feedback->where('from_user_id', $user->id)->isNotEmpty(),
                     'mentorship' => $mentorship,
                 ];
             })

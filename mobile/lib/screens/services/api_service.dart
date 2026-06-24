@@ -657,9 +657,50 @@ class ApiService {
     }
   }
 
+  static Future<bool> deleteAppointment(int id) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('auth_token');
+    if (token == null) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/appointments/$id'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (e) {
+      print('Delete appointment error: $e');
+      return false;
+    }
+  }
+
   // ========================================
   // MENTOR SKILLS & BOOKING APIs
   // ========================================
+
+  // GET NEARBY MENTORS
+  static Future<List<dynamic>> getNearbyMentors({double? lat, double? lng, double? radiusKm}) async {
+    try {
+      final queryParams = <String, String>{};
+      if (lat != null) queryParams['lat'] = lat.toString();
+      if (lng != null) queryParams['lng'] = lng.toString();
+      if (radiusKm != null) queryParams['radius_km'] = radiusKm.toString();
+      
+      final uri = Uri.parse('$baseUrl/mentors/nearby').replace(queryParameters: queryParams);
+      
+      final response = await http.get(uri, headers: {'Accept': 'application/json'});
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      print('Nearby mentors error: $e');
+      return [];
+    }
+  }
 
   // 20. GET ALL MENTOR SKILLS (for skill selection)
   static Future<List<String>> getMentorSkills() async {
@@ -975,6 +1016,7 @@ class ApiService {
   // 32. SUBMIT FEEDBACK
   static Future<Map<String, dynamic>> submitFeedback({
     required int mentorshipId,
+    int? appointmentId,
     required int toUserId,
     required int rating,
     String? comment,
@@ -993,6 +1035,7 @@ class ApiService {
         },
         body: jsonEncode({
           'mentorship_id': mentorshipId,
+          if (appointmentId != null) 'appointment_id': appointmentId,
           'to_user_id': toUserId,
           'rating': rating,
           'comment': comment ?? '',
@@ -1053,6 +1096,66 @@ class ApiService {
     } catch (e) {
       print('Mentee resources error: $e');
       return [];
+    }
+  }
+  // ========================================
+  // WALLET & WITHDRAWAL APIs
+  // ========================================
+
+  static Future<Map<String, dynamic>?> getWallet() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/wallet'),
+        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Wallet error: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>> requestWithdrawal({
+    required double amount,
+    required String bankName,
+    required String accountNumber,
+    required String accountName,
+  }) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return {'success': false, 'message': 'Not logged in'};
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/wallet/withdraw'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'amount': amount,
+          'bank_name': bankName,
+          'account_number': accountNumber,
+          'account_name': accountName,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message'] ?? 'Success'};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Failed'};
+    } catch (e) {
+      return {'success': false, 'message': 'Connection error: $e'};
     }
   }
 

@@ -208,7 +208,11 @@ class AdminController extends Controller
 
         $schedule = JobScrapeSchedule::first();
 
-        return view('admin.jobs', compact('jobs', 'jobStats', 'schedule'));
+        // Get top 10 skills that mentees have
+        $menteeSkills = \App\Models\MenteeProfile::all()->pluck('current_skills')->flatten()->filter();
+        $topSkills = $menteeSkills->countBy()->sortDesc()->take(10)->keys()->toArray();
+
+        return view('admin.jobs', compact('jobs', 'jobStats', 'schedule', 'topSkills'));
     }
 
     public function updateScrapeSchedule(Request $request)
@@ -248,11 +252,30 @@ class AdminController extends Controller
     public function scrapeJobs(Request $request)
     {
         try {
-            $keyword = $request->input('keyword', 'Software Engineer');
-            $scraperService = new \App\Services\JobScraperService();
-            $scraperService->scrapeAll($keyword);
+            $keywords = $request->input('keywords', []);
+            $customKeyword = $request->input('keyword');
+            
+            if ($customKeyword) {
+                $keywords[] = $customKeyword;
+            }
 
-            return back()->with('success', "Job scraping for '$keyword' started successfully!");
+            if (empty($keywords)) {
+                return back()->with('error', 'Please provide a keyword or select at least one skill.');
+            }
+
+            $scraperService = new \App\Services\JobScraperService();
+            $totalScraped = 0;
+            
+            // Loop through all selected keywords/skills
+            foreach ($keywords as $keyword) {
+                $result = $scraperService->scrapeAll($keyword);
+                if (isset($result['total'])) {
+                    $totalScraped += $result['total'];
+                }
+            }
+
+            $keywordList = implode(', ', $keywords);
+            return back()->with('success', "Job scraping for [$keywordList] finished! Added $totalScraped new jobs.");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to start scraping: ' . $e->getMessage());
         }

@@ -341,9 +341,25 @@
         
         <form action="{{ route('admin.jobs.scrape') }}" method="POST">
             @csrf
+
             <div style="margin-bottom: 24px;">
-                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Target Keyword</label>
-                <input type="text" name="keyword" class="form-input" placeholder="e.g. 'Data Analyst' or 'React Developer'" required autofocus>
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 12px;">Top 10 Mentee Skills</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    @foreach($topSkills as $skill)
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+                        <input type="checkbox" name="keywords[]" value="{{ $skill }}" class="form-checkbox">
+                        {{ $skill }}
+                    </label>
+                    @endforeach
+                </div>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+                    Select skills to automatically fetch jobs related to them.
+                </p>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">Or enter a Custom Target Keyword</label>
+                <input type="text" name="keyword" class="form-input" placeholder="e.g. 'Data Analyst' or 'React Developer'">
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
                     This will fetch jobs from RapidAPI JSearch for the specified role.
                 </p>
@@ -351,7 +367,7 @@
             
             <div style="display: flex; justify-content: flex-end; gap: 12px;">
                 <button type="button" onclick="closeScrapeModal()" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-primary">Start Scraping Job</button>
+                <button type="submit" class="btn btn-primary" onclick="this.innerHTML = 'Scraping... Please wait';">Start Scraping Job</button>
             </div>
         </form>
     </div>

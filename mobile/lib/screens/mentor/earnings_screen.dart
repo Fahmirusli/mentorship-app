@@ -21,16 +21,102 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
   }
 
   Future<void> _fetchEarnings() async {
-    final statsData = await ApiService.getMentorStats();
+    final walletData = await ApiService.getWallet();
     if (mounted) {
       setState(() {
-        if (statsData != null) {
-          _totalEarnings = (statsData['total_earnings'] ?? 0).toDouble();
-          _transactions = statsData['recent_transactions'] ?? [];
+        if (walletData != null) {
+          _totalEarnings = (walletData['balance'] ?? 0).toDouble();
+          _transactions = walletData['withdrawals'] ?? [];
         }
         _isLoading = false;
       });
     }
+  }
+
+  void _showWithdrawalDialog() {
+    final _amountController = TextEditingController();
+    final _bankNameController = TextEditingController();
+    final _accountNumberController = TextEditingController();
+    final _accountNameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool _isSubmitting = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Request Withdrawal'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Amount (RM)', hintText: 'Min RM50'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _bankNameController,
+                      decoration: const InputDecoration(labelText: 'Bank Name'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _accountNumberController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Account Number'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: _accountNameController,
+                      decoration: const InputDecoration(labelText: 'Account Holder Name'),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : () async {
+                    final amount = double.tryParse(_amountController.text) ?? 0;
+                    if (amount < 50) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Minimum withdrawal is RM50')));
+                      return;
+                    }
+                    if (_bankNameController.text.isEmpty || _accountNumberController.text.isEmpty || _accountNameController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+                      return;
+                    }
+                    
+                    setDialogState(() => _isSubmitting = true);
+                    final result = await ApiService.requestWithdrawal(
+                      amount: amount,
+                      bankName: _bankNameController.text,
+                      accountNumber: _accountNumberController.text,
+                      accountName: _accountNameController.text,
+                    );
+                    
+                    if (mounted) {
+                      setDialogState(() => _isSubmitting = false);
+                      Navigator.pop(context);
+                      if (result['success'] == true) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal requested successfully!')));
+                        _fetchEarnings();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result['message'] ?? 'Failed to request withdrawal')));
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+                  child: _isSubmitting ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Submit', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
   }
 
   @override
@@ -76,9 +162,7 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
                           children: [
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Withdrawal feature coming soon!")));
-                                },
+                                onPressed: _showWithdrawalDialog,
                                 icon: const Icon(Icons.account_balance_wallet, color: Color(0xFF2E7D32)),
                                 label: const Text("Withdraw Funds", style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
                                 style: ElevatedButton.styleFrom(
@@ -97,7 +181,7 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
                   const SizedBox(height: 30),
 
                   // Recent Transactions
-                  const Text("Recent Transactions", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Text("Recent Withdrawals", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
 
                   _transactions.isEmpty
@@ -108,7 +192,7 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10)],
                           ),
-                          child: const Center(child: Text("No transactions yet.", style: TextStyle(color: Colors.grey))),
+                          child: const Center(child: Text("No withdrawals yet.", style: TextStyle(color: Colors.grey))),
                         )
                       : Column(
                           children: _transactions.map((tx) => _transactionCard(tx)).toList(),

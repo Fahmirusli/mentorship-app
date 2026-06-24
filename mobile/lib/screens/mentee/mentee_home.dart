@@ -235,6 +235,29 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // SEARCH BAR (Navigates to Skill Selection)
+                GestureDetector(
+                  onTap: () => _navigateToSkillSelection(),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 25),
+                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search_rounded, color: Colors.grey.shade400),
+                        const SizedBox(width: 10),
+                        Text("Search mentors by skill or name...", style: TextStyle(color: Colors.grey.shade500, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // 1. RECOMMENDED SKILLS (Tappable → Skill Selection → Nearby Mentors)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

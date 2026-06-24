@@ -137,6 +137,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Gamification
     Route::get('/gamification', [App\Http\Controllers\Api\GamificationController::class, 'getGamificationData']);
 
+    // Wallet & Withdrawals
+    Route::get('/wallet', [App\Http\Controllers\Api\WalletController::class, 'index']);
+    Route::post('/wallet/withdraw', [App\Http\Controllers\Api\WalletController::class, 'requestWithdrawal']);
+
     // Mentor Courses
     Route::post('/courses/upload-material', [App\Http\Controllers\Api\CourseController::class, 'uploadMaterial']);
     Route::get('/courses', [App\Http\Controllers\Api\CourseController::class, 'index']);

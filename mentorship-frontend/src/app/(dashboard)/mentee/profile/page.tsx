@@ -427,7 +427,27 @@ export default function MenteeProfile() {
                             </button>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        {/* Top 10 Suggested Skills */}
+                        <div className="mt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Suggested Top 10 Skills:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {['React', 'Next.js', 'Laravel', 'Python', 'Flutter', 'UI/UX Design', 'Data Analysis', 'Project Management', 'Communication', 'AWS'].map((suggestedSkill, idx) => (
+                                    <button
+                                        key={`sug-${idx}`}
+                                        onClick={() => {
+                                            if (!profile.current_skills.includes(suggestedSkill)) {
+                                                setProfile({ ...profile, current_skills: [...profile.current_skills, suggestedSkill] });
+                                            }
+                                        }}
+                                        className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-gray-200 border border-gray-200 transition-colors"
+                                    >
+                                        + {suggestedSkill}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
                             {profile.current_skills.map((skill, index) => (
                                 <span key={index} className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm flex items-center gap-2">
                                     {skill}

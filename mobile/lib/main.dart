@@ -15,14 +15,57 @@ void main() {
   runApp(const UpliftsApp());
 }
 
-class UpliftsApp extends StatelessWidget {
+class UpliftsApp extends StatefulWidget {
   const UpliftsApp({super.key});
+
+  static void setThemeMode(BuildContext context, ThemeMode mode) {
+    final _UpliftsAppState? state = context.findAncestorStateOfType<_UpliftsAppState>();
+    state?.changeTheme(mode);
+  }
+
+  @override
+  State<UpliftsApp> createState() => _UpliftsAppState();
+}
+
+class _UpliftsAppState extends State<UpliftsApp> {
+  ThemeMode _themeMode = ThemeMode.system;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTheme();
+  }
+
+  Future<void> _loadTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isDark = prefs.getBool('is_dark_mode');
+    if (isDark != null) {
+      setState(() {
+        _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      });
+    }
+  }
+
+  void changeTheme(ThemeMode mode) async {
+    setState(() {
+      _themeMode = mode;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    if (mode == ThemeMode.dark) {
+      prefs.setBool('is_dark_mode', true);
+    } else if (mode == ThemeMode.light) {
+      prefs.setBool('is_dark_mode', false);
+    } else {
+      prefs.remove('is_dark_mode');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Uplifts',
       debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF4F3FB),
@@ -30,15 +73,30 @@ class UpliftsApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6B4EE6),
           primary: const Color(0xFF6B4EE6),
+          brightness: Brightness.light,
         ),
         textTheme: GoogleFonts.poppinsTextTheme().copyWith(
           displayLarge: const TextStyle(color: Color(0xFF2D2D3A), fontWeight: FontWeight.bold),
           titleLarge: const TextStyle(color: Color(0xFF2D2D3A), fontWeight: FontWeight.bold, fontSize: 18),
           bodyMedium: const TextStyle(color: Color(0xFF2D2D3A), fontSize: 14),
         ),
-        // We completely removed cardTheme! Our UI uses custom Containers instead, so this is no longer needed.
       ),
-      home: const AuthWrapper(), // Uses the clean routing wrapper below
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        primaryColor: const Color(0xFF6B4EE6),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6B4EE6),
+          primary: const Color(0xFF6B4EE6),
+          brightness: Brightness.dark,
+        ),
+        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme).copyWith(
+          displayLarge: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          titleLarge: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          bodyMedium: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      ),
+      home: const AuthWrapper(),
     );
   }
 }

@@ -19,19 +19,15 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
   String _locationMessage = "Locating you...";
   GoogleMapController? _mapController;
 
-  // Dummy mentors plotted nearby
-  final List<Map<String, dynamic>> _mentors = [
-    {"name": "Dr. Ali", "role": "Network Engineer", "lat": 2.7300, "lng": 101.9400, "distance": "0.5 km", "skills": ["System Architecture", "DevOps", "Cybersecurity"], "id": 0},
-    {"name": "Sarah Lee", "role": "Full-Stack Dev", "lat": 2.7200, "lng": 101.9300, "distance": "2.1 km", "skills": ["React", "Laravel", "Node.js"], "id": 0},
-  ];
+  List<dynamic> _mentors = [];
 
-  List<Map<String, dynamic>> get _filteredMentors {
+  List<dynamic> get _filteredMentors {
     if (widget.selectedSkill == null || widget.selectedSkill!.isEmpty) {
       return _mentors;
     }
     final filtered = _mentors.where((m) {
-      final skills = m['skills'] as List<String>? ?? [];
-      return skills.any((s) => s.toLowerCase().contains(widget.selectedSkill!.toLowerCase()));
+      final skills = m['skills'] as List<dynamic>? ?? [];
+      return skills.any((s) => s.toString().toLowerCase().contains(widget.selectedSkill!.toLowerCase()));
     }).toList();
     return filtered.isNotEmpty ? filtered : _mentors;
   }
@@ -40,15 +36,6 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
   void initState() {
     super.initState();
     _getUserLocation();
-    _loadMentorIds();
-  }
-
-  Future<void> _loadMentorIds() async {
-    // Try to map dummy mentor names to real DB IDs
-    try {
-      // We'll use the mentors API to get real IDs
-      // For now just keep dummy data
-    } catch (_) {}
   }
 
   Future<void> _getUserLocation() async {
@@ -62,8 +49,16 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
         }
       }
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      
+      final mentors = await ApiService.getNearbyMentors(
+        lat: position.latitude, 
+        lng: position.longitude, 
+        radiusKm: 50.0 // Default 50km radius
+      );
+
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
+        _mentors = mentors;
         _isLoading = false;
       });
       if (_mapController != null && _currentPosition != null) {
@@ -78,12 +73,18 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
     Set<Marker> markers = {};
     final mentors = _filteredMentors;
     for (int i = 0; i < mentors.length; i++) {
-      markers.add(Marker(
-        markerId: MarkerId('mentor_$i'),
-        position: LatLng(mentors[i]['lat'], mentors[i]['lng']),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
-        infoWindow: InfoWindow(title: mentors[i]['name'], snippet: mentors[i]['role']),
-      ));
+      final lat = mentors[i]['latitude'];
+      final lng = mentors[i]['longitude'];
+      if (lat != null && lng != null) {
+        final double latitude = lat is double ? lat : double.parse(lat.toString());
+        final double longitude = lng is double ? lng : double.parse(lng.toString());
+        markers.add(Marker(
+          markerId: MarkerId('mentor_${mentors[i]['id']}'),
+          position: LatLng(latitude, longitude),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet),
+          infoWindow: InfoWindow(title: mentors[i]['name'], snippet: mentors[i]['title'] ?? 'Mentor'),
+        ));
+      }
     }
     return markers;
   }
@@ -91,16 +92,17 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
   // =================================================
   // BOOKING FLOW
   // =================================================
-  void _showBookingSheet(Map<String, dynamic> mentor) {
+  void _showBookingSheet(dynamic mentor) {
+    final skills = (mentor['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => _BookingSheet(
-        mentorName: mentor['name'],
-        mentorRole: mentor['role'],
+        mentorName: mentor['name'] ?? 'Mentor',
+        mentorRole: mentor['title'] ?? 'Expert',
         mentorId: mentor['id'] ?? 0,
-        skills: (mentor['skills'] as List<String>?) ?? [],
+        skills: skills,
       ),
     );
   }
@@ -182,14 +184,14 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
                   ),
                   const SizedBox(height: 15),
                   Expanded(
-                    child: mentors.isEmpty
+                    child: mentors.isEmpty && !_isLoading
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.person_search, size: 48, color: Colors.grey.shade300),
                                 const SizedBox(height: 8),
-                                Text("No mentors found for this skill.",
+                                Text("No mentors found.",
                                     style: TextStyle(color: Colors.grey.shade500)),
                               ],
                             ),
@@ -208,7 +210,7 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
     );
   }
 
-  Widget _mentorCard(Map<String, dynamic> mentor) {
+  Widget _mentorCard(dynamic mentor) {
     return InkWell(
       onTap: () => _showBookingSheet(mentor),
       borderRadius: BorderRadius.circular(20),
@@ -231,10 +233,10 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(mentor['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text(mentor['role'], style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                      Text(mentor['name'] ?? 'Mentor', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(mentor['title'] ?? 'Expert', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
                       const SizedBox(height: 5),
-                      Text("📍 ${mentor['distance']} away", style: const TextStyle(fontSize: 12, color: Color(0xFF6B4EE6), fontWeight: FontWeight.bold)),
+                      Text("📍 ${mentor['distance_km']} km away", style: const TextStyle(fontSize: 12, color: Color(0xFF6B4EE6), fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -254,18 +256,18 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
                 ),
               ],
             ),
-            if ((mentor['skills'] as List<String>?)?.isNotEmpty ?? false) ...[
+            if ((mentor['skills'] as List<dynamic>?)?.isNotEmpty ?? false) ...[
               const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: (mentor['skills'] as List<String>).map((s) => Container(
+                children: (mentor['skills'] as List<dynamic>).map((s) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFFEDE7F6),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(s, style: const TextStyle(fontSize: 10, color: Color(0xFF6B4EE6), fontWeight: FontWeight.w600)),
+                  child: Text(s.toString(), style: const TextStyle(fontSize: 10, color: Color(0xFF6B4EE6), fontWeight: FontWeight.w600)),
                 )).toList(),
               ),
             ],
@@ -318,34 +320,13 @@ class _BookingSheetState extends State<_BookingSheet> {
         });
       }
     } else {
-      // Fallback: generate dummy slots for display
       if (mounted) {
         setState(() {
-          _slots = _generateDummySlots();
+          _slots = [];
           _isLoadingSlots = false;
         });
       }
     }
-  }
-
-  List<Map<String, dynamic>> _generateDummySlots() {
-    List<Map<String, dynamic>> slots = [];
-    for (int d = 0; d < 5; d++) {
-      final date = DateTime.now().add(Duration(days: d));
-      if (date.weekday == 6 || date.weekday == 7) continue;
-      for (final time in ['09:00', '11:00', '14:00', '16:00']) {
-        final endHour = int.parse(time.split(':')[0]) + 1;
-        slots.add({
-          'id': slots.length + 1,
-          'date': date.toIso8601String().substring(0, 10),
-          'start_time': '$time:00',
-          'end_time': '${endHour.toString().padLeft(2, '0')}:00:00',
-          'fee': '50.00',
-          'is_available': true,
-        });
-      }
-    }
-    return slots;
   }
 
   String _formatDate(String? dateStr) {
@@ -386,7 +367,7 @@ class _BookingSheetState extends State<_BookingSheet> {
     final scheduledAt = '$dateStr ${timeStr.toString().substring(0, 5)}:00';
 
     final result = await ApiService.initiatePayment(
-      mentorId: widget.mentorId > 0 ? widget.mentorId : 2, // fallback to first mentor
+      mentorId: widget.mentorId,
       scheduledAt: scheduledAt,
       durationMinutes: 60,
       notes: 'Session for ${widget.skills.isNotEmpty ? widget.skills.first : "mentoring"}',
@@ -398,9 +379,9 @@ class _BookingSheetState extends State<_BookingSheet> {
       if (result['success'] == true && result['payment_url'] != null) {
         // Open ToyyibPay payment page
         final url = Uri.parse(result['payment_url']);
-        if (await canLaunchUrl(url)) {
+        try {
           await launchUrl(url, mode: LaunchMode.externalApplication);
-        }
+        } catch (_) {}
         if (mounted) {
           Navigator.pop(context); // Close sheet
           ScaffoldMessenger.of(context).showSnackBar(

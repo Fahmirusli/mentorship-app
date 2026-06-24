@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../mentee/history_screen.dart'; // Add this line!
+import '../mentee/my_achievements_screen.dart';
 import '../mentee/resources_screen.dart';
 import '../services/api_service.dart';
 import 'profile_menu_screens.dart';
@@ -17,6 +18,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _bio = "";
   String? _profileImageUrl;
   bool _isLoading = true;
+  String _role = "mentee";
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _name = userData['name'] ?? 'User';
         _bio = userData['bio'] ?? '';
         _profileImageUrl = userData['profile_image'];
+        _role = userData['role'] ?? 'mentee';
         _isLoading = false;
       });
     } else if (mounted) {
@@ -87,6 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       _buildMenuTile(context, Icons.person_outline, "Edit Profile"),
                       const Divider(height: 1, color: Color(0xFFF4F3FB)),
+                      if (_role == 'mentee') ...[
+                        _buildMenuTile(context, Icons.emoji_events_outlined, "My Achievements"),
+                        const Divider(height: 1, color: Color(0xFFF4F3FB)),
+                      ],
                       _buildMenuTile(context, Icons.history, "Mentorship History"),
                       const Divider(height: 1, color: Color(0xFFF4F3FB)),
                       _buildMenuTile(context, Icons.folder_shared_outlined, "Resources"),
@@ -135,7 +142,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       onTap: () async {
         // Here is the routing logic for ALL buttons!
-        if (title == "Mentorship History") {
+        if (title == "My Achievements") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const MyAchievementsScreen()));
+        } else if (title == "Mentorship History") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
         } else if (title == "Resources") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const MenteeResourcesScreen()));
