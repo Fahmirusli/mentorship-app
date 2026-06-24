@@ -184,7 +184,7 @@ export default function MenteeCourses() {
                     {(activeTab === 'in-progress' || activeTab === 'completed') && (
                         <div className="space-y-6">
                             {myEnrollments
-                                .filter(enrollment => activeTab === 'completed' ? (enrollment.status === 'completed' || enrollment.progress_percent >= 100) : (enrollment.status !== 'completed' && enrollment.progress_percent < 100))
+                                .filter(enrollment => activeTab === 'completed' ? (enrollment.progress_percent >= 100) : (enrollment.progress_percent < 100))
                                 .map(enrollment => {
                                 const course = enrollment.course;
                                 return (
@@ -244,7 +244,7 @@ export default function MenteeCourses() {
                                     </div>
                                 );
                             })}
-                            {myEnrollments.filter(e => activeTab === 'completed' ? (e.status === 'completed' || e.progress_percent >= 100) : (e.status !== 'completed' && e.progress_percent < 100)).length === 0 && (
+                            {myEnrollments.filter(e => activeTab === 'completed' ? (e.progress_percent >= 100) : (e.progress_percent < 100)).length === 0 && (
                                 <div className="text-center py-12 bg-gray-50 rounded-lg">
                                     <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                     <p className="text-gray-500">

@@ -254,6 +254,18 @@ export default function MenteeCourseDetails() {
                                                         Submit Work
                                                     </button>
                                                 )}
+                                                {submission?.file_url && (
+                                                    <a 
+                                                        href={submission.file_url.startsWith('http') ? submission.file_url : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api.uplifts.dev'}${submission.file_url.startsWith('/') ? '' : '/'}${submission.file_url}`} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer" 
+                                                        className="text-sm text-indigo-600 hover:underline mt-2 flex items-center gap-1 w-fit"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <FileText className="w-4 h-4" />
+                                                        View My File
+                                                    </a>
+                                                )}
                                             </div>
                                         </div>
                                         {submission?.status === 'rejected' && submission.mentor_feedback && (

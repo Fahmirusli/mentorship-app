@@ -171,9 +171,19 @@ class MenteeController extends Controller
         
         $mentorIds = $user->menteeMentorships()
             ->where('status', 'active')
-            ->pluck('mentor_id');
+            ->pluck('mentor_id')
+            ->toArray();
             
-        $resources = \App\Models\Resource::whereIn('mentor_id', $mentorIds)
+        $courseMentorIds = \App\Models\CourseEnrollment::where('mentee_id', $user->id)
+            ->with('course')
+            ->get()
+            ->pluck('course.mentor_id')
+            ->filter()
+            ->toArray();
+
+        $allMentorIds = array_unique(array_merge($mentorIds, $courseMentorIds));
+            
+        $resources = \App\Models\Resource::whereIn('mentor_id', $allMentorIds)
             ->with('mentor:id,name')
             ->latest()
             ->get();

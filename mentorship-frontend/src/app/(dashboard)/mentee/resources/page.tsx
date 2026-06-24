@@ -100,7 +100,7 @@ export default function MenteeResources() {
                                         {new Date(resource.created_at || '').toLocaleDateString()}
                                     </p>
                                     <a
-                                        href={resource.url.startsWith('http') ? resource.url : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}/storage/${resource.url}`}
+                                        href={resource.url.startsWith('http') ? resource.url : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api.uplifts.dev'}${resource.url.startsWith('/') ? '' : '/'}${resource.url}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-indigo-600 transition-colors"
