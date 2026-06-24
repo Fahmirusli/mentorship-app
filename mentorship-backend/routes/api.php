@@ -83,8 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Mentor management (protected operations)
     Route::post('/mentors', [App\Http\Controllers\Api\MentorController::class, 'store']);
-    Route::put('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'update']);
-    Route::delete('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'destroy']);
+    Route::put('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'update'])->whereNumber('id');
+    Route::delete('/mentors/{id}', [App\Http\Controllers\Api\MentorController::class, 'destroy'])->whereNumber('id');
     
     // Resources and Management
     Route::apiResource('appointments', \App\Http\Controllers\Api\AppointmentController::class);
