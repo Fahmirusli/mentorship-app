@@ -46,12 +46,14 @@ class AdminController extends Controller
             'total_jobs' => Job::count(),
             'active_mentorships' => Mentorship::where('status', 'active')->count(),
             'total_feedbacks' => \App\Models\Feedback::count(),
+            'total_revenue' => \App\Models\Transaction::where('status', 'paid')->sum('amount'),
         ];
 
         // Monthly Stats (Last 6 months)
         $monthlyStats = [];
         $months = [];
         $userCounts = [];
+        $salesData = [];
         
         for ($i = 5; $i >= 0; $i--) {
             $month = now()->subMonths($i);
@@ -65,6 +67,12 @@ class AdminController extends Controller
             $userCounts[] = User::whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNum)
                 ->count();
+                
+            // Monthly Sales
+            $salesData[] = \App\Models\Transaction::where('status', 'paid')
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNum)
+                ->sum('amount');
         }
 
         // Job Stats by Source
@@ -80,7 +88,7 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        return view('admin.dashboard', compact('stats', 'months', 'userCounts', 'jobStats', 'recentMentorships'));
+        return view('admin.dashboard', compact('stats', 'months', 'userCounts', 'jobStats', 'recentMentorships', 'salesData'));
     }
 
     public function users()

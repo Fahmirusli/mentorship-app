@@ -296,17 +296,33 @@
     </div>
 
     <div class="dashboard-grid">
-        <!-- Main Chart -->
-        <div class="content-card">
-            <div class="card-header">
-                <h3 class="card-title">User Growth</h3>
-                <select class="form-input" style="width: auto; padding: 6px 12px;">
-                    <option>Last 6 Months</option>
-                    <option>Last Year</option>
-                </select>
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Main Chart -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h3 class="card-title">User Growth</h3>
+                    <select class="form-input" style="width: auto; padding: 6px 12px;">
+                        <option>Last 6 Months</option>
+                        <option>Last Year</option>
+                    </select>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
             </div>
-            <div style="height: 300px;">
-                <canvas id="userGrowthChart"></canvas>
+            
+            <!-- Revenue Chart -->
+            <div class="content-card">
+                <div class="card-header">
+                    <h3 class="card-title">Revenue Growth (RM)</h3>
+                    <select class="form-input" style="width: auto; padding: 6px 12px;">
+                        <option>Last 6 Months</option>
+                        <option>Last Year</option>
+                    </select>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="revenueGrowthChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -489,6 +505,45 @@
                 fill: true,
                 pointBackgroundColor: '#fff',
                 pointBorderColor: '#667eea',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, borderDash: [4, 4] },
+                    ticks: { color: textColor, padding: 10 }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, padding: 10 }
+                }
+            }
+        }
+    });
+
+    const ctxRev = document.getElementById('revenueGrowthChart').getContext('2d');
+    new Chart(ctxRev, {
+        type: 'line',
+        data: {
+            labels: @json($months),
+            datasets: [{
+                label: 'Monthly Sales (RM)',
+                data: @json($salesData),
+                borderColor: '#48bb78',
+                backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                borderWidth: 3,
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#48bb78',
                 pointBorderWidth: 2,
                 pointRadius: 4
             }]
