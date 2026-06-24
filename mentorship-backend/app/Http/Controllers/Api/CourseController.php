@@ -89,6 +89,28 @@ class CourseController extends Controller
 
         $course->update($validated);
 
+        // Recalculate progress for all enrollments if syllabus changed
+        if (isset($validated['syllabus'])) {
+            $totalTasks = count($validated['syllabus']);
+            $enrollments = \App\Models\CourseEnrollment::where('course_id', $course->id)->get();
+            foreach ($enrollments as $enrollment) {
+                $completedTasks = $enrollment->completed_tasks ?? [];
+                
+                // Filter out tasks that no longer exist
+                $validCompletedTasks = array_filter($completedTasks, function($index) use ($totalTasks) {
+                    return $index < $totalTasks;
+                });
+                $validCompletedTasks = array_values($validCompletedTasks);
+                
+                $progressPercent = $totalTasks > 0 ? round((count($validCompletedTasks) / $totalTasks) * 100) : 0;
+                
+                $enrollment->update([
+                    'completed_tasks' => $validCompletedTasks,
+                    'progress_percent' => $progressPercent
+                ]);
+            }
+        }
+
         return response()->json(['message' => 'Course updated successfully', 'course' => $course]);
     }
 

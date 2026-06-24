@@ -183,7 +183,7 @@ export default function MentorSubmissions() {
                                                     <div className="flex flex-wrap gap-3 mt-2">
                                                         {sub.file_url && (
                                                             <a 
-                                                                href={sub.file_url} 
+                                                                href={sub.file_url.startsWith('http') ? sub.file_url : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://api.uplifts.dev'}${sub.file_url.startsWith('/') ? '' : '/'}${sub.file_url}`} 
                                                                 target="_blank" 
                                                                 rel="noopener noreferrer"
                                                                 className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition"
