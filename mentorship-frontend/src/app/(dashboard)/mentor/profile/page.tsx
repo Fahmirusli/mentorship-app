@@ -426,7 +426,7 @@ export default function MentorProfile() {
                                 />
                             </label>
                             {resumeUrl && (
-                                <a href={resumeUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                                <a href={resumeUrl} target="_blank" rel="noreferrer" download="resume.pdf" className="text-indigo-600 hover:text-indigo-800 underline">
                                     View current resume
                                 </a>
                             )}
