@@ -39,9 +39,13 @@ class ResumeParserController extends Controller
                 return response()->json(['message' => 'AI Parser is currently unavailable (Missing API Key).'], 503);
             }
 
-            $prompt = "You are an expert tech recruiter. Extract a list of technical and soft skills from the following resume text. \n\n"
-                    . "IMPORTANT: Return ONLY a JSON array of strings representing the skills. Do not include markdown formatting like ```json. Do not include any other text.\n"
-                    . "Example output: [\"React\", \"JavaScript\", \"Team Leadership\", \"Communication\"]\n\n"
+            $prompt = "You are an expert tech recruiter. Extract a concise, accurate list of technical tools, programming languages, frameworks, databases, and major soft skills from the following resume text.\n\n"
+                    . "CRITICAL INSTRUCTIONS:\n"
+                    . "1. Extract ONLY specific, universally recognized skills (e.g., 'React', 'Python', 'Leadership', 'Communication').\n"
+                    . "2. DO NOT extract action verbs, generic job responsibilities, sentences, or vague buzzwords (e.g., avoid 'Developed software', 'Problem solving for clients', 'Used IDEs').\n"
+                    . "3. DO NOT hallucinate skills that are not explicitly present in the text.\n"
+                    . "4. Return ONLY a pure JSON array of strings representing the skills. Do not include markdown formatting like ```json. Do not include any other text.\n\n"
+                    . "Example output: [\"React\", \"JavaScript\", \"Team Leadership\", \"Communication\", \"MySQL\"]\n\n"
                     . "Resume Text:\n" . $text;
 
             $response = Http::post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey, [
