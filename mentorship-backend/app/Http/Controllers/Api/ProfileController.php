@@ -99,6 +99,7 @@ class ProfileController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:20',
             'address' => 'required|string|max:255',
             'state' => 'required|string|max:255',
@@ -118,6 +119,7 @@ class ProfileController extends Controller
 
         $user->update([
             'name' => $validated['name'],
+            'email' => $validated['email'],
             'phone' => $validated['phone'],
             'address' => $validated['address'],
             'state' => $validated['state'],

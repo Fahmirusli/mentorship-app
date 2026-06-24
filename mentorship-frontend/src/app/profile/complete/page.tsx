@@ -17,8 +17,11 @@ export default function CompleteProfilePage() {
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
+    email: '',
     phone: '',
     address: '',
+    state: '',
+    postcode: '',
     bio: '',
     skills: [] as string[],
   });
@@ -44,8 +47,11 @@ export default function CompleteProfilePage() {
       const user = await api.get('/user');
       setForm({
         name: user.name || '',
+        email: user.email || '',
         phone: user.phone || '',
         address: user.address || '',
+        state: user.state || '',
+        postcode: user.postcode || '',
         bio: user.bio || '',
         skills: Array.isArray(user.skills) ? user.skills : [],
       });
@@ -89,7 +95,7 @@ export default function CompleteProfilePage() {
   };
 
   const saveProfile = async () => {
-    if (!form.name || !form.phone || !form.address || !form.bio || form.skills.length === 0) {
+    if (!form.name || !form.email || !form.phone || !form.address || !form.state || !form.postcode || !form.bio || form.skills.length === 0) {
       alert('Please fill all required fields and add at least one skill.');
       return;
     }
@@ -143,6 +149,14 @@ export default function CompleteProfilePage() {
         />
 
         <input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+          placeholder="Email address"
+        />
+
+        <input
           type="text"
           value={form.phone}
           onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
@@ -155,8 +169,25 @@ export default function CompleteProfilePage() {
           value={form.address}
           onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-          placeholder="Address"
+          placeholder="Street Address"
         />
+
+        <div className="flex gap-4">
+          <input
+            type="text"
+            value={form.postcode}
+            onChange={(e) => setForm((prev) => ({ ...prev, postcode: e.target.value }))}
+            className="w-1/3 px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="Postcode"
+          />
+          <input
+            type="text"
+            value={form.state}
+            onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value }))}
+            className="w-2/3 px-4 py-2 border border-gray-300 rounded-lg"
+            placeholder="State"
+          />
+        </div>
 
         <textarea
           value={form.bio}

@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, Briefcase, DollarSign, Save, Loader, Award } from 'lucide-react';
 import { api } from '@/lib/api';
-import { GamificationCard } from '@/components/GamificationCard';
 
 export default function MentorProfile() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [image, setImage] = useState<string | null>(null);
+    const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
     const [profile, setProfile] = useState({
         name: '',
         email: '',
@@ -30,7 +30,6 @@ export default function MentorProfile() {
     const [newSkill, setNewSkill] = useState('');
     const [uploadingResume, setUploadingResume] = useState(false);
     const [resumeUrl, setResumeUrl] = useState<string | null>(null);
-    const [gamification, setGamification] = useState<any>(null);
 
     useEffect(() => {
         fetchProfile();
@@ -66,15 +65,6 @@ export default function MentorProfile() {
             } else {
                 setResumeUrl(null);
             }
-
-            try {
-                const gamificationRes = await api.get('/gamification');
-                if (gamificationRes) {
-                    setGamification(gamificationRes);
-                }
-            } catch (err) {
-                console.error('Gamification fetch error', err);
-            }
         } catch (error) {
             console.error('Error fetching profile:', error);
         } finally {
@@ -85,6 +75,18 @@ export default function MentorProfile() {
     const handleSave = async () => {
         setSaving(true);
         try {
+            if (selectedImageFile) {
+                const formData = new FormData();
+                formData.append('image', selectedImageFile);
+                const res = await api.post('/user/profile-image', formData);
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('profile-image-updated', {
+                        detail: { imageUrl: res.image_url }
+                    }));
+                }
+                setSelectedImageFile(null);
+            }
+
             await api.put('/user/profile', {
                 name: profile.name,
                 phone: profile.phone,
@@ -146,7 +148,6 @@ export default function MentorProfile() {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-4xl mx-auto">
-                {gamification && <GamificationCard data={gamification} />}
                 
                 <div className="bg-white rounded-xl shadow-sm p-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8">Mentor Profile</h1>
@@ -171,31 +172,14 @@ export default function MentorProfile() {
                                     type="file"
                                     className="hidden"
                                     accept="image/*"
-                                    onChange={async (e) => {
+                                    onChange={(e) => {
                                         const file = e.target.files?.[0];
                                         if (!file) return;
 
                                         // Preview immediately
                                         const previewUrl = URL.createObjectURL(file);
                                         setImage(previewUrl);
-
-                                        setUploadingImage(true);
-                                        const formData = new FormData();
-                                        formData.append('image', file);
-                                        try {
-                                            const res = await api.post('/user/profile-image', formData);
-                                            setImage(res.image_url);
-                                            if (typeof window !== 'undefined') {
-                                                window.dispatchEvent(new CustomEvent('profile-image-updated', {
-                                                    detail: { imageUrl: res.image_url }
-                                                }));
-                                            }
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert('Failed to upload image');
-                                        } finally {
-                                            setUploadingImage(false);
-                                        }
+                                        setSelectedImageFile(file);
                                     }}
                                 />
                             </label>

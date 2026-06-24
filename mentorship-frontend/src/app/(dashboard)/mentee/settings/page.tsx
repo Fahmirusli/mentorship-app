@@ -17,8 +17,11 @@ export default function Settings() {
     const [passwordData, setPasswordData] = useState({
         current_password: '',
         new_password: '',
-        confirm_password: ''
+        confirm_password: '',
+        tac: ''
     });
+    const [tacRequested, setTacRequested] = useState(false);
+    const [requestingTac, setRequestingTac] = useState(false);
 
     const handleSaveSettings = async () => {
         setSaving(true);
@@ -33,7 +36,25 @@ export default function Settings() {
         }
     };
 
+    const handleRequestTac = async () => {
+        setRequestingTac(true);
+        try {
+            const res = await api.post('/user/request-tac');
+            alert(res.message + (res.tac_for_testing ? `\n\nTAC Code: ${res.tac_for_testing}` : ''));
+            setTacRequested(true);
+        } catch (error) {
+            console.error('Error requesting TAC:', error);
+            alert('Failed to request TAC');
+        } finally {
+            setRequestingTac(false);
+        }
+    };
+
     const handleChangePassword = async () => {
+        if (!passwordData.tac) {
+            alert('Please enter the TAC code');
+            return;
+        }
         if (passwordData.new_password !== passwordData.confirm_password) {
             alert('Passwords do not match');
             return;
@@ -42,13 +63,15 @@ export default function Settings() {
         try {
             await api.post('/user/change-password', {
                 current_password: passwordData.current_password,
-                new_password: passwordData.new_password
+                new_password: passwordData.new_password,
+                tac: passwordData.tac
             });
             alert('Password changed successfully!');
-            setPasswordData({ current_password: '', new_password: '', confirm_password: '' });
-        } catch (error) {
+            setPasswordData({ current_password: '', new_password: '', confirm_password: '', tac: '' });
+            setTacRequested(false);
+        } catch (error: any) {
             console.error('Error changing password:', error);
-            alert('Failed to change password');
+            alert(error?.message || 'Failed to change password');
         }
     };
 
@@ -216,6 +239,26 @@ export default function Settings() {
                                     onChange={(e) => setPasswordData({ ...passwordData, confirm_password: e.target.value })}
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">TAC Code</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={passwordData.tac}
+                                        onChange={(e) => setPasswordData({ ...passwordData, tac: e.target.value })}
+                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        placeholder="Enter 6-digit TAC"
+                                    />
+                                    <button
+                                        onClick={handleRequestTac}
+                                        disabled={requestingTac}
+                                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                                    >
+                                        {requestingTac ? 'Requesting...' : (tacRequested ? 'Resend TAC' : 'Request TAC')}
+                                    </button>
+                                </div>
                             </div>
 
                             <button

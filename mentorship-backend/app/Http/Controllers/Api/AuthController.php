@@ -203,4 +203,59 @@ class AuthController extends Controller
             'longitude' => $user->longitude,
         ]);
     }
+
+    public function requestTac(Request $request)
+    {
+        $user = $request->user();
+        
+        // Generate 6-digit TAC
+        $tac = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        
+        // Store TAC in cache for 5 minutes
+        \Cache::put('tac_password_change_' . $user->id, $tac, now()->addMinutes(5));
+        
+        // For demonstration, return the TAC in the response. In a real app, send it via email/SMS.
+        return response()->json([
+            'message' => 'TAC generated successfully. (Check your alert popup or console for the code)',
+            'tac_for_testing' => $tac
+        ]);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $user = $request->user();
+        
+        $validated = $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8',
+            'tac' => 'required|string|size:6'
+        ]);
+
+        // Validate TAC
+        $cachedTac = \Cache::get('tac_password_change_' . $user->id);
+        
+        if (!$cachedTac) {
+            return response()->json(['message' => 'TAC has expired or is invalid. Please request a new one.'], 400);
+        }
+        
+        if ($cachedTac !== $validated['tac']) {
+            return response()->json(['message' => 'Invalid TAC.'], 400);
+        }
+
+        // Validate current password
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect.'], 400);
+        }
+
+        // Change password
+        $user->password = Hash::make($validated['new_password']);
+        $user->save();
+        
+        // Clear TAC
+        \Cache::forget('tac_password_change_' . $user->id);
+
+        return response()->json([
+            'message' => 'Password changed successfully!'
+        ]);
+    }
 }

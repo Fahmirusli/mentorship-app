@@ -110,6 +110,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/profile-image', [App\Http\Controllers\Api\ProfileController::class, 'uploadImage']);
     Route::post('/profile/complete', [App\Http\Controllers\Api\ProfileController::class, 'completeProfile']);
     Route::post('/user/location', [App\Http\Controllers\Api\AuthController::class, 'updateLocation']);
+    
+    // Change Password with TAC
+    Route::post('/user/request-tac', [App\Http\Controllers\Api\AuthController::class, 'requestTac']);
+    Route::post('/user/change-password', [App\Http\Controllers\Api\AuthController::class, 'changePassword']);
     Route::get('/mentors/nearby', [App\Http\Controllers\Api\MentorController::class, 'getNearby']);
 
 
