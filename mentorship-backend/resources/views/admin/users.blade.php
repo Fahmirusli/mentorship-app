@@ -79,6 +79,16 @@
                                     ✏️
                                 </button>
                                 
+                                @if(!$user->email_verified_at)
+                                <form action="{{ route('admin.users.verify', $user->id) }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    <button type="submit" onclick="return confirm('Verify this user?')"
+                                        style="color: #48bb78; background: rgba(72, 187, 120, 0.1); width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="Verify User">
+                                        ✅
+                                    </button>
+                                </form>
+                                @endif
+
                                 @if($user->role !== 'admin')
                                 <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" style="display:inline;">
                                     @csrf

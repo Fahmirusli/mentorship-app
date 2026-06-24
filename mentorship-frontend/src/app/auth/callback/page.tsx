@@ -19,7 +19,11 @@ function CallbackContent() {
 
     if (error) {
       setStatus('error');
-      setMessage(error === 'oauth_not_configured' ? 'OAuth is not configured.' : 'Login failed. Please try again.');
+      if (error === 'not_registered') {
+        setMessage('User not found. Please register an account first.');
+      } else {
+        setMessage(error === 'oauth_not_configured' ? 'OAuth is not configured.' : 'Login failed. Please try again.');
+      }
       setTimeout(() => router.push('/login'), 3000);
       return;
     }

@@ -61,16 +61,8 @@ class SocialAuthController extends Controller
                     'email_verified_at' => now()
                 ]);
             } else {
-                // Create new user
-                $user = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'google_id' => $googleUser->id,
-                    'avatar' => $googleUser->avatar,
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => $role, // Default to mentee
-                    'email_verified_at' => now()
-                ]);
+                // Redirect back to login with error
+                return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=not_registered');
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -130,16 +122,8 @@ class SocialAuthController extends Controller
                     'email_verified_at' => now()
                 ]);
             } else {
-                // Create new user
-                $user = User::create([
-                    'name' => $githubUser->name ?? $githubUser->nickname, 
-                    'email' => $githubUser->email,
-                    'github_id' => $githubUser->id,
-                    'avatar' => $githubUser->avatar,
-                    'password' => Hash::make(Str::random(24)),
-                    'role' => $role,
-                    'email_verified_at' => now()
-                ]);
+                // Redirect back to login with error
+                return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=not_registered');
             }
 
             $token = $user->createToken('auth_token')->plainTextToken;

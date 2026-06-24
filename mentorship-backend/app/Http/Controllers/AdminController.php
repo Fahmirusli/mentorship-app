@@ -97,6 +97,13 @@ class AdminController extends Controller
         return view('admin.users', compact('users'));
     }
 
+    public function verifyUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->update(['email_verified_at' => now()]);
+        return back()->with('success', 'User verified successfully.');
+    }
+
     public function mentees()
     {
         $mentees = User::where('role', 'mentee')->latest()->paginate(20);
