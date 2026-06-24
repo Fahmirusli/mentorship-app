@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CourseEnrollment;
 use App\Models\Badge;
-use Illuminate\Http\Request;
+use App\Models\Course;
 use Illuminate\Http\Request;
 
 class CourseController extends Controller
