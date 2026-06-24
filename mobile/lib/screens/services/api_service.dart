@@ -992,4 +992,51 @@ class ApiService {
     }
   }
 
+  // ========================================
+  // STATS & RESOURCES APIs
+  // ========================================
+
+  static Future<Map<String, dynamic>?> getMenteeStats() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/mentee/stats'),
+        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Mentee stats error: $e');
+      return null;
+    }
+  }
+
+  static Future<List<dynamic>> getMenteeResources() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/mentee/resources'),
+        headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data is List ? data : [];
+      }
+      return [];
+    } catch (e) {
+      print('Mentee resources error: $e');
+      return [];
+    }
+  }
+
 }

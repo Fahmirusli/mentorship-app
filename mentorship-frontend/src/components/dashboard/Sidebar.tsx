@@ -205,7 +205,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 </div>
                 <div className="hidden lg:block">
                   <p className="text-xs font-semibold text-white">
-                    {user?.name ? `Welcome Back, ${user.name}` : 'Welcome Back'}
+                    {user?.name || 'User'}
                   </p>
                 </div>
               </button>

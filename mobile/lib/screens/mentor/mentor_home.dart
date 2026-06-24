@@ -9,6 +9,7 @@ import '../mentee/message_list_screen.dart';
 import '../shared/session_detail_screen.dart';
 import 'mentor_availability_screen.dart';
 import 'mentor_mentees_screen.dart';
+import 'earnings_screen.dart';
 
 class MentorDashboard extends StatefulWidget {
   final VoidCallback onLogout;
@@ -33,6 +34,7 @@ class _MentorDashboardState extends State<MentorDashboard> {
   int _pendingRequests = 0;
   int _upcomingSessions = 0;
   int _totalMentees = 0;
+  double _totalEarnings = 0.0;
   bool _isLoadingData = true;
   int _unreadNotifCount = 0;
 
@@ -62,6 +64,8 @@ class _MentorDashboardState extends State<MentorDashboard> {
       todayAppts = await ApiService.getMyAppointments(todayOnly: true);
     } catch (_) {}
 
+    final statsData = await ApiService.getMentorStats();
+
     if (mounted) {
       setState(() {
         if (profile != null) {
@@ -69,6 +73,9 @@ class _MentorDashboardState extends State<MentorDashboard> {
         }
         _todaySchedule = todayAppts;
         _upcomingSessions = todayAppts.length;
+        if (statsData != null) {
+          _totalEarnings = (statsData['total_earnings'] ?? 0).toDouble();
+        }
         _unreadNotifCount = notifCount;
         _isLoadingData = false;
         _pages[2] = _buildMentorDashboard();
@@ -80,6 +87,7 @@ class _MentorDashboardState extends State<MentorDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F0),
+      extendBody: true, // Needed for floating nav bar effect
       body: _pages[_selectedIndex],
 
       // Center FAB = Dashboard
@@ -98,22 +106,36 @@ class _MentorDashboardState extends State<MentorDashboard> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        color: Colors.white,
-        elevation: 10,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(Icons.calendar_month_rounded, "Schedule", 0),
-              _navItem(Icons.event_available_rounded, "Slots", 1),
-              const SizedBox(width: 48), // Space for FAB
-              _navItem(Icons.message_rounded, "Messages", 3),
-              _navItem(Icons.person_rounded, "Profile", 4),
-            ],
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: BottomAppBar(
+          color: Colors.transparent,
+          elevation: 0,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(Icons.calendar_month_rounded, "Schedule", 0),
+                _navItem(Icons.event_available_rounded, "Slots", 1),
+                const SizedBox(width: 48), // Space for FAB
+                _navItem(Icons.message_rounded, "Messages", 3),
+                _navItem(Icons.person_rounded, "Profile", 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -226,11 +248,17 @@ class _MentorDashboardState extends State<MentorDashboard> {
                 // STAT CARDS
                 Row(
                   children: [
-                    Expanded(child: _statCard("Pending", "$_pendingRequests", const Color(0xFFFFA726), Icons.hourglass_top_rounded)),
+                    Expanded(child: GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MentorEarningsScreen())),
+                      child: _statCard("Earnings", "RM ${_totalEarnings.toStringAsFixed(0)}", const Color(0xFFFFA726), Icons.account_balance_wallet_rounded),
+                    )),
                     const SizedBox(width: 12),
                     Expanded(child: _statCard("Upcoming", "$_upcomingSessions", const Color(0xFF66BB6A), Icons.event_available_rounded)),
                     const SizedBox(width: 12),
-                    Expanded(child: _statCard("Mentees", "$_totalMentees", const Color(0xFF42A5F5), Icons.people_rounded)),
+                    Expanded(child: GestureDetector(
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MentorMenteesScreen())),
+                      child: _statCard("Mentees", "$_totalMentees", const Color(0xFF42A5F5), Icons.people_rounded),
+                    )),
                   ],
                 ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.15),
 

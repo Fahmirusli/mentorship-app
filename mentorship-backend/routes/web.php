@@ -13,7 +13,7 @@ use App\Http\Controllers\HomeController;
 
 // Simple login routes (without full Laravel UI)
 Route::get('/', function () {
-    return redirect(env('FRONTEND_URL', 'https://uplifts.dev'));
+    return redirect()->route('login');
 });
 
 Route::get('/login', function () {

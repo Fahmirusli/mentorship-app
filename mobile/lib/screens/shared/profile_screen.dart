@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../mentee/history_screen.dart'; // Add this line!
+import '../mentee/resources_screen.dart';
 import '../services/api_service.dart';
 import 'profile_menu_screens.dart';
 
@@ -90,6 +91,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const Divider(height: 1, color: Color(0xFFF4F3FB)),
                       _buildMenuTile(context, Icons.history, "Mentorship History"),
                       const Divider(height: 1, color: Color(0xFFF4F3FB)),
+                      _buildMenuTile(context, Icons.folder_shared_outlined, "Resources"),
+                      const Divider(height: 1, color: Color(0xFFF4F3FB)),
                       _buildMenuTile(context, Icons.settings_outlined, "Account Settings"),
                       const Divider(height: 1, color: Color(0xFFF4F3FB)),
                       _buildMenuTile(context, Icons.help_outline, "Help & Support"),
@@ -136,6 +139,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Here is the routing logic for ALL buttons!
         if (title == "Mentorship History") {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryScreen()));
+        } else if (title == "Resources") {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const MenteeResourcesScreen()));
         } else if (title == "Edit Profile") {
           // Wait for the edit screen to return, then reload profile
           await Navigator.push(

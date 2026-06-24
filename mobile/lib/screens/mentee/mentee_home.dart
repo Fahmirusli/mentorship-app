@@ -33,6 +33,8 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
   List<dynamic> _skills = [];
   List<dynamic> _schedule = [];
   List<dynamic> _jobs = [];
+  List<dynamic> _learningProgress = [];
+  List<dynamic> _badges = [];
   bool _isLoadingData = true;
   int _unreadNotifCount = 0;
 
@@ -55,26 +57,28 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
   // --- THE DATA FETCHER ---
   Future<void> _fetchRealData() async {
     final dashboardData = await ApiService.getDashboardData();
+    final statsData = await ApiService.getMenteeStats();
 
     // Also fetch notification count
     final notifCount = await ApiService.getUnreadNotificationCount();
 
-    if (dashboardData != null && mounted) {
+    if (mounted) {
       setState(() {
-        _userName = dashboardData['user']['name'] ?? "Mentee";
-        _skills = dashboardData['user']['skills_to_learn'] ?? [];
-        _schedule = dashboardData['today_schedule'] ?? [];
-        _jobs = dashboardData['job_recommendations'] ?? [];
+        if (dashboardData != null) {
+          _userName = dashboardData['user']['name'] ?? "Mentee";
+          _skills = dashboardData['user']['skills_to_learn'] ?? [];
+          _schedule = dashboardData['today_schedule'] ?? [];
+          _jobs = dashboardData['job_recommendations'] ?? [];
+        }
+        if (statsData != null) {
+          _learningProgress = statsData['learning_progress'] ?? [];
+          _badges = statsData['badges'] ?? [];
+        }
+        
         _unreadNotifCount = notifCount;
         _isLoadingData = false;
 
         // Rebuild the dashboard to inject the new data
-        _pages[2] = _buildPurpleDashboard();
-      });
-    } else {
-      setState(() {
-        _unreadNotifCount = notifCount;
-        _isLoadingData = false;
         _pages[2] = _buildPurpleDashboard();
       });
     }
@@ -84,9 +88,10 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F3FB),
+      extendBody: true, // Needed for floating nav bar effect
       body: _pages[_selectedIndex],
 
-      // Center FAB = Dashboard
+      // Center FAB = Dashboard (now placed above the floating bar)
       floatingActionButton: FloatingActionButton(
         onPressed: () => setState(() => _selectedIndex = 2),
         backgroundColor: _selectedIndex == 2
@@ -102,22 +107,36 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
 
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        color: Colors.white,
-        elevation: 10,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(Icons.calendar_month_rounded, "Schedule", 0),
-              _navItem(Icons.work_rounded, "Jobs", 1),
-              const SizedBox(width: 48), // Space for FAB
-              _navItem(Icons.message_rounded, "Messages", 3),
-              _navItem(Icons.person_rounded, "Profile", 4),
-            ],
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
+        ),
+        child: BottomAppBar(
+          color: Colors.transparent,
+          elevation: 0,
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _navItem(Icons.calendar_month_rounded, "Schedule", 0),
+                _navItem(Icons.work_rounded, "Jobs", 1),
+                const SizedBox(width: 48), // Space for FAB
+                _navItem(Icons.message_rounded, "Messages", 3),
+                _navItem(Icons.person_rounded, "Profile", 4),
+              ],
+            ),
           ),
         ),
       ),
@@ -267,7 +286,44 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
 
                 const SizedBox(height: 30),
 
-                // 3. JOB RECOMMENDATIONS (Tappable → Jobs tab)
+                // 3. LEARNING PROGRESS
+                const Text("Learning Progress", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                _learningProgress.isEmpty
+                    ? Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                        child: const Center(child: Text("No enrolled courses to track.", style: TextStyle(color: Colors.grey))),
+                      )
+                    : Column(
+                        children: _learningProgress.map((item) => _progressCard(item)).toList(),
+                      ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.1),
+
+                const SizedBox(height: 30),
+
+                // 4. MY ACHIEVEMENTS (BADGES)
+                const Text("My Achievements", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                _badges.isEmpty
+                    ? Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                        child: const Center(child: Text("Complete courses to earn badges!", style: TextStyle(color: Colors.grey))),
+                      )
+                    : SizedBox(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _badges.length,
+                          itemBuilder: (context, index) {
+                            return _badgeCard(_badges[index]);
+                          },
+                        ),
+                      ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+
+                const SizedBox(height: 30),
+
+                // 5. JOB RECOMMENDATIONS (Tappable → Jobs tab)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -283,7 +339,7 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
                     ? const Text("No job matches found right now.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))
                     : Column(
                   children: _jobs.map((job) => _jobCard(job)).toList(),
-                ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
               ],
             ),
           ),
@@ -414,6 +470,62 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
             const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _progressCard(dynamic item) {
+    int progress = (item['progress'] ?? 0).toInt();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text(item['name'] ?? 'Course', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis)),
+              Text('$progress%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6B4EE6))),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress / 100,
+              backgroundColor: const Color(0xFFF4F3FB),
+              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF6B4EE6)),
+              minHeight: 8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _badgeCard(dynamic badge) {
+    return Container(
+      width: 80,
+      margin: const EdgeInsets.only(right: 15),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.amber.shade200),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.emoji_events, color: Colors.amber, size: 32),
+          const SizedBox(height: 5),
+          Text(badge['name'] ?? 'Badge', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+        ],
       ),
     );
   }

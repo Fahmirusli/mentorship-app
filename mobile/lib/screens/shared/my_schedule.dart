@@ -79,19 +79,45 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _isMentor ? const Color(0xFFF0F7F0) : const Color(0xFFF4F3FB),
-      appBar: AppBar(
-        title: const Text("My Schedule", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+    final bool showTabs = _isMentor;
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: _isMentor ? const Color(0xFFF0F7F0) : const Color(0xFFF4F3FB),
+        appBar: AppBar(
+          title: const Text("My Schedule", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: _primaryColor,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: Colors.white),
+          bottom: showTabs
+              ? const TabBar(
+                  indicatorColor: Colors.white,
+                  tabs: [
+                    Tab(text: "Upcoming"),
+                    Tab(text: "Verify Past Sessions"),
+                  ],
+                )
+              : null,
+        ),
+        body: _isLoading
+            ? Center(child: CircularProgressIndicator(color: _primaryColor))
+            : showTabs
+                ? TabBarView(
+                    children: [
+                      _buildScheduleView(),
+                      _buildVerifySessionsView(),
+                    ],
+                  )
+                : _buildScheduleView(),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: _primaryColor))
-          : Column(
-              children: [
-                // Calendar Card
+    );
+  }
+
+  Widget _buildScheduleView() {
+    return Column(
+      children: [
+        // Calendar Card
                 Container(
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.only(bottom: 10),
@@ -180,7 +206,153 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
                         ),
                 ),
               ],
+            );
+  }
+
+  Widget _buildVerifySessionsView() {
+    // Filter past sessions that are still scheduled
+    final now = DateTime.now();
+    final pastUnverified = _allAppointments.where((apt) {
+      if (apt['status'] != 'scheduled') return false;
+      final dateStr = apt['date'];
+      if (dateStr == null) return false;
+      try {
+        final date = DateTime.parse(dateStr);
+        return date.isBefore(DateTime(now.year, now.month, now.day));
+      } catch (_) {
+        return false;
+      }
+    }).toList();
+
+    if (pastUnverified.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.verified, size: 56, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            Text("All past sessions are verified!", style: TextStyle(color: Colors.grey.shade500)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: pastUnverified.length,
+      itemBuilder: (context, index) {
+        final apt = pastUnverified[index];
+        final String date = apt['date'] ?? '';
+        final String menteeName = apt['other_user_name'] ?? 'Mentee';
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 15),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [BoxShadow(color: _primaryColor.withOpacity(0.05), blurRadius: 10)],
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Mentorship with $menteeName", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 5),
+                    Text(date, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                  ],
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => _showVerificationModal(apt),
+                child: const Text("Verify", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showVerificationModal(dynamic apt) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(25),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
             ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.event_available_rounded, color: Color(0xFF2E7D32), size: 56),
+                const SizedBox(height: 20),
+                const Text("Verify Session", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                const Text(
+                  "Did this session happen as planned? Marking it missed will refund the mentee.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade50,
+                          foregroundColor: Colors.red,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as Missed')));
+                          // Re-fetch in real app
+                          _loadData();
+                        },
+                        child: const Text("Mark Missed"),
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked as Completed')));
+                          // Re-fetch in real app
+                          _loadData();
+                        },
+                        child: const Text("Completed"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
