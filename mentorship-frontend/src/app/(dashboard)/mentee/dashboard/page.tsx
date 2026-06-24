@@ -264,8 +264,12 @@ export default function MenteeDashboard() {
                 ) : (
                   stats.badges?.slice(0, 3).map((badge, idx) => (
                     <div key={idx} className="flex items-center gap-3 p-3 bg-amber-50/50 rounded-xl border border-amber-100">
-                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-xl shadow-sm">
-                        {badge.icon_url || '🏆'}
+                      <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-xl shadow-sm overflow-hidden">
+                        {badge.icon_url?.startsWith('http') ? (
+                          <img src={badge.icon_url} alt={badge.name} className="w-full h-full object-cover" />
+                        ) : (
+                          badge.icon_url || '🏆'
+                        )}
                       </div>
                       <div>
                         <p className="font-bold text-sm text-gray-900">{badge.name}</p>
