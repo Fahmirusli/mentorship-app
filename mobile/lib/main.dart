@@ -12,16 +12,16 @@ import 'screens/mentor/mentor_home.dart';
 import 'config.dart';
 
 void main() {
-  runApp(const MentorCoreApp());
+  runApp(const UpliftsApp());
 }
 
-class MentorCoreApp extends StatelessWidget {
-  const MentorCoreApp({super.key});
+class UpliftsApp extends StatelessWidget {
+  const UpliftsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MentorCore',
+      title: 'Uplifts',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

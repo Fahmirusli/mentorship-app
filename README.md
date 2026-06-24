@@ -1,6 +1,6 @@
 # 🎓 Uplifts
 
-MentorCore is a mobile-first mentorship platform and web-based management system developed as a Final Year Project (FYP). This platform is designed to bridge the gap between students (mentees) and industry professionals (mentors), accelerating career growth through structured guidance and providing relevant job recommendations.
+Uplifts is a mobile-first mentorship platform and web-based management system developed as a Final Year Project (FYP). This platform is designed to bridge the gap between students (mentees) and industry professionals (mentors), accelerating career growth through structured guidance and providing relevant job recommendations.
 
 ## ✨ Key Features
 

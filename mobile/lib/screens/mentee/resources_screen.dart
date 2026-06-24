@@ -30,10 +30,10 @@ class _MenteeResourcesScreenState extends State<MenteeResourcesScreen> {
   }
 
   Future<void> _downloadResource(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    try {
+      final uri = Uri.parse(url);
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open file URL')),

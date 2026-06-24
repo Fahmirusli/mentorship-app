@@ -51,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF6B4EE6)))
           : ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
               children: [
                 // Vibrant Profile Header
                 Center(
@@ -64,9 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.transparent,
-                      backgroundImage: _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                          ? NetworkImage(_profileImageUrl!)
-                          : null,
+                      backgroundImage: ApiService.getProfileImageProvider(_profileImageUrl),
                       child: _profileImageUrl == null || _profileImageUrl!.isEmpty
                           ? const Icon(Icons.person, size: 50, color: Colors.white)
                           : null,

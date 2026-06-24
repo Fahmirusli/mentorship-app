@@ -88,7 +88,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: const Icon(Icons.menu_book_rounded, size: 60, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                const Text("MentorCore", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A))),
+                const Text("Uplifts", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF2D2D3A))),
                 const Text("Accelerate your journey", style: TextStyle(color: Colors.grey, fontSize: 16)),
                 const SizedBox(height: 40),
 

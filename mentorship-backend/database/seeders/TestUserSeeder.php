@@ -13,7 +13,7 @@ class TestUserSeeder extends Seeder
     public function run()
     {
         // 1. Create Admin
-        $adminEmail = 'admin@mentorcore.com';
+        $adminEmail = 'admin@uplifts.dev';
         if (!User::where('email', $adminEmail)->exists()) {
             User::create([
                 'name' => 'Admin User',
@@ -29,7 +29,7 @@ class TestUserSeeder extends Seeder
         }
 
         // 2. Create Mentor
-        $mentorEmail = 'mentor@mentorcore.com';
+        $mentorEmail = 'mentor@uplifts.dev';
         $mentor = User::where('email', $mentorEmail)->first();
         if (!$mentor) {
             $mentor = User::create([
@@ -61,7 +61,7 @@ class TestUserSeeder extends Seeder
         }
 
         // 3. Create Mentee
-        $menteeEmail = 'mentee@mentorcore.com';
+        $menteeEmail = 'mentee@uplifts.dev';
         $mentee = User::where('email', $menteeEmail)->first();
         if (!$mentee) {
             $mentee = User::create([

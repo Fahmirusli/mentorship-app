@@ -11,7 +11,7 @@ class TestScheduleSeeder extends Seeder
 {
     public function run()
     {
-        $mentorEmail = 'mentor@mentorcore.com';
+        $mentorEmail = 'mentor@uplifts.dev';
         $mentor = User::where('email', $mentorEmail)->first();
 
         if (!$mentor) {

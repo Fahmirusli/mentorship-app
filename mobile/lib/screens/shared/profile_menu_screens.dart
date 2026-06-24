@@ -238,9 +238,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               backgroundColor: Colors.transparent,
                               backgroundImage: _selectedImageFile != null
                                   ? FileImage(_selectedImageFile!)
-                                  : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                                      ? NetworkImage(_profileImageUrl!) as ImageProvider
-                                      : null),
+                                  : ApiService.getProfileImageProvider(_profileImageUrl),
                               child: (_selectedImageFile == null && (_profileImageUrl == null || _profileImageUrl!.isEmpty))
                                   ? const Icon(Icons.person, size: 50, color: Colors.white)
                                   : null,

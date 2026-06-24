@@ -39,13 +39,13 @@ class AuthController extends Controller
         // Send verification email
         try {
             \Mail::raw(
-                "Welcome to MentorCore!\n\n" .
+                "Welcome to Uplifts!\n\n" .
                 "Your email verification code (TAC) is: {$tac}\n\n" .
-                "This code will expire in 10 minutes.\n\n" .
-                "If you didn't register for MentorCore, please ignore this email.",
+                "This code will expire in 15 minutes.\n" .
+                "If you didn't register for Uplifts, please ignore this email.",
                 function ($message) use ($user) {
                     $message->to($user->email)
-                            ->subject('Email Verification - MentorCore');
+                            ->subject('Email Verification - Uplifts');
                 }
             );
         } catch (\Exception $e) {

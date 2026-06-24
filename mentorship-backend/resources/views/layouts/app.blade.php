@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'MentorCore Admin')</title>
+    <title>@yield('title', 'Uplifts Admin')</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -229,7 +229,7 @@
             <div class="logo">
                 <div class="logo-icon">🎓</div>
                 <div class="logo-text">
-                    <h3>MentorCore</h3>
+                    <h3>Uplifts</h3>
                     <p>Admin Console</p>
                 </div>
             </div>

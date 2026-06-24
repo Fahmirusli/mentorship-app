@@ -149,9 +149,7 @@ class _MessageListScreenState extends State<MessageListScreen> {
                                     CircleAvatar(
                                       radius: 25,
                                       backgroundColor: const Color(0xFF6B4EE6),
-                                      backgroundImage: profileImage != null && profileImage.isNotEmpty
-                                          ? NetworkImage(profileImage)
-                                          : null,
+                                      backgroundImage: ApiService.getProfileImageProvider(profileImage),
                                       child: profileImage == null || profileImage.isEmpty
                                           ? const Icon(Icons.person, color: Colors.white)
                                           : null,

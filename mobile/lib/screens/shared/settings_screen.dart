@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _sectionHeader('About'),
           _settingsTile(
             icon: Icons.info_outline,
-            title: 'About MentorCore',
+            title: 'About Uplifts',
             subtitle: 'Version 1.0.0',
             onTap: () => _showAboutDialog(),
           ),
@@ -270,8 +270,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('MentorCore'),
-        content: const Text('Version 1.0.0\n\nA mentorship platform connecting mentors and mentees for career growth.\n\n© 2026 MentorCore. All rights reserved.'),
+        title: const Text('Uplifts'),
+        content: const Text('Version 1.0.0\n\nA mentorship platform connecting mentors and mentees for career growth.\n\n© 2026 Uplifts. All rights reserved.'),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
       ),
     );

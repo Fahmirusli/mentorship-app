@@ -3,12 +3,29 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/material.dart';
 import '../../config.dart';
 
 
 class ApiService {
   static String get baseUrl => AppConfig.apiBaseUrl;
   static Duration get _timeout => Duration(seconds: AppConfig.httpTimeoutSeconds);
+
+  static ImageProvider? getProfileImageProvider(String? profileImage) {
+    if (profileImage == null || profileImage.isEmpty) return null;
+    if (profileImage.startsWith('data:')) {
+      try {
+        final base64String = profileImage.split(',').last;
+        return MemoryImage(base64Decode(base64String));
+      } catch (e) {
+        return null;
+      }
+    }
+    if (profileImage.startsWith('http')) {
+      return NetworkImage(profileImage);
+    }
+    return NetworkImage('${baseUrl.replaceAll('/api', '')}/storage/$profileImage');
+  }
 
   // OAuth (Google/GitHub) - opens external browser for authentication
   static Future<bool> startOAuth(String provider, {String? role}) async {

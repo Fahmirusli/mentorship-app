@@ -27,7 +27,7 @@ class AppConfig {
   static String get oauthRedirectUri => '$oauthRedirectScheme://$oauthRedirectPath';
 
   // App-wide constants
-  static const String appName = 'MentorCore';
+  static const String appName = 'Uplifts';
   static const String appVersion = '1.0.0';
   static const int httpTimeoutSeconds = 15;
 }
