@@ -27,6 +27,7 @@ class User extends Authenticatable
         'is_active',
         'is_verified',
         'verified_at',
+        'email_verified_at',
         'google_id',
         'github_id',
         'avatar',

@@ -55,24 +55,71 @@ class MenteeDashboardController extends Controller
                 ];
             });
 
-        // 3. Get Recommended Mentors (From 'users' and 'mentor_profiles' tables)
-        // Taking 3 active mentors
-        $recommendedMentors = User::where('role', 'mentor')
+        // 3. AI-Powered Mentorship Matching Algorithm (Compatibility Scoring)
+        $allMentors = User::where('role', 'mentor')
             ->where('is_active', true)
             ->with('mentorProfile')
-            ->take(3)
-            ->get()
-            ->map(function ($mentor) {
-                $profile = $mentor->mentorProfile;
-                return [
-                    'id' => $mentor->id,
-                    'name' => $mentor->name,
-                    'job_title' => $profile ? $profile->job_title : 'Expert',
-                    'company' => $profile ? $profile->company : 'Independent',
-                    'rating' => $profile ? $profile->rating : 0.00,
-                    'hourly_rate' => $profile ? $profile->hourly_rate : 50.00,
-                ];
-            });
+            ->get();
+
+        $scoredMentors = [];
+        
+        // Normalize mentee's desired skills
+        $menteeSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $skillsToLearn);
+
+        foreach ($allMentors as $mentor) {
+            $mentorSkills = $mentor->skills ?? [];
+            if (is_string($mentorSkills)) {
+                $mentorSkills = json_decode($mentorSkills, true) ?? [];
+            }
+            // Fallback to profile
+            if (empty($mentorSkills) && $mentor->mentorProfile) {
+                $profileSkills = $mentor->mentorProfile->expertise ?? [];
+                if (is_string($profileSkills)) {
+                    $profileSkills = json_decode($profileSkills, true) ?? [];
+                }
+                $mentorSkills = $profileSkills;
+            }
+
+            $mentorSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $mentorSkills);
+            
+            // Calculate Compatibility Score
+            $matches = 0;
+            foreach ($menteeSkillsNorm as $mSkill) {
+                if (empty($mSkill)) continue;
+                foreach ($mentorSkillsNorm as $mentorSkill) {
+                    if (empty($mentorSkill)) continue;
+                    if ($mentorSkill === $mSkill || str_contains($mentorSkill, $mSkill) || str_contains($mSkill, $mentorSkill)) {
+                        $matches++;
+                        break;
+                    }
+                }
+            }
+            
+            $totalSkills = count($menteeSkillsNorm) ?: 1;
+            $compatibilityScore = round(($matches / $totalSkills) * 100, 2);
+
+            $profile = $mentor->mentorProfile;
+            $scoredMentors[] = [
+                'id' => $mentor->id,
+                'name' => $mentor->name,
+                'job_title' => $profile ? $profile->job_title : 'Expert',
+                'company' => $profile ? $profile->company : 'Independent',
+                'rating' => $profile ? $profile->rating : 0.00,
+                'hourly_rate' => $profile ? $profile->hourly_rate : 50.00,
+                'compatibility_score' => $compatibilityScore
+            ];
+        }
+
+        // Sort by compatibility score descending, then by rating descending
+        usort($scoredMentors, function($a, $b) {
+            if ($b['compatibility_score'] == $a['compatibility_score']) {
+                return $b['rating'] <=> $a['rating'];
+            }
+            return $b['compatibility_score'] <=> $a['compatibility_score'];
+        });
+
+        // Take top 3 best matching mentors
+        $recommendedMentors = array_slice($scoredMentors, 0, 3);
 
         // 4. Get Job Recommendations (From 'jobs' table)
         $jobRecommendations = Job::where('is_active', true)

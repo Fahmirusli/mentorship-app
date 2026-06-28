@@ -213,20 +213,17 @@ export default function FindMentors() {
     nearbyMap.set(mentor.id, mentor);
   });
 
-  const nearbyIds = new Set(nearbyMentors.length > 0 ? nearbyMentors.map((mentor) => mentor.id) : []);
-  const visibleMentorsBase = nearbyMentors.length > 0
-    ? filteredMentors
-      .filter((mentor) => nearbyIds.has(mentor.id))
-      .sort((a, b) => {
-        const aAvail = (a.available_slots_count ?? 0) > 0 ? 1 : 0;
-        const bAvail = (b.available_slots_count ?? 0) > 0 ? 1 : 0;
-        if (aAvail !== bAvail) return bAvail - aAvail;
-        if (sortBy === 'recommended') {
-          return (nearbyMap.get(a.id)?.distance_km || 999) - (nearbyMap.get(b.id)?.distance_km || 999);
-        }
-        return 0;
-      })
-    : filteredMentors;
+  const visibleMentorsBase = [...filteredMentors].sort((a, b) => {
+    const aAvail = (a.available_slots_count ?? 0) > 0 ? 1 : 0;
+    const bAvail = (b.available_slots_count ?? 0) > 0 ? 1 : 0;
+    if (aAvail !== bAvail) return bAvail - aAvail;
+    if (sortBy === 'recommended') {
+      const distA = nearbyMap.get(a.id)?.distance_km ?? 9999;
+      const distB = nearbyMap.get(b.id)?.distance_km ?? 9999;
+      return distA - distB;
+    }
+    return 0;
+  });
 
   const visibleMentors = visibleMentorsBase.filter(mentor => {
     if (availabilityFilter === 'available') return (mentor.available_slots_count ?? 0) > 0;

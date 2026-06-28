@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Job;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
-
+use Symfony\Component\Process\Process;
 class JobScraperService
 {
     private const SOURCE_CANONICAL_NAMES = [
@@ -18,7 +18,13 @@ class JobScraperService
     {
         $results = ['total' => 0];
 
-        $jobs = $this->fetchRapidApiJobs($keyword);
+        Log::info("Attempting to scrape jobs using Python script for keyword: {$keyword}");
+        $jobs = $this->fetchPythonScraperJobs($keyword);
+
+        if (empty($jobs)) {
+            Log::warning('Python scraper failed or returned no jobs. Falling back to RapidAPI.');
+            $jobs = $this->fetchRapidApiJobs($keyword);
+        }
 
         if (empty($jobs)) {
             Log::warning('RapidAPI returned no jobs or is not configured.');
@@ -65,6 +71,53 @@ class JobScraperService
         }
         
         return $results;
+    }
+
+    private function fetchPythonScraperJobs(string $keyword): array
+    {
+        try {
+            $scriptPath = base_path('scripts/scrape_jobs.py');
+            
+            if (!file_exists($scriptPath)) {
+                Log::error("Python scraper script not found at: {$scriptPath}");
+                return [];
+            }
+
+            $process = new Process(['python', $scriptPath, '--keyword', $keyword]);
+            $process->setTimeout(180); // 3 minutes timeout for Selenium
+            $process->run();
+
+            if (!$process->isSuccessful()) {
+                Log::error('Python scraper process failed', [
+                    'error' => $process->getErrorOutput()
+                ]);
+                return [];
+            }
+
+            $output = $process->getOutput();
+            // Find JSON array in the output (since python script might print other stuff to stdout)
+            $start = strpos($output, '[');
+            $end = strrpos($output, ']');
+            if ($start !== false && $end !== false) {
+                $jsonStr = substr($output, $start, $end - $start + 1);
+                $jobs = json_decode($jsonStr, true);
+                
+                if (json_last_error() === JSON_ERROR_NONE && is_array($jobs)) {
+                    return $jobs;
+                }
+            }
+
+            Log::error('Failed to decode JSON from Python scraper', [
+                'output' => substr($output, 0, 500)
+            ]);
+            return [];
+
+        } catch (\Exception $e) {
+            Log::error('Exception while running Python scraper', [
+                'message' => $e->getMessage()
+            ]);
+            return [];
+        }
     }
 
     private function fetchRapidApiJobs(string $keyword): array

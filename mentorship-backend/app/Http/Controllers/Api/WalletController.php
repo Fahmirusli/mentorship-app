@@ -17,6 +17,24 @@ class WalletController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Dynamically calculate actual earnings from completed appointments
+        $earnings = $user->mentorships()
+            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
+            ->where('appointments.status', 'completed')
+            ->sum('appointments.fee');
+
+        $totalWithdrawals = WithdrawalRequest::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'paid'])
+            ->sum('amount');
+
+        $actualBalance = $earnings - $totalWithdrawals;
+
+        // Auto-fix DB mismatch caused by dummy data
+        if ($user->wallet_balance != $actualBalance) {
+            $user->wallet_balance = $actualBalance;
+            $user->save();
+        }
+
         return response()->json([
             'balance' => $user->wallet_balance ?? 0.00,
             'withdrawals' => $withdrawals,

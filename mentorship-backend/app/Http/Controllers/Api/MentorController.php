@@ -70,8 +70,8 @@ class MentorController extends Controller
                   ->orWhere('bio', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
                   ->orWhere(function($q2) use ($search) {
-                      // Search in JSON skills array
-                      $q2->whereRaw('JSON_SEARCH(skills, "one", ?) IS NOT NULL', ["%{$search}%"]);
+                      // Search in JSON skills array (stored as string)
+                      $q2->where('skills', 'like', "%{$search}%");
                   })
                   ->orWhereHas('mentorProfile', function ($q2) use ($search) {
                       $q2->where('expertise_areas', 'like', "%{$search}%")

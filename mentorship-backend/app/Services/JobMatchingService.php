@@ -78,17 +78,82 @@ class JobMatchingService
         $userSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $userSkills);
         $jobReqsNorm = array_map(fn($s) => trim(strtolower($s)), $jobRequirements);
         
-        $matches = 0;
-        foreach ($jobReqsNorm as $req) {
-            foreach ($userSkillsNorm as $uSkill) {
-                if ($uSkill === $req || (str_contains($uSkill, $req) || str_contains($req, $uSkill))) {
-                    $matches++;
-                    break;
-                }
-            }
+        // TF-IDF & Cosine Similarity Implementation
+        
+        // 1. Build Vocabulary (Unique terms from both arrays)
+        $vocabulary = array_unique(array_merge($userSkillsNorm, $jobReqsNorm));
+        
+        if (empty($vocabulary)) {
+            return 0;
         }
 
-        return round(($matches / count($jobRequirements)) * 100, 2);
+        // 2. Calculate Term Frequency (TF)
+        $userTf = array_fill_keys($vocabulary, 0);
+        $jobTf = array_fill_keys($vocabulary, 0);
+        
+        $userTermCount = count($userSkillsNorm) ?: 1;
+        foreach ($userSkillsNorm as $term) {
+            if (isset($userTf[$term])) {
+                $userTf[$term]++;
+            }
+        }
+        foreach ($userTf as $term => $count) {
+            $userTf[$term] = $count / $userTermCount;
+        }
+
+        $jobTermCount = count($jobReqsNorm) ?: 1;
+        foreach ($jobReqsNorm as $term) {
+            if (isset($jobTf[$term])) {
+                $jobTf[$term]++;
+            }
+        }
+        foreach ($jobTf as $term => $count) {
+            $jobTf[$term] = $count / $jobTermCount;
+        }
+
+        // 3. Calculate Inverse Document Frequency (IDF)
+        // N = 2 (User document, Job document)
+        $N = 2;
+        $idf = [];
+        foreach ($vocabulary as $term) {
+            $docCount = 0;
+            if (in_array($term, $userSkillsNorm)) $docCount++;
+            if (in_array($term, $jobReqsNorm)) $docCount++;
+            
+            // Standard smooth_idf formula: log((1 + N) / (1 + df)) + 1
+            $idf[$term] = log((1 + $N) / (1 + $docCount)) + 1; 
+        }
+
+        // 4. Calculate TF-IDF vectors
+        $userVector = [];
+        $jobVector = [];
+        foreach ($vocabulary as $term) {
+            $userVector[$term] = $userTf[$term] * $idf[$term];
+            $jobVector[$term] = $jobTf[$term] * $idf[$term];
+        }
+
+        // 5. Cosine Similarity Calculation
+        $dotProduct = 0;
+        $userMagnitudeSq = 0;
+        $jobMagnitudeSq = 0;
+
+        foreach ($vocabulary as $term) {
+            $dotProduct += $userVector[$term] * $jobVector[$term];
+            $userMagnitudeSq += pow($userVector[$term], 2);
+            $jobMagnitudeSq += pow($jobVector[$term], 2);
+        }
+
+        $userMagnitude = sqrt($userMagnitudeSq);
+        $jobMagnitude = sqrt($jobMagnitudeSq);
+
+        if ($userMagnitude == 0 || $jobMagnitude == 0) {
+            return 0;
+        }
+
+        $cosineSimilarity = $dotProduct / ($userMagnitude * $jobMagnitude);
+
+        // Convert to percentage (0 to 100)
+        return round($cosineSimilarity * 100, 2);
     }
     
     private function calculateSkillGap($userSkills, $jobRequirements)
