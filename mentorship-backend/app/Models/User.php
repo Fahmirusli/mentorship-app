@@ -32,6 +32,7 @@ class User extends Authenticatable
         'github_id',
         'avatar',
         'wallet_balance',
+        'fcm_token',
     ];
 
     protected $hidden = [

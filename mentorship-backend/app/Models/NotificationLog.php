@@ -38,9 +38,28 @@ class NotificationLog extends Model
         ]);
 
         try {
+            // Send FCM Push Notification if user has token
+            $user = User::find($userId);
+            if ($user && $user->fcm_token) {
+                // Determine FCM credentials path. Use local file or environment variable
+                $firebaseCredentialsPath = storage_path('app/firebase_adminsdk.json');
+                
+                if (file_exists($firebaseCredentialsPath)) {
+                    $factory = (new \Kreait\Firebase\Factory)->withServiceAccount($firebaseCredentialsPath);
+                    $messaging = $factory->createMessaging();
+                    
+                    $message = \Kreait\Firebase\Messaging\CloudMessage::withTarget('token', $user->fcm_token)
+                        ->withNotification(\Kreait\Firebase\Messaging\Notification::create($title, $body))
+                        ->withData($data ?? []);
+                        
+                    $messaging->send($message);
+                }
+            }
+
+            // Also broadcast locally to frontend via Reverb/Pusher
             broadcast(new \App\Events\NotificationCreated($notification));
         } catch (\Exception $e) {
-            \Log::error('Broadcast failed: ' . $e->getMessage());
+            \Log::error('Notification dispatch failed: ' . $e->getMessage());
         }
 
         return $notification;

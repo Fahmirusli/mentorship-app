@@ -11,8 +11,57 @@ import 'screens/mentee/mentee_home.dart';
 import 'screens/mentor/mentor_home.dart';
 import 'config.dart';
 
-void main() {
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'firebase_options.dart'; // User needs to generate this using flutterfire configure
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase (Requires flutterfire configure)
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    _setupFCM();
+  } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
+
   runApp(const UpliftsApp());
+}
+
+Future<void> _setupFCM() async {
+  final messaging = FirebaseMessaging.instance;
+  await messaging.requestPermission();
+  
+  // Setup local notifications for foreground audio
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+    if (notification != null && android != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'uplifts_channel',
+            'Uplifts Notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+          ),
+        ),
+      );
+    }
+  });
 }
 
 class UpliftsApp extends StatefulWidget {

@@ -78,17 +78,89 @@ class JobMatchingService
         $userSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $userSkills);
         $jobReqsNorm = array_map(fn($s) => trim(strtolower($s)), $jobRequirements);
         
-        $matches = 0;
-        foreach ($jobReqsNorm as $req) {
-            foreach ($userSkillsNorm as $uSkill) {
-                if ($uSkill === $req || (str_contains($uSkill, $req) || str_contains($req, $uSkill))) {
-                    $matches++;
+        // Step 1: Map user skills to job requirements using fuzzy logic
+        // This ensures if a user has "react.js" and job requires "react", 
+        // the user skill is transformed to "react" for vocabulary matching.
+        $mappedUserSkills = [];
+        foreach ($userSkillsNorm as $uSkill) {
+            $mapped = $uSkill; // Default to original if no match
+            foreach ($jobReqsNorm as $req) {
+                if ($uSkill === $req || ($uSkill !== '' && $req !== '' && (str_contains($uSkill, $req) || str_contains($req, $uSkill)))) {
+                    $mapped = $req; // Map to the exact job requirement term
                     break;
                 }
             }
+            $mappedUserSkills[] = $mapped;
+        }
+        
+        // 1. Build Vocabulary
+        $vocabulary = array_unique(array_merge($mappedUserSkills, $jobReqsNorm));
+        
+        if (empty($vocabulary)) {
+            return 0;
         }
 
-        return round(($matches / count($jobRequirements)) * 100, 2);
+        // 2. Term Frequency (TF)
+        $userTf = array_fill_keys($vocabulary, 0);
+        $jobTf = array_fill_keys($vocabulary, 0);
+        
+        $userTermCount = count($mappedUserSkills) ?: 1;
+        foreach ($mappedUserSkills as $term) {
+            if (isset($userTf[$term])) {
+                $userTf[$term]++;
+            }
+        }
+        foreach ($userTf as $term => $count) {
+            $userTf[$term] = $count / $userTermCount;
+        }
+
+        $jobTermCount = count($jobReqsNorm) ?: 1;
+        foreach ($jobReqsNorm as $term) {
+            if (isset($jobTf[$term])) {
+                $jobTf[$term]++;
+            }
+        }
+        foreach ($jobTf as $term => $count) {
+            $jobTf[$term] = $count / $jobTermCount;
+        }
+
+        // 3. Inverse Document Frequency (IDF)
+        $N = 2; // Two documents: User and Job
+        $idf = [];
+        foreach ($vocabulary as $term) {
+            $docCount = 0;
+            if (in_array($term, $mappedUserSkills)) $docCount++;
+            if (in_array($term, $jobReqsNorm)) $docCount++;
+            
+            $idf[$term] = log((1 + $N) / (1 + $docCount)) + 1; 
+        }
+
+        // 4. TF-IDF Vectors
+        $userVector = [];
+        $jobVector = [];
+        $dotProduct = 0;
+        $userMagnitudeSq = 0;
+        $jobMagnitudeSq = 0;
+
+        foreach ($vocabulary as $term) {
+            $userVector[$term] = $userTf[$term] * $idf[$term];
+            $jobVector[$term] = $jobTf[$term] * $idf[$term];
+            
+            $dotProduct += $userVector[$term] * $jobVector[$term];
+            $userMagnitudeSq += pow($userVector[$term], 2);
+            $jobMagnitudeSq += pow($jobVector[$term], 2);
+        }
+
+        $userMagnitude = sqrt($userMagnitudeSq);
+        $jobMagnitude = sqrt($jobMagnitudeSq);
+
+        if ($userMagnitude == 0 || $jobMagnitude == 0) {
+            return 0;
+        }
+
+        $cosineSimilarity = $dotProduct / ($userMagnitude * $jobMagnitude);
+        
+        return round($cosineSimilarity * 100, 2);
     }
     
     private function calculateSkillGap($userSkills, $jobRequirements)

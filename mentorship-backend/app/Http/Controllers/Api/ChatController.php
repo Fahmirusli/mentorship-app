@@ -113,6 +113,9 @@ class ChatController extends Controller
         // Update conversation's last_message_at
         $conversation->update(['last_message_at' => now()]);
 
+        // Broadcast the message event
+        broadcast(new \App\Events\MessageSent($message))->toOthers();
+
         // Create a notification for the receiver
         NotificationLog::notify(
             $receiverId,

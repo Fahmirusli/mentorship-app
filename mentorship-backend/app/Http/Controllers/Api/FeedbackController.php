@@ -48,6 +48,12 @@ class FeedbackController extends Controller
             ->where('to_user_id', $validated['to_user_id']);
 
         if (isset($validated['appointment_id'])) {
+            $appointment = \App\Models\Appointment::find($validated['appointment_id']);
+            if (!$appointment || $appointment->status !== 'completed') {
+                return response()->json([
+                    'message' => 'Feedback can only be given for completed sessions. If missed, please reschedule.'
+                ], 403);
+            }
             $existingFeedback->where('appointment_id', $validated['appointment_id']);
         }
 
