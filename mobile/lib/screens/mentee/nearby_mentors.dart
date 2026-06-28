@@ -27,9 +27,13 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
     }
     final filtered = _mentors.where((m) {
       final skills = m['skills'] as List<dynamic>? ?? [];
-      return skills.any((s) => s.toString().toLowerCase().contains(widget.selectedSkill!.toLowerCase()));
+      final profile = m['mentor_profile'] as Map<dynamic, dynamic>? ?? {};
+      final expertise = profile['expertise_areas'] as List<dynamic>? ?? [];
+      
+      final combinedSkills = [...skills, ...expertise];
+      return combinedSkills.any((s) => s.toString().toLowerCase().contains(widget.selectedSkill!.toLowerCase()));
     }).toList();
-    return filtered.isNotEmpty ? filtered : _mentors;
+    return filtered;
   }
 
   @override
