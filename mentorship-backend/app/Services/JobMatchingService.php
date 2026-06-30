@@ -69,7 +69,7 @@ class JobMatchingService
         return array_slice($recommendations, 0, 50);
     }
     
-    private function calculateMatchScore($userSkills, $jobRequirements)
+    public function calculateMatchScore($userSkills, $jobRequirements)
     {
         if (empty($jobRequirements)) {
             return 0;

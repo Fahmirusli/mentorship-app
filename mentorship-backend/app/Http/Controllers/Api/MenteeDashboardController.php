@@ -82,12 +82,13 @@ class MenteeDashboardController extends Controller
 
             $mentorSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $mentorSkills);
             
-            // Calculate Compatibility Score
+            // Calculate Compatibility Score using Content-Based Skill Matching
             $matches = 0;
             foreach ($menteeSkillsNorm as $mSkill) {
                 if (empty($mSkill)) continue;
                 foreach ($mentorSkillsNorm as $mentorSkill) {
                     if (empty($mentorSkill)) continue;
+                    // Considers exact matches and related skills (partial matches)
                     if ($mentorSkill === $mSkill || str_contains($mentorSkill, $mSkill) || str_contains($mSkill, $mentorSkill)) {
                         $matches++;
                         break;

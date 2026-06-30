@@ -582,7 +582,7 @@ export default function FindMentors() {
                         {skill}
                       </span>
                     ))}
-                    {mentor.expertise?.length > 3 && (
+                    {(mentor.expertise && mentor.expertise.length > 3) && (
                       <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
                         +{mentor.expertise.length - 3} more
                       </span>
