@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Plus, Trash2, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, Trash2, Edit2, Loader, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface Appointment {
@@ -59,6 +59,7 @@ export default function MentorSchedule() {
         fee: 50,
     });
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -145,6 +146,40 @@ export default function MentorSchedule() {
             console.error('Error adding time slot:', error);
             const err = error as Error;
             alert(err?.message || 'Failed to add time slot');
+        }
+    };
+
+    const updateTimeSlot = async () => {
+        if (!editingSlot || !editingSlot.id) return;
+        
+        if (editingSlot.start_time >= editingSlot.end_time) {
+            alert('End time must be after start time.');
+            return;
+        }
+
+        if (Number.isNaN(editingSlot.fee) || editingSlot.fee < 0) {
+            alert('Please enter a valid price.');
+            return;
+        }
+
+        try {
+            const response = await api.put(`/schedules/${editingSlot.id}`, editingSlot);
+            if (response.schedule) {
+                const updatedSlot = response.schedule;
+                setSchedule(schedule.map(slot => slot.id === updatedSlot.id ? {
+                    id: updatedSlot.id,
+                    date: toDateInputValue(updatedSlot.date),
+                    start_time: toTimeInputValue(updatedSlot.start_time),
+                    end_time: toTimeInputValue(updatedSlot.end_time),
+                    is_available: Boolean(updatedSlot.is_available),
+                    fee: Number(updatedSlot.fee ?? editingSlot.fee),
+                } : slot));
+                setEditingSlot(null);
+            }
+        } catch (error: unknown) {
+            console.error('Error updating time slot:', error);
+            const err = error as Error;
+            alert(err?.message || 'Failed to update time slot');
         }
     };
 
@@ -434,12 +469,22 @@ export default function MentorSchedule() {
                                                         </div>
                                                         <div className="text-indigo-700 font-semibold">RM {Number(slot.fee).toFixed(2)}</div>
                                                     </div>
-                                                    <button
-                                                        onClick={() => slot.id && deleteTimeSlot(slot.id)}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            onClick={() => setEditingSlot(slot)}
+                                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                                                            title="Edit Slot"
+                                                        >
+                                                            <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => slot.id && deleteTimeSlot(slot.id)}
+                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                                                            title="Delete Slot"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -584,6 +629,58 @@ export default function MentorSchedule() {
                                     Yes, Confirm
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Edit Slot Modal */}
+            {editingSlot && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-gray-900">Edit Time Slot</h3>
+                            <button onClick={() => setEditingSlot(null)} className="text-gray-400 hover:text-gray-600">
+                                <XCircle className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                <input
+                                    type="time"
+                                    value={editingSlot.start_time}
+                                    onChange={(e) => setEditingSlot({ ...editingSlot, start_time: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                <input
+                                    type="time"
+                                    value={editingSlot.end_time}
+                                    onChange={(e) => setEditingSlot({ ...editingSlot, end_time: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Price (RM)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={editingSlot.fee}
+                                    onChange={(e) => setEditingSlot({ ...editingSlot, fee: Number(e.target.value) })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button onClick={() => setEditingSlot(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition">
+                                Cancel
+                            </button>
+                            <button onClick={updateTimeSlot} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-md hover:shadow-indigo-500/30">
+                                Save Changes
+                            </button>
                         </div>
                     </div>
                 </div>
