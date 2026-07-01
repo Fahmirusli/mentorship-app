@@ -72,9 +72,22 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
       }
     };
 
+    const handleNotificationRead = () => {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    };
+
+    const handleNotificationsReadAll = () => {
+      setUnreadCount(0);
+    };
+
     window.addEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
+    window.addEventListener('notification-read', handleNotificationRead);
+    window.addEventListener('notifications-read-all', handleNotificationsReadAll);
+    
     return () => {
       window.removeEventListener('profile-image-updated', handleProfileImageUpdated as EventListener);
+      window.removeEventListener('notification-read', handleNotificationRead);
+      window.removeEventListener('notifications-read-all', handleNotificationsReadAll);
       if (echo && currentUser?.id) {
         echo.leave(`user.${currentUser.id}`);
       }

@@ -11,6 +11,7 @@ interface MentorCardProps {
     hourly_rate?: number;
     location?: string;
     expertise?: string[];
+    skills?: string[] | string;
     title?: string;
     bio?: string;
   };
@@ -31,7 +32,12 @@ export default function MentorCard({
   const displayName = mentor.name || 'Unknown Mentor';
   const displayTitle = mentor.title || mentorProfile?.job_title || 'Professional Mentor';
   const displayRating = mentor.rating || mentorProfile?.rating || 4.8;
-  const displayExpertise = mentor.expertise || mentorProfile?.expertise_areas || ['React', 'Node.js'];
+  
+  let parsedSkills = mentor.skills;
+  if (typeof parsedSkills === 'string') {
+      try { parsedSkills = JSON.parse(parsedSkills); } catch(e) { parsedSkills = []; }
+  }
+  const displayExpertise = parsedSkills || mentor.expertise || mentorProfile?.expertise_areas || [];
   const displayBio = mentor.bio || 'Experienced professional helping others grow in their careers.';
   const displayLocation = mentor.location || 'Malaysia';
   const displayRate = (mentor.mentor_profile as any)?.hourly_rate || mentor.hourly_rate || 50;

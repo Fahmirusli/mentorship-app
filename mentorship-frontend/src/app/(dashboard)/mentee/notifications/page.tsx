@@ -39,6 +39,7 @@ export default function Notifications() {
             setNotifications(notifications.map(n =>
                 n.id === id ? { ...n, is_read: true } : n
             ));
+            window.dispatchEvent(new CustomEvent('notification-read'));
         } catch (error) {
             console.error('Error marking notification as read:', error);
         }
@@ -48,6 +49,7 @@ export default function Notifications() {
         try {
             await api.post('/notifications/read-all');
             setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+            window.dispatchEvent(new CustomEvent('notifications-read-all'));
         } catch (error) {
             console.error('Error marking all as read:', error);
         }

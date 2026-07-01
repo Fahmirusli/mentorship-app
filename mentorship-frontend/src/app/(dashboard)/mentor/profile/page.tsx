@@ -99,7 +99,7 @@ export default function MentorProfile() {
                 job_title: profile.job_title,
                 company: profile.company,
                 years_of_experience: profile.years_of_experience,
-                expertise_areas: profile.expertise_areas,
+                expertise_areas: profile.skills,
                 industry: profile.industry,
                 hourly_rate: profile.hourly_rate,
                 mentorship_approach: profile.mentorship_approach,
@@ -342,47 +342,8 @@ export default function MentorProfile() {
                         </div>
                     </div>
 
-                    {/* Expertise Areas */}
                     <div className="space-y-6 mb-8 pb-8 border-b">
-                        <h2 className="text-xl font-semibold text-gray-900">Expertise Areas</h2>
-
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={newExpertise}
-                                onChange={(e) => setNewExpertise(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addExpertise()}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="Add expertise (e.g., React, Leadership, Data Science)"
-                            />
-                            <button
-                                onClick={addExpertise}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                            >
-                                Add
-                            </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                            {profile.expertise_areas.map((expertise, index) => (
-                                <span
-                                    key={index}
-                                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center gap-2"
-                                >
-                                    {expertise}
-                                    <button
-                                        onClick={() => removeExpertise(expertise)}
-                                        className="text-indigo-500 hover:text-indigo-700"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="space-y-6 mb-8 pb-8 border-b">
-                        <h2 className="text-xl font-semibold text-gray-900">Skills</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">Skills & Expertise</h2>
                         <div className="flex gap-2">
                             <input
                                 type="text"
