@@ -41,7 +41,7 @@ class AuthController extends Controller
         $this->sendTacEmail(
             $request->email,
             'Email Verification - Uplift Mentorship',
-            "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
+            $tac
         );
 
         return response()->json([
@@ -160,7 +160,7 @@ class AuthController extends Controller
         $this->sendTacEmail(
             $request->email,
             'Password Reset - Uplift Mentorship',
-            "Your password reset code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email."
+            $tac
         );
 
         return response()->json([
@@ -262,7 +262,7 @@ class AuthController extends Controller
         $this->sendTacEmail(
             $request->email,
             'Email Verification - Uplift Mentorship',
-            "Your verification code (TAC) is: {$tac}\n\nThis code will expire in 10 minutes."
+            $tac
         );
 
         return response()->json([
@@ -270,16 +270,12 @@ class AuthController extends Controller
         ]);
     }
 
-    private function sendTacEmail(string $to, string $subject, string $message): void
+    private function sendTacEmail(string $to, string $subject, string $tac): void
     {
         try {
-            Log::info('Attempting to send TAC email to: ' . $to);
-            Mail::raw($message, function ($mail) use ($to, $subject) {
-                $mail->to($to)
-                    ->from(env('MAIL_FROM_ADDRESS'), env('MAIL_FROM_NAME'))
-                    ->subject($subject);
-            });
-            Log::info('TAC email sent successfully to: ' . $to);
+            Log::info('Attempting to send HTML TAC email to: ' . $to);
+            Mail::to($to)->send(new \App\Mail\TacEmail($tac, $subject, ''));
+            Log::info('HTML TAC email sent successfully to: ' . $to);
         } catch (\Exception $e) {
             Log::error('Failed to send email to ' . $to . ': ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
