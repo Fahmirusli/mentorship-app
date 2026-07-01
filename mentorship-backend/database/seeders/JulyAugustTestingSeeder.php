@@ -15,16 +15,16 @@ class JulyAugustTestingSeeder extends Seeder
         $this->command->info('Starting to generate July-August testing data...');
 
         // 1. Get or create a mentor
-        $mentor = User::where('role', 'mentor')->first();
+        $mentor = User::where('name', 'John Mentor')->where('role', 'mentor')->first();
         if (!$mentor) {
             $mentor = User::create([
-                'name' => 'Testing Mentor',
-                'email' => 'testmentor@example.com',
+                'name' => 'John Mentor',
+                'email' => 'johnmentor@example.com',
                 'password' => bcrypt('password'),
                 'role' => 'mentor',
                 'points' => 0
             ]);
-            $this->command->info("Created a new Testing Mentor (ID: {$mentor->id}).");
+            $this->command->info("Created a new Mentor: John Mentor (ID: {$mentor->id}).");
         }
 
         // 2. Create schedules from today to August 31, 2026
