@@ -65,7 +65,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        if ($cachedTac !== $request->tac) {
+        if ((string) $cachedTac !== (string) $request->tac) {
             return response()->json([
                 'message' => 'Invalid verification code.'
             ], 400);
@@ -183,7 +183,7 @@ class AuthController extends Controller
             ], 400);
         }
 
-        if ($cachedTac !== $request->tac) {
+        if ((string) $cachedTac !== (string) $request->tac) {
             return response()->json([
                 'message' => 'Invalid reset code.'
             ], 400);
@@ -204,7 +204,7 @@ class AuthController extends Controller
 
         $cachedTac = Cache::get("password_reset_{$request->email}");
 
-        if (!$cachedTac || $cachedTac !== $request->tac) {
+        if (!$cachedTac || (string) $cachedTac !== (string) $request->tac) {
             return response()->json([
                 'message' => 'Invalid or expired reset code'
             ], 400);
