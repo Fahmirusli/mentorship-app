@@ -16,6 +16,27 @@ use App\Http\Controllers\Api\FeedbackController;
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+Route::get('/test-search', function(\Illuminate\Http\Request $request) {
+    $skills = $request->input('skills', ['React']);
+    $query = App\Models\User::where('role', 'mentor')
+        ->with('mentorProfile');
+        
+    $query->where(function($q) use ($skills) {
+        foreach ($skills as $skill) {
+            $q->orWhereJsonContains('skills', $skill)
+              ->orWhereHas('mentorProfile', function($mp) use ($skill) {
+                  $mp->whereJsonContains('expertise_areas', $skill);
+              });
+        }
+    });
+    
+    return [
+        'sql' => $query->toSql(),
+        'bindings' => $query->getBindings(),
+        'results' => $query->get()->pluck('name')
+    ];
+});
 Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/resend-verification', [AuthController::class, 'resendVerification']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);

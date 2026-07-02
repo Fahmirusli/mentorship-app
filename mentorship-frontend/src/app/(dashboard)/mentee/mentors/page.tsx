@@ -60,10 +60,24 @@ export default function FindMentors() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [radiusKm, setRadiusKm] = useState(30);
 
-  const expertiseOptions = [
-    'React', 'Node.js', 'Python', 'Machine Learning', 'Data Science',
-    'AWS', 'DevOps', 'UI/UX Design', 'Product Management', 'Mobile Development'
-  ];
+  const [expertiseOptions, setExpertiseOptions] = useState<string[]>([]);
+
+  // Fetch all available skills from the API
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const res = await api.get('/mentors/all-skills');
+        if (Array.isArray(res.data)) {
+          setExpertiseOptions(res.data);
+        } else if (Array.isArray(res)) {
+          setExpertiseOptions(res);
+        }
+      } catch (err) {
+        console.error('Failed to fetch skills:', err);
+      }
+    };
+    fetchSkills();
+  }, []);
 
   // Debounce the search input
   useEffect(() => {

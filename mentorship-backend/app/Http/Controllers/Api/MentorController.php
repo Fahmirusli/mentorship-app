@@ -458,20 +458,24 @@ class MentorController extends Controller
     {
         $mentors = User::where('role', 'mentor')
             ->where('is_active', true)
-            ->whereNotNull('skills')
+            ->with('mentorProfile')
             ->get();
-
+            
         $allSkills = [];
         foreach ($mentors as $mentor) {
-            $skills = $mentor->skills;
-            if (is_string($skills)) {
-                $skills = json_decode($skills, true) ?? [];
-            }
+            $skills = is_string($mentor->skills) ? json_decode($mentor->skills, true) : $mentor->skills;
             if (is_array($skills)) {
                 $allSkills = array_merge($allSkills, $skills);
             }
+            
+            if ($mentor->mentorProfile) {
+                $expertise = is_string($mentor->mentorProfile->expertise_areas) ? json_decode($mentor->mentorProfile->expertise_areas, true) : $mentor->mentorProfile->expertise_areas;
+                if (is_array($expertise)) {
+                    $allSkills = array_merge($allSkills, $expertise);
+                }
+            }
         }
-
+        
         // Unique, sorted skills
         $uniqueSkills = array_values(array_unique($allSkills));
         sort($uniqueSkills);
