@@ -210,11 +210,37 @@ export default function CompleteProfilePage() {
             />
             <button onClick={addSkill} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Add</button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          
+          {/* Suggested Skills */}
+          <div className="mt-2">
+            <p className="text-xs text-gray-500 mb-2">Suggested top skills:</p>
+            <div className="flex flex-wrap gap-2">
+              {['JavaScript', 'TypeScript', 'React.js', 'Node.js', 'Python', 'PHP', 'Laravel', 'Java', 'SQL', 'AWS'].map((skill) => (
+                <button
+                  key={skill}
+                  onClick={() => {
+                    if (!form.skills.includes(skill)) {
+                      setForm((prev) => ({ ...prev, skills: [...prev.skills, skill] }));
+                    }
+                  }}
+                  className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                    form.skills.includes(skill)
+                      ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                      : 'bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300'
+                  }`}
+                  disabled={form.skills.includes(skill)}
+                >
+                  + {skill}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-4">
             {form.skills.map((skill) => (
-              <span key={skill} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+              <span key={skill} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center">
                 {skill}
-                <button className="ml-2" onClick={() => removeSkill(skill)}>x</button>
+                <button className="ml-2 text-indigo-400 hover:text-indigo-600 focus:outline-none" onClick={() => removeSkill(skill)}>x</button>
               </span>
             ))}
           </div>
