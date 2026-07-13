@@ -395,6 +395,27 @@ class ApiService {
     }
   }
 
+  // 10.5 TOGGLE FAVORITE JOB
+  static Future<bool> toggleFavoriteJob(int jobId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/jobs/$jobId/favorite'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // 11. GET JOB RECOMMENDATIONS (NLP matched)
   static Future<List<dynamic>> getJobRecommendations() async {
     try {
@@ -422,6 +443,62 @@ class ApiService {
     } catch (e) {
       print('Job recommendations error: $e');
       return [];
+    }
+  }
+
+  // 12. MENTOR RESOURCES
+  static Future<List<dynamic>> getMentorResources() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/resources'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['resources'] as List?) ?? [];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<bool> uploadMentorResource({
+    required String title,
+    required String description,
+    required String visibility,
+    required String filePath,
+  }) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return false;
+
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/resources'));
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      request.fields['title'] = title;
+      request.fields['description'] = description;
+      request.fields['visibility'] = visibility;
+      
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
     }
   }
 

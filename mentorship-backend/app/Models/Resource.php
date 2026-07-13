@@ -15,6 +15,7 @@ class Resource extends Model
         'description',
         'url',
         'type', // 'link', 'file', 'video'
+        'visibility',
         'downloads_count',
     ];
 

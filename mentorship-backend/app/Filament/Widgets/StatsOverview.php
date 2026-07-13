@@ -40,7 +40,7 @@ class StatsOverview extends BaseWidget
                     ->descriptionIcon('heroicon-m-heart')
                     ->color('warning'),
                     
-                Stat::make('Total Jobs', Job::where('is_active', true)->count())
+                Stat::make('Active Jobs', Job::where('is_active', true)->count())
                     ->description('Available jobs')
                     ->descriptionIcon('heroicon-m-briefcase')
                     ->color('success'),

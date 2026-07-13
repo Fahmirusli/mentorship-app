@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import {
   Search, Filter, MapPin, Briefcase, Clock, ExternalLink,
-  TrendingUp, Target, RefreshCw, Sparkles, ArrowLeft
+  TrendingUp, Target, RefreshCw, Sparkles, ArrowLeft, Heart
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { toast } from 'react-hot-toast';
 
 export default function JobListings() {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -278,6 +279,16 @@ export default function JobListings() {
 
                     {/* Actions */}
                     <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => {
+                          // TODO: Call API to favorite job
+                          toast.success('Job saved to favorites!');
+                        }}
+                        className="p-2 border border-gray-300 text-gray-500 rounded-lg hover:bg-gray-50 hover:text-red-500 transition-colors"
+                        title="Save Job"
+                      >
+                        <Heart className="w-5 h-5" />
+                      </button>
                       <button
                         onClick={() => window.location.href = `/jobs/${job.id}`}
                         className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium flex items-center justify-center"

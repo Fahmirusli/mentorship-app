@@ -18,6 +18,7 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -200,40 +201,54 @@ export function Sidebar({ role }: { role: 'mentor' | 'mentee' }) {
                 <Settings className="w-5 h-5" />
               </button>
 
-              {/* User Profile */}
-              <button
-                onClick={handleProfile}
-                className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer ml-2"
-              >
-                <div className={`w-8 h-8 ${role === 'mentor' ? 'bg-emerald-600' : 'bg-indigo-600'} rounded-full flex items-center justify-center`}>
-                  {user?.profile_image ? (
-                    <img
-                      src={user.profile_image}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-4 h-4 text-white" />
-                  )}
-                </div>
-                <div className="hidden lg:block">
-                  <p className="text-xs font-semibold text-white">
-                    {user?.name || 'User'}
-                  </p>
-                </div>
-              </button>
+              {/* User Profile Dropdown */}
+              <div className="relative ml-2">
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer"
+                >
+                  <div className={`w-8 h-8 ${role === 'mentor' ? 'bg-emerald-600' : 'bg-indigo-600'} rounded-full flex items-center justify-center`}>
+                    {user?.profile_image ? (
+                      <img
+                        src={user.profile_image}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-4 h-4 text-white" />
+                    )}
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-xs font-semibold text-white">
+                      {user?.name || 'User'}
+                    </p>
+                  </div>
+                </button>
 
-              {/* Logout */}
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="flex items-center space-x-2 px-3 py-2 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <LogOut className="w-4 h-4" />
-                <span className="text-sm font-medium hidden lg:block">
-                  {isLoggingOut ? 'Logging out...' : 'Logout'}
-                </span>
-              </button>
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-lg shadow-lg py-1 border border-slate-700/50 z-50">
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        handleProfile();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700 hover:text-white flex items-center space-x-2"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>My Profile</span>
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Mobile Menu Button */}

@@ -1,0 +1,1624 @@
+﻿========== 2014_10_12_000000_create_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('users');
+    }
+};
+
+========== 2014_10_12_100000_create_password_reset_tokens_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('password_reset_tokens');
+    }
+};
+
+========== 2019_08_19_000000_create_failed_jobs_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('uuid')->unique();
+            $table->text('connection');
+            $table->text('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->useCurrent();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('failed_jobs');
+    }
+};
+
+========== 2019_12_14_000001_create_personal_access_tokens_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('personal_access_tokens', function (Blueprint $table) {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('personal_access_tokens');
+    }
+};
+
+========== 2026_01_02_194126_add_fields_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->enum('role', ['admin', 'mentor', 'mentee'])->default('mentee');
+            $table->string('phone')->nullable();
+            $table->text('bio')->nullable();
+            $table->json('skills')->nullable();
+            $table->json('interests')->nullable();
+            $table->string('profile_image')->nullable();
+            $table->boolean('is_active')->default(true);
+
+
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+             $table->dropColumn(['role', 'phone', 'bio', 'skills', 'interests', 'profile_image', 'is_active']);
+        });
+    }
+};
+
+========== 2026_01_02_195019_create_mentee_profiles_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('mentee_profiles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->json('current_skills')->nullable();
+            $table->json('skills_to_learn')->nullable();
+            $table->text('career_goals')->nullable();
+            $table->string('education_level')->nullable();
+            $table->string('field_of_study')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('mentee_profiles');
+    }
+};
+
+========== 2026_01_02_195019_create_mentorships_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('mentorships', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentor_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('mentee_id')->constrained('users')->onDelete('cascade');
+            $table->enum('status', ['pending', 'active', 'completed', 'cancelled'])->default('pending');
+            $table->text('goals')->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('mentorships');
+    }
+};
+
+========== 2026_01_02_195019_create_mentor_profiles_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('mentor_profiles', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->json('expertise_areas')->nullable();
+            $table->string('industry')->nullable();
+            $table->string('job_title')->nullable();
+            $table->string('company')->nullable();
+            $table->integer('years_of_experience')->default(0);
+            $table->text('mentorship_approach')->nullable();
+            $table->boolean('is_available')->default(true);
+            $table->decimal('rating', 3, 2)->default(0.00);
+            $table->integer('total_mentees')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('mentor_profiles');
+    }
+};
+
+========== 2026_01_02_195020_create_appointments_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('appointments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentorship_id')->constrained()->onDelete('cascade');
+            $table->dateTime('scheduled_at');
+            $table->integer('duration_minutes')->default(60);
+            $table->enum('status', ['scheduled', 'completed', 'cancelled', 'rescheduled'])->default('scheduled');
+            $table->text('meeting_link')->nullable();
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('appointments');
+    }
+};
+
+========== 2026_01_02_195020_create_feedback_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('feedback', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentorship_id')->constrained()->onDelete('cascade');
+            $table->foreignId('appointment_id')->nullable()->constrained()->onDelete('cascade');
+            $table->foreignId('from_user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('to_user_id')->constrained('users')->onDelete('cascade');
+            $table->integer('rating')->default(0);
+            $table->text('comment')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('feedback');
+    }
+};
+
+========== 2026_01_02_195020_create_jobs_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('jobs', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->string('company');
+            $table->text('description');
+            $table->json('required_skills')->nullable();
+            $table->string('location')->nullable();
+            $table->string('job_type')->nullable();
+            $table->string('experience_level')->nullable();
+            $table->string('salary_range')->nullable();
+            $table->string('source_platform');
+            $table->string('source_url');
+            $table->date('posted_date')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+
+            $table->index(['source_platform', 'created_at']);
+            $table->index('title');
+            $table->index('company');
+            $table->index('posted_date');
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('jobs');
+    }
+};
+
+========== 2026_01_02_195308_create_schedules_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('schedules', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentor_id')->constrained('users')->onDelete('cascade');
+            $table->string('day_of_week');
+            $table->time('start_time');
+            $table->time('end_time');
+            $table->boolean('is_available')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('schedules');
+    }
+};
+
+========== 2026_01_03_184129_addd_indexes_for_perfomance.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        // Add indexes to frequently queried columns
+        Schema::table('users', function (Blueprint $table) {
+            $table->index('role');
+        });
+
+        Schema::table('mentorships', function (Blueprint $table) {
+            $table->index('status');
+            $table->index('created_at');
+        });
+
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->index('is_active');
+            // $table->index('source_platform'); // Already indexed in create_jobs_table (composite or otherwise)
+            // $table->index('posted_date'); // Already indexed in create_jobs_table
+        });
+
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->index('status');
+            $table->index('scheduled_at');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropIndex(['role']);
+        });
+
+        Schema::table('mentorships', function (Blueprint $table) {
+            $table->dropIndex(['status']);
+            $table->dropIndex(['created_at']);
+        });
+
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->dropIndex(['is_active']);
+            $table->dropIndex(['source_platform']);
+            $table->dropIndex(['posted_date']);
+        });
+
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->dropIndex(['status']);
+            $table->dropIndex(['scheduled_at']);
+        });
+    }
+};
+
+========== 2026_01_22_203037_add_oauth_fields_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('google_id')->nullable()->after('email');
+            $table->string('linkedin_id')->nullable()->after('google_id');
+            $table->string('avatar')->nullable()->after('linkedin_id');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['google_id', 'linkedin_id', 'avatar']);
+        });
+    }
+};
+
+========== 2026_01_22_214911_create_sessions_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('sessions');
+    }
+};
+
+========== 2026_01_22_221813_add_source_to_jobs_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            //
+        });
+    }
+};
+
+========== 2026_01_22_224624_make_legacy_job_columns_nullable.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        //
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        //
+    }
+};
+
+========== 2026_01_23_010221_update_schedules_table_add_date.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('schedules', function (Blueprint $table) {
+            $table->date('date')->nullable()->after('day_of_week');
+            $table->integer('day_of_week')->nullable()->change();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        //
+    }
+};
+
+========== 2026_01_23_010224_create_resources_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('resources', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentor_id')->constrained('users')->onDelete('cascade');
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->string('url');
+            $table->string('type')->default('link'); // link, file, video
+            $table->integer('downloads_count')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('resources');
+    }
+};
+
+========== 2026_01_23_011605_add_fee_to_appointments_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->decimal('fee', 10, 2)->nullable()->after('status');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->dropColumn('fee');
+        });
+    }
+};
+
+========== 2026_01_23_012633_add_hourly_rate_to_mentor_profiles.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('mentor_profiles', function (Blueprint $table) {
+            $table->decimal('hourly_rate', 10, 2)->default(50.00)->after('company');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('mentor_profiles', function (Blueprint $table) {
+            $table->dropColumn('hourly_rate');
+        });
+    }
+};
+
+========== 2026_01_23_061255_add_source_to_jobs_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            if (!Schema::hasColumn('jobs', 'source')) {
+                $table->string('source')->nullable();
+            }
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->dropColumn('source');
+        });
+    }
+};
+
+========== 2026_01_23_064500_fix_jobs_table_columns.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            // Add missing columns if they don't exist
+            if (!Schema::hasColumn('jobs', 'source')) {
+                $table->string('source')->nullable();
+            }
+            if (!Schema::hasColumn('jobs', 'external_url')) {
+                $table->string('external_url')->nullable();
+            }
+            if (!Schema::hasColumn('jobs', 'salary')) {
+                $table->string('salary')->nullable();
+            }
+            if (!Schema::hasColumn('jobs', 'requirements')) {
+                $table->text('requirements')->nullable();
+            }
+            
+            // Make columns nullable
+            $table->text('description')->nullable()->change();
+            $table->string('company')->nullable()->change();
+            $table->string('location')->nullable()->change();
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->dropColumn(['source', 'external_url', 'salary', 'requirements']);
+        });
+    }
+};
+
+========== 2026_01_23_065000_make_legacy_job_columns_nullable.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            if (Schema::hasColumn('jobs', 'source_platform')) {
+                $table->string('source_platform')->nullable()->change();
+            }
+            if (Schema::hasColumn('jobs', 'source_url')) {
+                $table->string('source_url')->nullable()->change();
+            }
+            if (Schema::hasColumn('jobs', 'salary_range')) {
+                $table->string('salary_range')->nullable()->change();
+            }
+            if (Schema::hasColumn('jobs', 'required_skills')) {
+                $table->text('required_skills')->nullable()->change();
+            }
+        });
+    }
+
+    public function down()
+    {
+        // No need to revert specifically for this fix
+    }
+};
+
+========== 2026_01_23_080000_change_external_url_to_text_in_jobs_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->text('external_url')->change();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('jobs', function (Blueprint $table) {
+            $table->string('external_url', 255)->change();
+        });
+    }
+};
+
+========== 2026_01_23_090000_add_payment_fields_to_appointments_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->string('payment_status')->default('pending')->after('status'); // pending, paid, failed
+            $table->string('bill_code')->nullable()->after('payment_status');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->dropColumn(['payment_status', 'bill_code']);
+        });
+    }
+};
+
+========== 2026_02_01_000000_add_github_id_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('github_id')->nullable()->after('linkedin_id');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['github_id']);
+        });
+    }
+};
+
+========== 2026_02_01_154422_create_transactions_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('transactions', function (Blueprint $table) {
+            $table->id();
+            $table->string('bill_code')->unique();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null'); // Payer
+            $table->foreignId('appointment_id')->nullable()->constrained()->onDelete('set null');
+            $table->decimal('amount', 10, 2);
+            $table->string('status')->default('pending'); // paid, pending, failed
+            $table->string('payment_provider')->default('toyyibpay');
+            $table->json('payment_metadata')->nullable(); // Store full callback
+            $table->timestamp('paid_at')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('transactions');
+    }
+};
+
+========== 2026_02_04_131402_add_resume_path_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            //
+        });
+    }
+};
+
+========== 2026_02_04_184747_create_favorites_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('favorites', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('mentor_id')->constrained('users')->onDelete('cascade');
+            $table->timestamps();
+            
+            $table->unique(['user_id', 'mentor_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('favorites');
+    }
+};
+
+========== 2026_02_04_194309_add_telegram_chat_id_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('telegram_chat_id')->nullable()->after('phone');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('telegram_chat_id');
+        });
+    }
+};
+
+========== 2026_02_04_195815_add_is_verified_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->boolean('is_verified')->default(false)->after('is_active');
+            $table->timestamp('verified_at')->nullable()->after('is_verified');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['is_verified', 'verified_at']);
+        });
+    }
+};
+
+========== 2026_02_05_000001_add_payment_fields_to_appointments.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        // Check if columns exist before adding them
+        if (!Schema::hasColumn('appointments', 'mentor_id')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->foreignId('mentor_id')->nullable()->after('mentorship_id')->constrained('users')->onDelete('cascade');
+            });
+        }
+        
+        if (!Schema::hasColumn('appointments', 'mentee_id')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->foreignId('mentee_id')->nullable()->after('mentor_id')->constrained('users')->onDelete('cascade');
+            });
+        }
+        
+        if (!Schema::hasColumn('appointments', 'fee')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->decimal('fee', 10, 2)->nullable()->after('duration_minutes');
+            });
+        }
+        
+        if (!Schema::hasColumn('appointments', 'bill_code')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->string('bill_code')->nullable()->after('fee');
+            });
+        }
+        
+        if (!Schema::hasColumn('appointments', 'payment_status')) {
+            Schema::table('appointments', function (Blueprint $table) {
+                $table->enum('payment_status', ['pending', 'paid', 'failed', 'refunded'])->default('pending')->after('bill_code');
+            });
+        }
+        
+        // Modify status enum using raw SQL to avoid doctrine/dbal enum issue
+        DB::statement("ALTER TABLE appointments MODIFY COLUMN status ENUM('pending_payment', 'scheduled', 'completed', 'cancelled', 'rescheduled') DEFAULT 'pending_payment'");
+    }
+
+    public function down()
+    {
+        Schema::table('appointments', function (Blueprint $table) {
+            $table->dropForeign(['mentor_id']);
+            $table->dropForeign(['mentee_id']);
+            $table->dropColumn(['mentor_id', 'mentee_id', 'fee', 'bill_code', 'payment_status']);
+        });
+        
+        // Restore original status enum
+        DB::statement("ALTER TABLE appointments MODIFY COLUMN status ENUM('scheduled', 'completed', 'cancelled', 'rescheduled') DEFAULT 'scheduled'");
+    }
+};
+
+========== 2026_02_06_000001_add_address_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'address')) {
+                $table->string('address')->nullable()->after('phone');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'address')) {
+                $table->dropColumn('address');
+            }
+        });
+    }
+};
+
+========== 2026_05_14_000001_add_fee_to_schedules.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('schedules', function (Blueprint $table) {
+            if (!Schema::hasColumn('schedules', 'fee')) {
+                $table->decimal('fee', 8, 2)->default(50.00)->after('is_available');
+            }
+            if (!Schema::hasColumn('schedules', 'total_slots')) {
+                $table->integer('total_slots')->default(1)->after('fee');
+            }
+            if (!Schema::hasColumn('schedules', 'booked_slots')) {
+                $table->integer('booked_slots')->default(0)->after('total_slots');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('schedules', function (Blueprint $table) {
+            $table->dropColumn(['fee', 'total_slots', 'booked_slots']);
+        });
+    }
+};
+
+========== 2026_05_14_000001_create_messaging_and_notifications_tables.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // Conversations table - tracks who is chatting with whom
+        Schema::create('conversations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_one_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('user_two_id')->constrained('users')->onDelete('cascade');
+            $table->timestamp('last_message_at')->nullable();
+            $table->timestamps();
+
+            $table->unique(['user_one_id', 'user_two_id']);
+            $table->index('last_message_at');
+        });
+
+        // Messages table - stores all chat messages
+        Schema::create('messages', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('conversation_id')->constrained()->onDelete('cascade');
+            $table->foreignId('sender_id')->constrained('users')->onDelete('cascade');
+            $table->text('body');
+            $table->boolean('is_read')->default(false);
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['conversation_id', 'created_at']);
+            $table->index(['sender_id', 'is_read']);
+        });
+
+        // Notifications table
+        Schema::create('notifications_log', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('type'); // e.g. 'message', 'appointment', 'system'
+            $table->string('title');
+            $table->text('body');
+            $table->json('data')->nullable(); // Extra metadata (sender_id, appointment_id, etc.)
+            $table->boolean('is_read')->default(false);
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['user_id', 'is_read']);
+            $table->index(['user_id', 'created_at']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('messages');
+        Schema::dropIfExists('conversations');
+        Schema::dropIfExists('notifications_log');
+    }
+};
+
+========== 2026_06_04_000001_create_job_scrape_schedules_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('job_scrape_schedules', function (Blueprint $table) {
+            $table->id();
+            $table->string('run_time', 5);
+            $table->string('timezone')->default('Asia/Kuala_Lumpur');
+            $table->string('keyword')->nullable();
+            $table->boolean('enabled')->default(true);
+            $table->timestamp('last_run_at')->nullable();
+            $table->string('last_run_status')->nullable();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('job_scrape_schedules');
+    }
+};
+
+========== 2026_06_07_160000_expand_media_columns_for_database_storage.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->longText('profile_image')->nullable()->change();
+            $table->longText('resume_path')->nullable()->change();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('profile_image')->nullable()->change();
+            $table->string('resume_path')->nullable()->change();
+        });
+    }
+};
+
+========== 2026_06_14_120000_add_state_and_postcode_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (!Schema::hasColumn('users', 'state')) {
+                $table->string('state')->nullable()->after('address');
+            }
+            if (!Schema::hasColumn('users', 'postcode')) {
+                $table->string('postcode', 20)->nullable()->after('state');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            if (Schema::hasColumn('users', 'postcode')) {
+                $table->dropColumn('postcode');
+            }
+            if (Schema::hasColumn('users', 'state')) {
+                $table->dropColumn('state');
+            }
+        });
+    }
+};
+
+========== 2026_06_20_180345_create_badges_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('badges', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('description');
+            $table->string('icon_url')->nullable();
+            $table->integer('required_points')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('badges');
+    }
+};
+
+========== 2026_06_20_180356_create_user_badges_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('user_badges', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('badge_id')->constrained()->cascadeOnDelete();
+            $table->timestamps();
+            
+            $table->unique(['user_id', 'badge_id']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('user_badges');
+    }
+};
+
+========== 2026_06_20_180407_add_points_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->integer('points')->default(0)->after('profile_image');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('points');
+        });
+    }
+};
+
+========== 2026_06_21_081043_create_courses_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('courses', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentor_id')->constrained('users')->onDelete('cascade');
+            $table->string('title');
+            $table->text('description');
+            $table->decimal('price', 8, 2);
+            $table->json('tags')->nullable();
+            $table->json('syllabus')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('courses');
+    }
+};
+
+========== 2026_06_21_081054_create_course_enrollments_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('course_enrollments', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mentee_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('course_id')->constrained('courses')->onDelete('cascade');
+            $table->integer('progress_percent')->default(0);
+            $table->json('completed_tasks')->nullable();
+            $table->string('status')->default('active'); // active, completed
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('course_enrollments');
+    }
+};
+
+========== 2026_06_21_194513_create_course_submissions_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('course_submissions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('course_enrollment_id')->constrained('course_enrollments')->onDelete('cascade');
+            $table->integer('task_index');
+            $table->string('file_url')->nullable();
+            $table->string('link')->nullable();
+            $table->text('notes')->nullable();
+            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->text('mentor_feedback')->nullable();
+            $table->timestamps();
+
+            // A mentee can only have one active/approved submission per task per enrollment
+            $table->unique(['course_enrollment_id', 'task_index']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('course_submissions');
+    }
+};
+
+========== 2026_06_22_144603_add_missed_status_and_wallet_tables.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        // 1. Add missed to appointments status ENUM
+        DB::statement("ALTER TABLE appointments MODIFY COLUMN status ENUM('pending_payment', 'scheduled', 'completed', 'cancelled', 'rescheduled', 'missed') DEFAULT 'pending_payment'");
+
+        // 2. Add wallet_balance to users table
+        if (!Schema::hasColumn('users', 'wallet_balance')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->decimal('wallet_balance', 10, 2)->default(0)->after('role');
+            });
+        }
+
+        // 3. Create wallet_transactions table
+        if (!Schema::hasTable('wallet_transactions')) {
+            Schema::create('wallet_transactions', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->onDelete('cascade');
+                $table->foreignId('appointment_id')->nullable()->constrained('appointments')->onDelete('set null');
+                $table->decimal('amount', 10, 2);
+                $table->enum('type', ['credit', 'debit']);
+                $table->string('description');
+                $table->timestamps();
+            });
+        }
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('wallet_transactions');
+        
+        if (Schema::hasColumn('users', 'wallet_balance')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropColumn('wallet_balance');
+            });
+        }
+
+        DB::statement("ALTER TABLE appointments MODIFY COLUMN status ENUM('pending_payment', 'scheduled', 'completed', 'cancelled', 'rescheduled') DEFAULT 'pending_payment'");
+    }
+};
+
+========== 2026_06_24_222042_create_withdrawal_requests_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('withdrawal_requests', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->decimal('amount', 10, 2);
+            $table->string('bank_name');
+            $table->string('account_number');
+            $table->string('account_name');
+            $table->enum('status', ['pending', 'approved', 'rejected', 'paid'])->default('pending');
+            $table->text('admin_notes')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('withdrawal_requests');
+    }
+};
+
+========== 2026_06_28_200359_add_fcm_token_to_users_table.php ==========
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('fcm_token')->nullable()->after('password');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('fcm_token');
+        });
+    }
+};
+
+========== [date]_add_resume_path_to_users_table.php ==========
+

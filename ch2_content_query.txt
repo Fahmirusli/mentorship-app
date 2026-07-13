@@ -1,0 +1,115 @@
+﻿<USER_REQUEST>
+Based on this project, I want to create a report in English (write it like someone got 3.5 in their MuET). Elaborate in each point if need. Give me full report based on what i gave.
+
+The report consists of 5 chapters
+CHAPTER ONE: INTRODUCTION
+
+1.1 Project Background	
+1.2 Problem Statement	
+1.2.1 Lack Of Access To Structured Mentorship Opportunities.	
+1.2.2 Fragmented Job Discovery Across Multiple Platforms.	
+1.2.3 Difficult Finding Jobs That Match the Specific Skills the Company Needs.	
+1.3 Project Aim	
+1.4 Objective
+1.5 Scope	
+1.5.1 Target Users	
+1.5.2 Functionality	
+1.5.3 Technology	
+1.5.4 Technique	
+1.6 Significance	
+1.6.1 People Have a Platform That Helps with Their Future Work.
+1.6.2 Easier for Them To Find Available Jobs on One Platform.
+1.6.3 Students Know The Real-Time Skills Used For That Particular Job.	
+
+CHAPTER TWO: LITERATURE REVIEW
+2.1 Overview of Mentor-Mentee Systems	
+2.1.1 Definition and Purpose of Mentorship Platforms	
+2.2 Web Application	
+2.3 Framework	
+2.3.1 Model-View-Controller (MVC)	
+2.3.2 Clientâ€“Server Model	
+2.3.3 RESTful API Concept	
+2.4 Technology Stack Review	
+2.4.1 Frontend Technologies (Next.js)	
+2.4.2 Backend Technologies (Laravel)
+2.4.3 Database Systems (MySQL)	
+2.4.4 Authentication Of The System (OAuth)	
+2.4.5 Toyyib Pay API	
+2.5 Web Scraping	
+2.5.1 Concept of Web Scraping	
+2.5.2 Tools and Techniques (BeautifulSoup, Scrapy, Selenium(Check if i used this in my system))	
+2.5.3 Ethical and Legal Considerations in Web Scraping	
+2.5.4 Integration of Web Scraping in Mentorship Systems	
+2.6 Recommendation Technique	
+2.6.1 Overview of Recommendation Systems	
+2.6.2 Content-Based Filtering Approach	
+2.6.3 Skill-Based Matching Algorithms	
+2.6.4 Machine Learning Techniques Used in Job Recommendation	
+2.8 Related Work	
+2.8.1 ADPList (Mentorâ€“Mentee Platform)	
+2.8.2 LinkedIn Job Recommendation	
+2.8.3 Bondfire Malaysia	
+2.8.4 Comparison with the Project	
+
+CHAPTER THREE:   METHODOLOGY
+3.1 Project Methodology	
+3.2 Project Framework	
+3.3 Requirement Analysis	
+3.3.1 Gathered All Information.	
+3.3.2 Planned Application Features, Including The Method To Be Used In Web Application Development.	
+3.3.3 Design Use Case Diagram	
+3.3.4 Hardware Requirements	
+3.3.6 Software Requirements	
+3.4 Application Design	
+3.4.1 Design Flowchart	
+3.4.2 Design Entity Relationships Diagram	
+3.4.3 Interface Design	
+3.4.4 Logical Design	
+3.4.5 Create a Gantt chart.	
+3.5 Application Development	
+3.5.1 Develop Module	
+3.6 Testing	
+3.6.1 Functionality Test	
+3.6.2 User Acceptance Test	
+3.7 Documentation	
+3.7.1 Project Milestones	
+3.8 Summary	
+
+CHAPTER 4: ANALYSIS AND DISCUSSION 
+4.1 Interface Result 
+4.1.1 User Interface (mentor and mentee)
+4.1.2 Admin Interface (tell me what I should put other than the listed interface in 4.1)
+4.2 Overview of the Database
+4.2.1 Database Creation 
+4.2.2 Database Design Summary 
+4.3 Backend Processes (Talk about all the backend processes that I have in this project: payment gateway, web scraping, Geolocation, etc), all of it, let me decide after that what to do.
+4.4 Deployment Process (All the processes)
+4.5 Testing Result 
+4.5.1 Functionality Test 
+4.5.2 User Acceptance Test 
+4.5.3 Accuracy Test 
+4.6 Summary
+
+Chapter 5: Conclusion (elaborate on each point )
+5.1 Conclusion (mapped with objectives)
+5.2 Strength of the system
+5.3 Limitations of the system
+5.4 Future works/recommendations for enhancement
+5.5 Summary
+
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-06-27T02:29:45+08:00.
+
+The user's current state is as follows:
+Other open documents:
+- c:\Users\arefa\OneDrive\Desktop\Web\Backend Project\mentorship-frontend\src\app\(dashboard)\mentee\jobs\page.tsx (LANGUAGE_TSX)
+- c:\Users\arefa\OneDrive\Desktop\Web\Backend Project\mentorship-frontend\src\components\dashboard\Sidebar.tsx (LANGUAGE_TSX)
+- c:\Users\arefa\OneDrive\Desktop\Web\Backend Project\mobile\lib\screens\mentor\earnings_screen.dart (LANGUAGE_DART)
+- c:\Users\arefa\OneDrive\Desktop\Web\Backend Project\mentorship-backend\database\migrations\2026_06_21_081054_create_course_enrollments_table.php (LANGUAGE_PHP)
+- c:\Users\arefa\OneDrive\Desktop\Web\Backend Project\mentorship-frontend\src\components\mentors\MentorCard.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

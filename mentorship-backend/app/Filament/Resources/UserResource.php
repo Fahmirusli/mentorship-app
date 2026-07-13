@@ -87,6 +87,10 @@ class UserResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
+                Tables\Columns\IconColumn::make('is_verified')
+                    ->boolean()
+                    ->sortable()
+                    ->label('Verified'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -101,8 +105,36 @@ class UserResource extends Resource
                     ]),
                 Tables\Filters\TernaryFilter::make('is_active')
                     ->label('Active Status'),
+                Tables\Filters\TernaryFilter::make('is_verified')
+                    ->label('Verified Status'),
             ])
             ->actions([
+                Tables\Actions\Action::make('verify')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->label('Verify')
+                    ->requiresConfirmation()
+                    ->visible(fn (User $record): bool => !$record->is_verified)
+                    ->action(function (User $record) {
+                        $record->update(['is_verified' => true, 'verified_at' => now()]);
+                        \Filament\Notifications\Notification::make()
+                            ->title('User verified successfully')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('unverify')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('danger')
+                    ->label('Unverify')
+                    ->requiresConfirmation()
+                    ->visible(fn (User $record): bool => (bool) $record->is_verified)
+                    ->action(function (User $record) {
+                        $record->update(['is_verified' => false, 'verified_at' => null]);
+                        \Filament\Notifications\Notification::make()
+                            ->title('User unverified successfully')
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),

@@ -10,6 +10,7 @@ import '../shared/session_detail_screen.dart';
 import 'mentor_availability_screen.dart';
 import 'mentor_mentees_screen.dart';
 import 'earnings_screen.dart';
+import 'resources_screen.dart';
 
 class MentorDashboard extends StatefulWidget {
   final VoidCallback onLogout;
@@ -349,6 +350,48 @@ class _MentorDashboardState extends State<MentorDashboard> {
                     ),
                   ),
                 ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1),
+
+                const SizedBox(height: 30),
+
+                // MY RESOURCES
+                const Text("My Resources", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 15),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MentorResourcesScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10)],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.folder_shared, color: Color(0xFF2E7D32)),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Manage Resources",
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              Text("Upload and share files with mentees",
+                                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF2E7D32)),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 500.ms).slideY(begin: 0.1),
               ],
             ),
           ),

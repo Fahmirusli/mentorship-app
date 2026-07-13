@@ -40,12 +40,14 @@ class ResourceController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'type' => 'required|in:link,file,video',
+            'visibility' => 'required|in:public,private,mentees_only',
             'url' => 'required_without:file|string',
             'file' => 'required_without:url|file|mimes:pdf,doc,docx,ppt,pptx,xls,xlsx,csv,txt,zip,jpg,jpeg,png,mp4|max:204800',
         ]);
 
         $url = $validated['url'] ?? '';
         $type = $validated['type'];
+        $visibility = $validated['visibility'] ?? 'public';
 
         if ($request->hasFile('file')) {
             $path = $request->file('file')->store('resources', 'public');
@@ -59,6 +61,7 @@ class ResourceController extends Controller
             'description' => $validated['description'] ?? null,
             'url' => $url,
             'type' => $type,
+            'visibility' => $visibility,
         ]);
 
         return response()->json($resource, 201);

@@ -18,8 +18,12 @@ class Kernel extends ConsoleKernel
         $schedule->command('jobs:scrape-scheduled')
             ->everyMinute()
             ->emailOutputOnFailure('admin@example.com');
-        
-
+            
+        // Auto-hide jobs older than 10 days
+        $schedule->call(function () {
+            \App\Models\Job::where('created_at', '<=', now()->subDays(10))
+                ->update(['is_active' => false]);
+        })->daily();
     }
 
     protected function commands()

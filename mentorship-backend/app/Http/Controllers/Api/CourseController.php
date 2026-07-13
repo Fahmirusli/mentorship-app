@@ -227,6 +227,15 @@ class CourseController extends Controller
             $submission->save();
         }
 
+        // Notify the Mentor
+        \App\Models\NotificationLog::notify(
+            $enrollment->course->mentor_id,
+            'submission',
+            'New Course Submission',
+            "{$user->name} has submitted task #{$taskIndex} for {$enrollment->course->title}.",
+            ['course_id' => $enrollment->course->id, 'enrollment_id' => $enrollment->id]
+        );
+
         return response()->json(['message' => 'Task submitted successfully', 'submission' => $submission]);
     }
 

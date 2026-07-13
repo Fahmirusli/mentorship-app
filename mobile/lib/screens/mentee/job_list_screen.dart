@@ -16,6 +16,7 @@ class _JobListScreenState extends State<JobListScreen> {
   bool _isLoading = true;
   bool _showRecommended = true;
   final TextEditingController _searchController = TextEditingController();
+  final Set<int> _favoriteJobIds = {};
 
   @override
   void initState() {
@@ -321,27 +322,63 @@ class _JobListScreenState extends State<JobListScreen> {
                 ],
               ),
             ),
-            // Match score badge (if recommended)
-            if (matchScore != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF43E97B), Color(0xFF38F9D7)]),
-                  borderRadius: BorderRadius.circular(12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    _favoriteJobIds.contains(job['id']) ? Icons.favorite : Icons.favorite_border,
+                    color: _favoriteJobIds.contains(job['id']) ? Colors.red : Colors.grey,
+                    size: 22,
+                  ),
+                  onPressed: () async {
+                    final jobId = job['id'];
+                    if (jobId == null) return;
+                    setState(() {
+                      if (_favoriteJobIds.contains(jobId)) {
+                        _favoriteJobIds.remove(jobId);
+                      } else {
+                        _favoriteJobIds.add(jobId);
+                      }
+                    });
+                    final success = await ApiService.toggleFavoriteJob(jobId);
+                    if (!success && mounted) {
+                      // Revert on failure
+                      setState(() {
+                        if (_favoriteJobIds.contains(jobId)) {
+                          _favoriteJobIds.remove(jobId);
+                        } else {
+                          _favoriteJobIds.add(jobId);
+                        }
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update favorite')));
+                    }
+                  },
                 ),
-                child: Text(
-                  "${matchScore.toStringAsFixed(0)}%",
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
-                ),
-              )
-            else
-              const Icon(Icons.arrow_forward_ios,
-                  size: 14, color: Colors.grey),
+                if (matchScore != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: [Color(0xFF43E97B), Color(0xFF38F9D7)]),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${matchScore.toStringAsFixed(0)}%",
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8.0),
+                    child: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  ),
+              ],
+            ),
           ],
         ),
       ),

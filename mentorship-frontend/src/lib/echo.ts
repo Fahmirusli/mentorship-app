@@ -16,10 +16,10 @@ export const getEcho = () => {
   return new Echo({
     broadcaster: 'pusher',
     key: process.env.NEXT_PUBLIC_PUSHER_APP_KEY || 'app-key',
-    wsHost: process.env.NEXT_PUBLIC_PUSHER_HOST || '168.144.43.160',
+    wsHost: process.env.NEXT_PUBLIC_PUSHER_HOST || '127.0.0.1',
     wsPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 6001),
     wssPort: Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 6001),
-    forceTLS: false,
+    forceTLS: process.env.NEXT_PUBLIC_PUSHER_SCHEME === 'https',
     disableStats: true,
     cluster: 'mt1',
     authorizer: (channel: any, options: any) => {

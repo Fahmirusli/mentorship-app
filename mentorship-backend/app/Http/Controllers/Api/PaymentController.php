@@ -401,6 +401,18 @@ class PaymentController extends Controller
             if ($status == 1) {
                 $transaction->update(['status' => 'paid', 'paid_at' => now()]);
                 $enrollment->update(['status' => 'active']);
+
+                // Credit the mentor's wallet
+                $mentor = $enrollment->course->mentor;
+                if ($mentor) {
+                    $mentor->increment('wallet_balance', $transaction->amount);
+                    \App\Models\WalletTransaction::create([
+                        'user_id' => $mentor->id,
+                        'amount' => $transaction->amount,
+                        'type' => 'credit',
+                        'description' => 'Sale of Course: ' . $enrollment->course->title,
+                    ]);
+                }
             } else if ($status == 3) {
                 $transaction->update(['status' => 'failed']);
                 $enrollment->delete();

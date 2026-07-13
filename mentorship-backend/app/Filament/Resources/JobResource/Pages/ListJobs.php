@@ -16,4 +16,15 @@ class ListJobs extends ListRecords
             Actions\CreateAction::make(),
         ];
     }
+
+    public function getTabs(): array
+    {
+        return [
+            'all' => \Filament\Resources\Components\Tab::make('All Jobs'),
+            'active' => \Filament\Resources\Components\Tab::make('Active Jobs')
+                ->modifyQueryUsing(fn ($query) => $query->where('is_active', true)),
+            'inactive' => \Filament\Resources\Components\Tab::make('Inactive Jobs')
+                ->modifyQueryUsing(fn ($query) => $query->where('is_active', false)),
+        ];
+    }
 }

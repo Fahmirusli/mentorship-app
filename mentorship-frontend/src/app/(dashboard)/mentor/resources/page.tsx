@@ -10,6 +10,7 @@ type ResourceItem = {
     description?: string | null;
     url: string;
     type: 'link' | 'file' | 'video';
+    visibility?: 'public' | 'private' | 'mentees_only';
     downloads_count?: number;
     created_at?: string;
 };
@@ -25,6 +26,7 @@ export default function MentorResources() {
         description: '',
         url: '',
         type: 'link' as ResourceItem['type'],
+        visibility: 'public' as ResourceItem['visibility'],
     });
     const [file, setFile] = useState<File | null>(null);
     const [saving, setSaving] = useState(false);
@@ -74,6 +76,7 @@ export default function MentorResources() {
                     formData.append('description', form.description);
                 }
                 formData.append('type', 'file');
+                formData.append('visibility', form.visibility ?? 'public');
                 formData.append('file', file as File);
                 created = await api.post<ResourceItem>('/resources', formData);
             } else {
@@ -81,7 +84,7 @@ export default function MentorResources() {
             }
 
             setResources((prev) => [created, ...prev]);
-            setForm({ title: '', description: '', url: '', type: 'link' });
+            setForm({ title: '', description: '', url: '', type: 'link', visibility: 'public' });
             setFile(null);
             setShowModal(false);
         } catch (err: any) {
@@ -161,9 +164,16 @@ export default function MentorResources() {
                                         <Download className="w-4 h-4 mr-1" />
                                         {resource.downloads_count ?? 0} downloads
                                     </span>
-                                    <span className="uppercase text-xs font-semibold bg-gray-100 px-2 py-1 rounded">
-                                        {resource.type}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        {resource.visibility && (
+                                            <span className="uppercase text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-1 rounded">
+                                                {resource.visibility.replace('_', ' ')}
+                                            </span>
+                                        )}
+                                        <span className="uppercase text-xs font-semibold bg-gray-100 px-2 py-1 rounded">
+                                            {resource.type}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -215,6 +225,19 @@ export default function MentorResources() {
                                     <option value="link">Link</option>
                                     <option value="file">File</option>
                                     <option value="video">Video</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+                                <select
+                                    value={form.visibility}
+                                    onChange={(e) => setForm({ ...form, visibility: e.target.value as ResourceItem['visibility'] })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                >
+                                    <option value="public">Public</option>
+                                    <option value="private">Private</option>
+                                    <option value="mentees_only">Mentees Only</option>
                                 </select>
                             </div>
 

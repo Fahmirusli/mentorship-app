@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../services/api_service.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -146,6 +148,90 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
+  void _showReviewDialog(int appointmentId) {
+    double _rating = 5.0;
+    final _commentsController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        bool _isSubmitting = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text("Leave a Review", style: TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("How was your mentorship session?", style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 20),
+                    RatingBar.builder(
+                      initialRating: 5,
+                      minRating: 1,
+                      direction: Axis.horizontal,
+                      allowHalfRating: true,
+                      itemCount: 5,
+                      itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+                      itemBuilder: (context, _) => const Icon(
+                        Icons.star,
+                        color: Colors.amber,
+                      ),
+                      onRatingUpdate: (rating) {
+                        _rating = rating;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _commentsController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: "Share your experience...",
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+                        contentPadding: const EdgeInsets.all(15),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: _isSubmitting ? null : () async {
+                    setDialogState(() => _isSubmitting = true);
+                    final success = await ApiService.submitFeedback(
+                      appointmentId: appointmentId,
+                      rating: _rating,
+                      comments: _commentsController.text,
+                    );
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(success ? "Review submitted successfully!" : "Failed to submit review."),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                      ));
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6B4EE6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: _isSubmitting 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text("Submit", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Apply filter
@@ -253,6 +339,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (isCompleted && session['id'] != null) ...[
+                                        const SizedBox(height: 8),
+                                        InkWell(
+                                          onTap: () => _showReviewDialog(session['id']),
+                                          child: const Text("Leave Review", style: TextStyle(color: Color(0xFF6B4EE6), fontSize: 12, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                        ),
+                                      ],
                                       const SizedBox(height: 8),
                                       
                                       if (isCompleted && session['has_feedback'] != true)

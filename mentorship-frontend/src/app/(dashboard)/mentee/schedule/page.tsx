@@ -58,6 +58,9 @@ function MenteeScheduleInner() {
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+    const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean, appointment: Appointment | null, rating: number, comment: string, submitting: boolean }>({
+        isOpen: false, appointment: null, rating: 5, comment: '', submitting: false
+    });
 
     useEffect(() => {
         const payment = searchParams.get('payment');
@@ -524,12 +527,21 @@ function MenteeScheduleInner() {
                                                 <p className="text-xs text-orange-600">You missed this session. Chat with your mentor to reschedule.</p>
                                                 <button
                                                     onClick={() => {
-                                                        // Fallback alert if chat isn't mounted, or handle chat opening
                                                         alert('Please open your messages to chat with the mentor to arrange a new date.');
                                                     }}
                                                     className="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg transition text-sm font-medium"
                                                 >
                                                     Chat with Mentor
+                                                </button>
+                                            </div>
+                                        )}
+                                        {appointment.status === 'completed' && (
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setFeedbackModal({ isOpen: true, appointment, rating: 5, comment: '', submitting: false })}
+                                                    className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition text-sm font-medium"
+                                                >
+                                                    Leave Feedback
                                                 </button>
                                             </div>
                                         )}
@@ -667,6 +679,72 @@ function MenteeScheduleInner() {
                         <div className="mt-6 border-t border-gray-100 pt-4">
                             <button onClick={() => setSelectedAppointment(null)} className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition">
                                 Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback Modal */}
+            {feedbackModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fade-in-up">
+                        <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-xl font-bold text-gray-900">Rate your Mentor</h3>
+                            <button onClick={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-4">
+                            <p className="text-sm text-gray-600">How was your session with {feedbackModal.appointment?.mentor_name}?</p>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button 
+                                            key={star}
+                                            onClick={() => setFeedbackModal(prev => ({ ...prev, rating: star }))}
+                                            className={`text-2xl ${feedbackModal.rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Comments (Optional)</label>
+                                <textarea
+                                    value={feedbackModal.comment}
+                                    onChange={(e) => setFeedbackModal(prev => ({ ...prev, comment: e.target.value }))}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                    rows={4}
+                                    placeholder="Write your review here..."
+                                ></textarea>
+                            </div>
+
+                            <button
+                                onClick={async () => {
+                                    setFeedbackModal(prev => ({ ...prev, submitting: true }));
+                                    try {
+                                        await api.post('/feedback', {
+                                            mentorship_id: feedbackModal.appointment?.id,
+                                            rating: feedbackModal.rating,
+                                            comments: feedbackModal.comment
+                                        });
+                                        setFeedbackModal(prev => ({ ...prev, isOpen: false }));
+                                        // Force reload or update UI
+                                        window.location.reload();
+                                    } catch (err) {
+                                        console.error(err);
+                                        setFeedbackModal(prev => ({ ...prev, submitting: false }));
+                                    }
+                                }}
+                                disabled={feedbackModal.submitting}
+                                className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50"
+                            >
+                                {feedbackModal.submitting ? 'Submitting...' : 'Submit Feedback'}
                             </button>
                         </div>
                     </div>
