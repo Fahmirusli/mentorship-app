@@ -13,15 +13,36 @@ class WalletController extends Controller
     {
         $user = $request->user();
         
-        $withdrawals = WithdrawalRequest::where('user_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $withdrawalsList = WithdrawalRequest::where('user_id', $user->id)
+            ->select('id', 'created_at as date', 'amount', 'status')
+            ->get()
+            ->map(function($item) {
+                $arr = $item->toArray();
+                $arr['type'] = 'withdrawal';
+                return $arr;
+            });
+
+        $hourlyRate = $user->mentorProfile->hourly_rate ?? 50;
+
+        $earningsList = $user->mentorships()
+            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
+            ->join('users as mentee', 'mentorships.mentee_id', '=', 'mentee.id')
+            ->where('appointments.status', 'completed')
+            ->select('appointments.id', 'appointments.updated_at as date', 'appointments.fee as amount', 'mentee.name as mentee_name')
+            ->get()
+            ->map(function($item) use ($hourlyRate) {
+                $arr = $item->toArray();
+                $arr['type'] = 'payment';
+                if ($arr['amount'] == null || $arr['amount'] == 0) {
+                    $arr['amount'] = $hourlyRate;
+                }
+                return $arr;
+            });
+
+        $transactions = $earningsList->concat($withdrawalsList)->sortByDesc('date')->values();
 
         // Dynamically calculate actual earnings from completed appointments
-        $earnings = $user->mentorships()
-            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
-            ->where('appointments.status', 'completed')
-            ->sum('appointments.fee');
+        $earnings = $earningsList->sum('amount');
 
         $totalWithdrawals = WithdrawalRequest::where('user_id', $user->id)
             ->whereIn('status', ['pending', 'paid'])
@@ -37,7 +58,8 @@ class WalletController extends Controller
 
         return response()->json([
             'balance' => $user->wallet_balance ?? 0.00,
-            'withdrawals' => $withdrawals,
+            'transactions' => $transactions,
+            'withdrawals' => $withdrawalsList,
         ]);
     }
 

@@ -294,20 +294,8 @@ class MentorController extends Controller
             ->count();
 
         // 3. Earnings
-        // Calculate based on completed sessions * fee stored in appointment
-        $earnings = $user->mentorships()
-            ->join('appointments', 'mentorships.id', '=', 'appointments.mentorship_id')
-            ->where('appointments.status', 'completed')
-            ->sum('appointments.fee');
-        
-        // Fallback for old appointments without fee (optional, or just treat as 0 or calculate legacy way)
-        // For now, let's assume all new appointments have fee. 
-        // If we want to support legacy, we could do IFNULL(fee, 50).
-        // But simpler:
-        if ($earnings == 0 && $hoursProvided > 0) {
-             $hourlyRate = $user->mentorProfile->hourly_rate ?? 50;
-             $earnings = $hoursProvided * $hourlyRate;
-        }
+        $earnings = $user->wallet_balance ?? 0.00;
+
 
         // 4. Rating
         // Average of rating from feedbackReceived
@@ -420,13 +408,17 @@ class MentorController extends Controller
 
             $mentorProfile = $mentor->mentorProfile;
 
+            $userSkills = is_string($mentor->skills) ? json_decode($mentor->skills, true) : ($mentor->skills ?? []);
+            $expertise = is_string($mentorProfile?->expertise_areas) ? json_decode($mentorProfile->expertise_areas, true) : ($mentorProfile?->expertise_areas ?? []);
+            $allSkills = array_values(array_unique(array_merge($userSkills ?: [], $expertise ?: [])));
+
             return [
                 'id' => $mentor->id,
                 'name' => $mentor->name,
                 'bio' => $mentor->bio,
                 'address' => $mentor->address ?: $fakeAddress,
                 'fake_address' => $fakeAddress,
-                'skills' => $mentor->skills ?? [],
+                'skills' => $allSkills,
                 'title' => $mentorProfile?->job_title,
                 'hourly_rate' => $mentorProfile?->hourly_rate,
                 'rating' => $mentor->feedbackReceived()->avg('rating') ? round($mentor->feedbackReceived()->avg('rating'), 2) : null,

@@ -34,7 +34,7 @@ class SocialAuthController extends Controller
 
         return Socialite::driver('google')
             ->stateless()
-            ->with(['state' => $state])
+            ->with(['state' => $state, 'prompt' => 'select_account'])
             ->redirect();
     }
 
@@ -98,7 +98,7 @@ class SocialAuthController extends Controller
 
         return Socialite::driver('github')
             ->stateless()
-            ->with(['state' => $state])
+            ->with(['state' => $state, 'prompt' => 'consent'])
             ->redirect();
     }
 
