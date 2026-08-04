@@ -58,6 +58,11 @@ export default function MenteeCourseDetails() {
     const [submitNotes, setSubmitNotes] = useState('');
     const [submitFile, setSubmitFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    
+    // Feedback Modal State
+    const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean, rating: number, comment: string, submitting: boolean }>({
+        isOpen: false, rating: 5, comment: '', submitting: false
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -191,9 +196,18 @@ export default function MenteeCourseDetails() {
                                     style={{ width: `${enrollment.progress_percent}%` }}
                                 ></div>
                             </div>
-                            <p className="text-sm text-indigo-600">
+                            <p className="text-sm text-indigo-600 mb-4">
                                 {completedTasks.length} of {course.syllabus?.length || 0} tasks completed
                             </p>
+                            
+                            {enrollment.progress_percent >= 100 && (
+                                <button
+                                    onClick={() => setFeedbackModal({ isOpen: true, rating: 5, comment: '', submitting: false })}
+                                    className="px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition text-sm font-medium"
+                                >
+                                    Leave Course Feedback
+                                </button>
+                            )}
                         </div>
 
                         <h2 className="text-xl font-bold text-gray-900 mb-4">Syllabus & Checkpoints</h2>
@@ -338,6 +352,75 @@ export default function MenteeCourseDetails() {
                             >
                                 {submitting && <Loader className="w-4 h-4 animate-spin" />}
                                 Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback Modal */}
+            {feedbackModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-gray-100 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900 mb-1">Leave Feedback</h2>
+                                <p className="text-sm text-gray-500">Share your thoughts on {course.title}</p>
+                            </div>
+                            <button onClick={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))} className="text-gray-400 hover:text-gray-600">
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating (1-5)</label>
+                                <div className="flex gap-2">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button 
+                                            key={star}
+                                            onClick={() => setFeedbackModal(prev => ({ ...prev, rating: star }))}
+                                            className={`text-2xl ${feedbackModal.rating >= star ? 'text-yellow-400' : 'text-gray-300'}`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Comments (Optional)</label>
+                                <textarea
+                                    value={feedbackModal.comment}
+                                    onChange={(e) => setFeedbackModal(prev => ({ ...prev, comment: e.target.value }))}
+                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                                    rows={4}
+                                    placeholder="Write your review here..."
+                                ></textarea>
+                            </div>
+
+                            <button
+                                onClick={async () => {
+                                    setFeedbackModal(prev => ({ ...prev, submitting: true }));
+                                    try {
+                                        await api.post('/feedback', {
+                                            course_id: course.id,
+                                            to_user_id: course.mentor?.id,
+                                            rating: feedbackModal.rating,
+                                            comment: feedbackModal.comment
+                                        });
+                                        setFeedbackModal(prev => ({ ...prev, isOpen: false }));
+                                        alert('Feedback submitted successfully!');
+                                    } catch (err: any) {
+                                        console.error(err);
+                                        alert(err?.response?.data?.message || 'Failed to submit feedback');
+                                        setFeedbackModal(prev => ({ ...prev, submitting: false }));
+                                    }
+                                }}
+                                disabled={feedbackModal.submitting}
+                                className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50"
+                            >
+                                {feedbackModal.submitting ? 'Submitting...' : 'Submit Feedback'}
                             </button>
                         </div>
                     </div>

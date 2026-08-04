@@ -36,10 +36,11 @@ class _MentorMenteesScreenState extends State<MentorMenteesScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F0),
       appBar: AppBar(
-        title: const Text('My Mentees', style: TextStyle(color: Color(0xFF2D2D3A), fontWeight: FontWeight.bold)),
+        title: const Text('My Mentees', style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w800, fontSize: 22)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF2D2D3A)),
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: Color(0xFF2E7D32)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
@@ -49,7 +50,7 @@ class _MentorMenteesScreenState extends State<MentorMenteesScreen> {
                   onRefresh: _fetchMentorships,
                   color: const Color(0xFF2E7D32),
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10).copyWith(bottom: 100), // padding for bottom nav
                     itemCount: _mentorships.length,
                     itemBuilder: (context, index) {
                       final m = _mentorships[index];
@@ -64,15 +65,30 @@ class _MentorMenteesScreenState extends State<MentorMenteesScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.people_outline, size: 80, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          const Text('No mentees yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Text('Your mentees will appear here once they book a session.', style: TextStyle(color: Colors.grey.shade500), textAlign: TextAlign.center),
-        ],
+      child: Container(
+        margin: const EdgeInsets.all(30),
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: const Color(0xFFE8F5E9), shape: BoxShape.circle),
+              child: const Icon(Icons.people_alt_rounded, size: 60, color: Color(0xFF2E7D32)),
+            ),
+            const SizedBox(height: 24),
+            const Text('No mentees yet', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF2E7D32))),
+            const SizedBox(height: 12),
+            const Text('Your active mentees will appear here once they book a mentorship session.', style: TextStyle(color: Colors.grey, fontSize: 15, height: 1.5), textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }
@@ -83,79 +99,91 @@ class _MentorMenteesScreenState extends State<MentorMenteesScreen> {
     final menteeId = mentee['id'] ?? 0;
 
     Color statusColor;
+    Color statusBgColor;
     switch (status) {
       case 'active':
-        statusColor = const Color(0xFF2E7D32);
+        statusColor = const Color(0xFF059669);
+        statusBgColor = const Color(0xFFECFDF5);
         break;
       case 'completed':
-        statusColor = Colors.blue;
+        statusColor = const Color(0xFF2563EB);
+        statusBgColor = const Color(0xFFEFF6FF);
         break;
       case 'pending':
-        statusColor = Colors.orange;
+        statusColor = const Color(0xFFD97706);
+        statusBgColor = const Color(0xFFFFFBEB);
         break;
       default:
-        statusColor = Colors.grey;
+        statusColor = const Color(0xFF64748B);
+        statusBgColor = const Color(0xFFF1F5F9);
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
       ),
       child: Column(
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: const Color(0xFFE8F5E9),
-                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'M', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2E7D32))),
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color(0xFF2E7D32),
+                  child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'M', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white)),
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(email, style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF2E7D32)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(email, style: const TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: statusBgColor,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
+                child: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: statusColor, letterSpacing: 0.5)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    if (menteeId > 0) {
-                      Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => ChatRoomScreen(otherUserId: menteeId, mentorName: name),
-                      ));
-                    }
-                  },
-                  icon: const Icon(Icons.message_rounded, size: 16),
-                  label: const Text('Message'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF2E7D32),
-                    side: const BorderSide(color: Color(0xFF2E7D32)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                if (menteeId > 0) {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => ChatRoomScreen(otherUserId: menteeId, mentorName: name),
+                  ));
+                }
+              },
+              icon: const Icon(Icons.message_rounded, size: 18),
+              label: const Text('Send Message', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE8F5E9),
+                foregroundColor: const Color(0xFF2E7D32),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-            ],
+            ),
           ),
         ],
       ),

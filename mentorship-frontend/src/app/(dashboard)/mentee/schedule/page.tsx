@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 
 interface Appointment {
     id: number;
+    mentorship_id?: number;
     mentor_id?: number;
     mentor_name: string;
     mentor_avatar?: string;
@@ -115,6 +116,7 @@ function MenteeScheduleInner() {
 
                 return {
                     id: item.id,
+                    mentorship_id: item.mentorship?.id || (item as any).mentorship_id,
                     mentor_id: item.mentorship?.mentor?.id,
                     mentor_name: mentorName,
                     date: scheduled.date,
@@ -729,9 +731,11 @@ function MenteeScheduleInner() {
                                     setFeedbackModal(prev => ({ ...prev, submitting: true }));
                                     try {
                                         await api.post('/feedback', {
-                                            mentorship_id: feedbackModal.appointment?.id,
+                                            mentorship_id: feedbackModal.appointment?.mentorship_id,
+                                            appointment_id: feedbackModal.appointment?.id,
+                                            to_user_id: feedbackModal.appointment?.mentor_id,
                                             rating: feedbackModal.rating,
-                                            comments: feedbackModal.comment
+                                            comment: feedbackModal.comment
                                         });
                                         setFeedbackModal(prev => ({ ...prev, isOpen: false }));
                                         // Force reload or update UI

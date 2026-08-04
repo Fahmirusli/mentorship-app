@@ -18,20 +18,39 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
   bool _isLoading = true;
   String _locationMessage = "Locating you...";
   GoogleMapController? _mapController;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  double _radiusKm = 500.0; // Default to 500km so users in remote areas see mentors
 
   List<dynamic> _mentors = [];
 
   List<dynamic> get _filteredMentors {
-    if (widget.selectedSkill == null || widget.selectedSkill!.isEmpty) {
+    if (_searchQuery.isEmpty) {
       return _mentors;
     }
     final filtered = _mentors.where((m) {
-      final skills = m['skills'] as List<dynamic>? ?? [];
-      final profile = m['mentor_profile'] as Map<dynamic, dynamic>? ?? {};
-      final expertise = profile['expertise_areas'] as List<dynamic>? ?? [];
+      List<dynamic> skills = [];
+      if (m['skills'] is String) {
+        skills = m['skills'].toString().replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',').map((e) => e.trim()).toList();
+      } else if (m['skills'] is List) {
+        skills = m['skills'];
+      }
+      
+      final profile = m['mentor_profile'] is Map ? (m['mentor_profile'] as Map) : {};
+      List<dynamic> expertise = [];
+      if (profile['expertise_areas'] is String) {
+        expertise = profile['expertise_areas'].toString().replaceAll('[', '').replaceAll(']', '').replaceAll('"', '').split(',').map((e) => e.trim()).toList();
+      } else if (profile['expertise_areas'] is List) {
+        expertise = profile['expertise_areas'];
+      }
       
       final combinedSkills = [...skills, ...expertise];
-      return combinedSkills.any((s) => s.toString().toLowerCase().contains(widget.selectedSkill!.toLowerCase()));
+      final searchStr = _searchQuery.toLowerCase().trim();
+      
+      final name = (m['name'] ?? '').toString().toLowerCase();
+      if (name.contains(searchStr)) return true;
+      
+      return combinedSkills.any((s) => s.toString().toLowerCase().trim().contains(searchStr));
     }).toList();
     return filtered;
   }
@@ -39,7 +58,17 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.selectedSkill != null && widget.selectedSkill!.isNotEmpty) {
+      _searchQuery = widget.selectedSkill!;
+      _searchController.text = widget.selectedSkill!;
+    }
     _getUserLocation();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _getUserLocation() async {
@@ -57,7 +86,7 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
       final mentors = await ApiService.getNearbyMentors(
         lat: position.latitude, 
         lng: position.longitude, 
-        radiusKm: 50.0 // Default 50km radius
+        radiusKm: _radiusKm 
       );
 
       setState(() {
@@ -75,6 +104,18 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
 
   Set<Marker> _createMarkers() {
     Set<Marker> markers = {};
+    
+    // Add user's location marker explicitly
+    if (_currentPosition != null) {
+      markers.add(Marker(
+        markerId: const MarkerId('user_current_location'),
+        position: _currentPosition!,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+        infoWindow: const InfoWindow(title: 'You are here'),
+        zIndex: 99.0, // Ensure it sits on top of mentor markers
+      ));
+    }
+
     final mentors = _filteredMentors;
     for (int i = 0; i < mentors.length; i++) {
       final lat = mentors[i]['latitude'];
@@ -116,36 +157,78 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
     final mentors = _filteredMentors;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F3FB),
-      appBar: widget.selectedSkill != null
-          ? AppBar(
-              title: Text("Mentors for ${widget.selectedSkill}",
-                  style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Colors.black87),
-              centerTitle: true,
-            )
-          : null,
+      appBar: AppBar(
+        title: const Text("Available Mentors",
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black87),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
-          if (widget.selectedSkill != null)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF6B4EE6), Color(0xFF9B7EFA)]),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.filter_alt_rounded, color: Colors.white, size: 16),
-                  const SizedBox(width: 6),
-                  Text("Skill: ${widget.selectedSkill}",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                ],
+          // Modern Search Bar
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Search mentors by name or skill...",
+                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF6B4EE6)),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
               ),
             ),
+          ),
+          
+          // Radius Slider
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, color: Color(0xFF6B4EE6), size: 16),
+                const SizedBox(width: 5),
+                Text("Range: ${_radiusKm.toInt()} km", 
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF2D2D3A))),
+                Expanded(
+                  child: Slider(
+                    value: _radiusKm,
+                    min: 10,
+                    max: 3000,
+                    divisions: 299,
+                    activeColor: const Color(0xFF6B4EE6),
+                    inactiveColor: const Color(0xFF6B4EE6).withOpacity(0.2),
+                    onChanged: (val) {
+                      setState(() {
+                        _radiusKm = val;
+                      });
+                    },
+                    onChangeEnd: (val) {
+                      setState(() { _isLoading = true; });
+                      _getUserLocation();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           Expanded(
             flex: 2,
@@ -195,13 +278,18 @@ class _NearbyMentorsScreenState extends State<NearbyMentorsScreen> {
                               children: [
                                 Icon(Icons.person_search, size: 48, color: Colors.grey.shade300),
                                 const SizedBox(height: 8),
-                                Text("No mentors found.",
-                                    style: TextStyle(color: Colors.grey.shade500)),
+                                Text(
+                                  _searchQuery.isEmpty 
+                                      ? "No mentors found within ${_radiusKm.toInt()} km." 
+                                      : "No mentors found matching '$_searchQuery'.",
+                                  style: TextStyle(color: Colors.grey.shade500), 
+                                  textAlign: TextAlign.center
+                                ),
                               ],
                             ),
                           )
                         : ListView(
-                            padding: EdgeInsets.zero,
+                            padding: const EdgeInsets.only(bottom: 120), // Add padding for bottom nav bar
                             children: mentors.map((m) => _mentorCard(m)).toList(),
                           ),
                   ),

@@ -12,6 +12,7 @@ class Feedback extends Model
     protected $fillable = [
         'mentorship_id',
         'appointment_id',
+        'course_id',
         'from_user_id',
         'to_user_id',
         'rating',
@@ -32,6 +33,11 @@ class Feedback extends Model
         return $this->belongsTo(Appointment::class);
     }
 
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
     public function fromUser()
     {
         return $this->belongsTo(User::class, 'from_user_id');
@@ -41,5 +47,4 @@ class Feedback extends Model
     {
         return $this->belongsTo(User::class, 'to_user_id');
     }
-
 }

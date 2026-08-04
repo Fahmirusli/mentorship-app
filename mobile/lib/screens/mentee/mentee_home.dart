@@ -9,7 +9,8 @@ import '../shared/session_detail_screen.dart';
 import 'nearby_mentors.dart';
 import 'message_list_screen.dart';
 import 'job_list_screen.dart';
-import 'skill_selection_screen.dart';
+// import 'skill_selection_screen.dart'; // Replaced by direct navigation
+import 'resources_screen.dart';
 
 class MenteeDashboard extends StatefulWidget {
   final VoidCallback onLogout;
@@ -51,6 +52,8 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
       _buildPurpleDashboard(),           // 2 - Dashboard (center)
       const MessageListScreen(),         // 3 - Messages
       ProfileScreen(onLogout: widget.onLogout), // 4 - Profile
+      const NearbyMentorsScreen(),       // 5 - Mentors (now directly showing nearby mentors)
+      const MenteeResourcesScreen(),     // 6 - Courses
     ];
   }
 
@@ -128,11 +131,13 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
           child: SizedBox(
             height: 60,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _navItem(Icons.calendar_month_rounded, "Schedule", 0),
                 _navItem(Icons.work_rounded, "Jobs", 1),
-                const SizedBox(width: 48), // Space for FAB
+                _navItem(Icons.people_rounded, "Mentors", 5),
+                const SizedBox(width: 32), // Space for FAB
+                _navItem(Icons.menu_book_rounded, "Courses", 6),
                 _navItem(Icons.message_rounded, "Messages", 3),
                 _navItem(Icons.person_rounded, "Profile", 4),
               ],
@@ -163,7 +168,7 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? const Color(0xFF6B4EE6) : Colors.grey.shade400,
               ),
@@ -310,7 +315,16 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
                 const SizedBox(height: 30),
 
                 // 3. LEARNING PROGRESS
-                const Text("Learning Progress", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Learning Progress", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    GestureDetector(
+                      onTap: () => setState(() => _selectedIndex = 6), // Go to Courses tab
+                      child: const Text("More →", style: TextStyle(fontSize: 13, color: Color(0xFF6B4EE6), fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 15),
                 _learningProgress.isEmpty
                     ? Container(
@@ -371,13 +385,13 @@ class _MenteeDashboardState extends State<MenteeDashboard> {
     );
   }
 
-  /// Navigate to Skill Selection screen, optionally with a preselected skill
+  /// Navigate to Mentor search, optionally with a preselected skill
   void _navigateToSkillSelection({String? preselectedSkill}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SkillSelectionScreen(
-          availableSkills: _skills.map((s) => s.toString()).toList(),
+        builder: (context) => NearbyMentorsScreen(
+          selectedSkill: preselectedSkill,
         ),
       ),
     );

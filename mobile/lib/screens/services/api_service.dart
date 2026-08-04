@@ -454,7 +454,7 @@ class ApiService {
       if (token == null) return [];
 
       final response = await http.get(
-        Uri.parse('$baseUrl/resources'),
+        Uri.parse('$baseUrl/mentee/resources'),
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
@@ -463,7 +463,32 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return (data['resources'] as List?) ?? [];
+        return (data as List?) ?? [];
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // 12.5 ALL COURSES
+  static Future<List<dynamic>> getAllCourses() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/courses'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['courses'] as List?) ?? [];
       }
       return [];
     } catch (e) {
@@ -767,7 +792,13 @@ class ApiService {
       
       final uri = Uri.parse('$baseUrl/mentors/nearby').replace(queryParameters: queryParams);
       
-      final response = await http.get(uri, headers: {'Accept': 'application/json'});
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+
+      final response = await http.get(uri, headers: {
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      });
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['data'] ?? [];

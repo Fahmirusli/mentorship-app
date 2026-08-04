@@ -148,7 +148,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _showReviewDialog(int appointmentId) {
+  void _showReviewDialog(dynamic session) {
     double _rating = 5.0;
     final _commentsController = TextEditingController();
 
@@ -203,11 +203,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ElevatedButton(
                   onPressed: _isSubmitting ? null : () async {
                     setDialogState(() => _isSubmitting = true);
-                    final success = await ApiService.submitFeedback(
-                      appointmentId: appointmentId,
-                      rating: _rating,
-                      comments: _commentsController.text,
+                    final toUserId = session['mentorship_detail']?['other_party_id'] ?? session['mentor_id'];
+                    final successMap = await ApiService.submitFeedback(
+                      mentorshipId: session['mentorship_id'],
+                      appointmentId: session['id'],
+                      toUserId: toUserId,
+                      rating: _rating.toInt(),
+                      comment: _commentsController.text,
                     );
+                    final success = successMap['success'] == true;
                     if (mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -342,7 +346,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       if (isCompleted && session['id'] != null) ...[
                                         const SizedBox(height: 8),
                                         InkWell(
-                                          onTap: () => _showReviewDialog(session['id']),
+                                          onTap: () => _showReviewDialog(session),
                                           child: const Text("Leave Review", style: TextStyle(color: Color(0xFF6B4EE6), fontSize: 12, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                                         ),
                                       ],

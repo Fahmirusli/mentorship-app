@@ -109,7 +109,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Stylish Logout Button
                 InkWell(
-                  onTap: widget.onLogout,
+                  onTap: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Logout'),
+                        content: const Text('Are you sure you want to log out?'),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await ApiService.logout();
+                      if (mounted) widget.onLogout();
+                    }
+                  },
                   borderRadius: BorderRadius.circular(15),
                   splashColor: Colors.red.withOpacity(0.2),
                   child: Container(

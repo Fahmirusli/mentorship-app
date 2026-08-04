@@ -27,44 +27,61 @@ class FeedbackController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'mentorship_id' => 'required|exists:mentorships,id',
+            'mentorship_id' => 'nullable|exists:mentorships,id',
+            'course_id' => 'nullable|exists:courses,id',
             'appointment_id' => 'nullable|exists:appointments,id',
             'to_user_id' => 'required|exists:users,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $mentorship = Mentorship::findOrFail($validated['mentorship_id']);
-
-        // Authorization: User must be part of the mentorship
-        $user = $request->user();
-        if ($mentorship->mentor_id !== $user->id && $mentorship->mentee_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (empty($validated['mentorship_id']) && empty($validated['course_id'])) {
+            return response()->json(['message' => 'Either mentorship_id or course_id is required'], 422);
         }
 
-        // Check if user already gave feedback for this appointment/mentorship
-        $existingFeedback = Feedback::where('mentorship_id', $validated['mentorship_id'])
-            ->where('from_user_id', $user->id)
+        $user = $request->user();
+
+        // Authorization and existing feedback check
+        $existingFeedbackQuery = Feedback::where('from_user_id', $user->id)
             ->where('to_user_id', $validated['to_user_id']);
 
-        if (isset($validated['appointment_id'])) {
-            $appointment = \App\Models\Appointment::find($validated['appointment_id']);
-            if (!$appointment || $appointment->status !== 'completed') {
-                return response()->json([
-                    'message' => 'Feedback can only be given for completed sessions. If missed, please reschedule.'
-                ], 403);
+        if (!empty($validated['mentorship_id'])) {
+            $mentorship = Mentorship::findOrFail($validated['mentorship_id']);
+            if ($mentorship->mentor_id !== $user->id && $mentorship->mentee_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
             }
-            $existingFeedback->where('appointment_id', $validated['appointment_id']);
+            $existingFeedbackQuery->where('mentorship_id', $validated['mentorship_id']);
+            
+            if (!empty($validated['appointment_id'])) {
+                $appointment = \App\Models\Appointment::find($validated['appointment_id']);
+                if (!$appointment || $appointment->status !== 'completed') {
+                    return response()->json([
+                        'message' => 'Feedback can only be given for completed sessions. If missed, please reschedule.'
+                    ], 403);
+                }
+                $existingFeedbackQuery->where('appointment_id', $validated['appointment_id']);
+            }
+        } elseif (!empty($validated['course_id'])) {
+            $course = \App\Models\Course::findOrFail($validated['course_id']);
+            // Mentee must be enrolled
+            $isEnrolled = \App\Models\CourseEnrollment::where('mentee_id', $user->id)
+                ->where('course_id', $course->id)
+                ->exists();
+            if (!$isEnrolled && $course->mentor_id !== $user->id) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+            $existingFeedbackQuery->where('course_id', $validated['course_id']);
         }
 
-        if ($existingFeedback->exists()) {
+        if ($existingFeedbackQuery->exists()) {
             return response()->json([
-                'message' => 'You have already provided feedback for this session',
+                'message' => 'You have already provided feedback for this',
             ], 400);
         }
 
         $feedback = Feedback::create([
-            'mentorship_id' => $validated['mentorship_id'],
+            'mentorship_id' => $validated['mentorship_id'] ?? null,
+            'course_id' => $validated['course_id'] ?? null,
             'appointment_id' => $validated['appointment_id'] ?? null,
             'from_user_id' => $user->id,
             'to_user_id' => $validated['to_user_id'],

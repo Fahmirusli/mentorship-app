@@ -13,6 +13,7 @@ interface Mentor {
   title?: string;
   rating?: number;
   reviews?: number;
+  total_reviews?: number;
   sessions?: number;
   bio?: string;
   expertise?: string[];
@@ -61,6 +62,40 @@ export default function FindMentors() {
   const [radiusKm, setRadiusKm] = useState(30);
 
   const [expertiseOptions, setExpertiseOptions] = useState<string[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+
+  // Fetch favorite mentors
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const res = await api.get('/favorites');
+        const favoritesData = res.data;
+        if (Array.isArray(favoritesData)) {
+          const ids = new Set<number>(favoritesData.map((m: any) => m.id));
+          setFavoriteIds(ids);
+        }
+      } catch (err) {
+        console.error('Failed to fetch favorites:', err);
+      }
+    };
+    fetchFavorites();
+  }, []);
+
+  const handleToggleFavorite = async (e: React.MouseEvent, mentorId: number) => {
+    e.stopPropagation();
+    try {
+      const res = await api.post('/favorites/toggle', { mentor_id: mentorId });
+      const { is_favorited } = res.data;
+      setFavoriteIds(prev => {
+        const newSet = new Set(prev);
+        if (is_favorited) newSet.add(mentorId);
+        else newSet.delete(mentorId);
+        return newSet;
+      });
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+    }
+  };
 
   // Fetch all available skills from the API
   useEffect(() => {
@@ -564,8 +599,11 @@ export default function FindMentors() {
                           Unavailable
                         </span>
                       )}
-                      <button className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition">
-                        <Heart className="w-5 h-5" />
+                      <button 
+                        onClick={(e) => handleToggleFavorite(e, mentor.id)}
+                        className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition"
+                      >
+                        <Heart className={`w-5 h-5 ${favoriteIds.has(mentor.id) ? 'fill-red-500 text-red-500' : 'text-white'}`} />
                       </button>
                     </div>
                   </div>
@@ -577,8 +615,8 @@ export default function FindMentors() {
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 mr-1" />
-                      <span className="font-semibold">{mentor.rating || 4.8}</span>
-                      <span className="text-gray-500 text-sm ml-1">({mentor.reviews || 24})</span>
+                      <span className="font-semibold">{mentor.rating || 0}</span>
+                      <span className="text-gray-500 text-sm ml-1">({mentor.total_reviews ?? mentor.reviews ?? 0})</span>
                     </div>
                     <div className="flex items-center text-gray-600 text-sm">
                       <Award className="w-4 h-4 mr-1" />

@@ -9,12 +9,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/mentee/mentee_home.dart';
 import 'screens/mentor/mentor_home.dart';
+import 'screens/services/api_service.dart';
 import 'config.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'firebase_options.dart'; // User needs to generate this using flutterfire configure
+// import 'firebase_options.dart'; // User needs to generate this using flutterfire configure
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,7 @@ void main() async {
   // Initialize Firebase (Requires flutterfire configure)
   try {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      // options: DefaultFirebaseOptions.currentPlatform,
     );
     _setupFCM();
   } catch (e) {
@@ -40,17 +41,17 @@ Future<void> _setupFCM() async {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
 
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
     if (notification != null && android != null) {
       flutterLocalNotificationsPlugin.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        const NotificationDetails(
+        id: notification.hashCode,
+        title: notification.title,
+        body: notification.body,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             'uplifts_channel',
             'Uplifts Notifications',
@@ -77,7 +78,7 @@ class UpliftsApp extends StatefulWidget {
 }
 
 class _UpliftsAppState extends State<UpliftsApp> {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _themeMode = ThemeMode.light;
 
   @override
   void initState() {
@@ -91,6 +92,10 @@ class _UpliftsAppState extends State<UpliftsApp> {
     if (isDark != null) {
       setState(() {
         _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      });
+    } else {
+      setState(() {
+        _themeMode = ThemeMode.light;
       });
     }
   }
@@ -130,21 +135,7 @@ class _UpliftsAppState extends State<UpliftsApp> {
           bodyMedium: const TextStyle(color: Color(0xFF2D2D3A), fontSize: 14),
         ),
       ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: const Color(0xFF6B4EE6),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6B4EE6),
-          primary: const Color(0xFF6B4EE6),
-          brightness: Brightness.dark,
-        ),
-        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme).copyWith(
-          displayLarge: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          titleLarge: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-          bodyMedium: const TextStyle(color: Colors.white70, fontSize: 14),
-        ),
-      ),
+      // darkTheme is removed to prevent text visibility issues caused by hardcoded black text on dark backgrounds
       home: const AuthWrapper(),
     );
   }
@@ -161,11 +152,42 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   final AppLinks _appLinks = AppLinks();
   StreamSubscription<Uri>? _sub;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkSavedLogin();
     _initDeepLinks();
+  }
+
+  Future<void> _checkSavedLogin() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token != null && token.isNotEmpty) {
+        // Token exists, verify it by trying to get the user profile
+        final userProfile = await ApiService.getProfile();
+        
+        if (userProfile != null && mounted) {
+          final roleStr = userProfile['role']?.toString().toLowerCase();
+          _navigateToRole(roleStr == 'mentor' ? 2 : 1);
+          return;
+        } else {
+          // Token is likely invalid, clear it
+          await prefs.remove('auth_token');
+        }
+      }
+    } catch (e) {
+      debugPrint("Auto-login error: $e");
+    }
+    
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _initDeepLinks() async {
@@ -245,6 +267,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF6B4EE6)),
+        ),
+      );
+    }
     return LoginPage(onLogin: _navigateToRole);
   }
 }

@@ -232,9 +232,9 @@ class _SkillSelectionScreenState extends State<SkillSelectionScreen> {
                   ),
                 ),
 
-                // Continue Button
+                // Continue Button (With extra bottom padding for floating nav bar)
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 130),
                   child: InkWell(
                     onTap: _selectedSkill != null
                         ? () {

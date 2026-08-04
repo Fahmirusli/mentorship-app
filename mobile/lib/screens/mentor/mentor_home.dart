@@ -21,13 +21,15 @@ class MentorDashboard extends StatefulWidget {
 }
 
 class _MentorDashboardState extends State<MentorDashboard> {
-  // Navigation indices (matches mentee layout):
+  // Navigation indices:
   // 0 = Schedule
-  // 1 = (placeholder - keeps symmetry)
-  // 2 = Dashboard (center FAB)
-  // 3 = Messages
-  // 4 = Profile
-  int _selectedIndex = 2; // Default to Dashboard
+  // 1 = Slots
+  // 2 = Wallet
+  // 3 = Dashboard (center FAB)
+  // 4 = Mentees
+  // 5 = Messages
+  // 6 = Profile
+  int _selectedIndex = 3; // Default to Dashboard
 
   // --- REAL DATA VARIABLES ---
   String _userName = "Loading...";
@@ -49,38 +51,57 @@ class _MentorDashboardState extends State<MentorDashboard> {
     _pages = [
       const MyScheduleScreen(),                     // 0 - Schedule
       const MentorAvailabilityScreen(),             // 1 - Availability Slots
-      _buildMentorDashboard(),                      // 2 - Dashboard (center)
-      const MessageListScreen(),                    // 3 - Messages
-      ProfileScreen(onLogout: widget.onLogout),     // 4 - Profile
+      const MentorEarningsScreen(),                 // 2 - Wallet/Earnings
+      _buildMentorDashboard(),                      // 3 - Dashboard (center)
+      const MentorMenteesScreen(),                  // 4 - Mentees
+      const MessageListScreen(),                    // 5 - Messages
+      ProfileScreen(onLogout: widget.onLogout),     // 6 - Profile
     ];
   }
 
   Future<void> _fetchRealData() async {
-    final profile = await ApiService.getProfile();
-    final notifCount = await ApiService.getUnreadNotificationCount();
+    // Start all API calls concurrently
+    final profileFuture = ApiService.getProfile();
+    final notifCountFuture = ApiService.getUnreadNotificationCount();
+    final apptsFuture = ApiService.getMyAppointments(todayOnly: true).catchError((_) => <dynamic>[]);
+    final statsFuture = ApiService.getMentorStats();
 
-    // Fetch appointments for today's schedule
-    List<dynamic> todayAppts = [];
     try {
-      todayAppts = await ApiService.getMyAppointments(todayOnly: true);
-    } catch (_) {}
+      // Wait for all to complete
+      final profile = await profileFuture;
+      final notifCount = await notifCountFuture;
+      final todayAppts = await apptsFuture;
+      final statsData = await statsFuture;
 
-    final statsData = await ApiService.getMentorStats();
-
-    if (mounted) {
-      setState(() {
-        if (profile != null) {
-          _userName = profile['name'] ?? 'Mentor';
-        }
-        _todaySchedule = todayAppts;
-        _upcomingSessions = todayAppts.length;
-        if (statsData != null) {
-          _totalEarnings = (statsData['total_earnings'] ?? 0).toDouble();
-        }
-        _unreadNotifCount = notifCount;
-        _isLoadingData = false;
-        _pages[2] = _buildMentorDashboard();
-      });
+      if (mounted) {
+        setState(() {
+          if (profile != null) {
+            _userName = profile['name'] ?? 'Mentor';
+          }
+          _todaySchedule = todayAppts;
+          _upcomingSessions = todayAppts.length;
+          if (statsData != null) {
+            final earnings = statsData['total_earnings'];
+            if (earnings is num) {
+              _totalEarnings = earnings.toDouble();
+            } else if (earnings is String) {
+              _totalEarnings = double.tryParse(earnings) ?? 0.0;
+            } else {
+              _totalEarnings = 0.0;
+            }
+          }
+          _unreadNotifCount = notifCount;
+          _isLoadingData = false;
+          _pages[3] = _buildMentorDashboard();
+        });
+      }
+    } catch (e) {
+      print('Error loading mentor dashboard: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingData = false;
+        });
+      }
     }
   }
 
@@ -93,16 +114,16 @@ class _MentorDashboardState extends State<MentorDashboard> {
 
       // Center FAB = Dashboard
       floatingActionButton: FloatingActionButton(
-        onPressed: () => setState(() => _selectedIndex = 2),
-        backgroundColor: _selectedIndex == 2
+        onPressed: () => setState(() => _selectedIndex = 3),
+        backgroundColor: _selectedIndex == 3
             ? const Color(0xFF2E7D32)
             : const Color(0xFF66BB6A),
-        elevation: _selectedIndex == 2 ? 8 : 4,
+        elevation: _selectedIndex == 3 ? 8 : 4,
         shape: const CircleBorder(),
         child: Icon(
           Icons.dashboard_rounded,
           color: Colors.white,
-          size: _selectedIndex == 2 ? 30 : 26,
+          size: _selectedIndex == 3 ? 30 : 26,
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -132,9 +153,11 @@ class _MentorDashboardState extends State<MentorDashboard> {
               children: [
                 _navItem(Icons.calendar_month_rounded, "Schedule", 0),
                 _navItem(Icons.event_available_rounded, "Slots", 1),
+                _navItem(Icons.account_balance_wallet_rounded, "Wallet", 2),
                 const SizedBox(width: 48), // Space for FAB
-                _navItem(Icons.message_rounded, "Messages", 3),
-                _navItem(Icons.person_rounded, "Profile", 4),
+                _navItem(Icons.people_alt_rounded, "Mentees", 4),
+                _navItem(Icons.message_rounded, "Messages", 5),
+                _navItem(Icons.person_rounded, "Profile", 6),
               ],
             ),
           ),
@@ -217,7 +240,7 @@ class _MentorDashboardState extends State<MentorDashboard> {
                 onTap: () async {
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen()));
                   final count = await ApiService.getUnreadNotificationCount();
-                  if (mounted) setState(() { _unreadNotifCount = count; _pages[2] = _buildMentorDashboard(); });
+                  if (mounted) setState(() { _unreadNotifCount = count; _pages[3] = _buildMentorDashboard(); });
                 },
                 child: Stack(
                   children: [
@@ -250,7 +273,7 @@ class _MentorDashboardState extends State<MentorDashboard> {
                 Row(
                   children: [
                     Expanded(child: GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MentorEarningsScreen())),
+                      onTap: () => setState(() => _selectedIndex = 2),
                       child: _statCard("Earnings", "RM ${_totalEarnings.toStringAsFixed(0)}", const Color(0xFFFFA726), Icons.account_balance_wallet_rounded),
                     )),
                     const SizedBox(width: 12),

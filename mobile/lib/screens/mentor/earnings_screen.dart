@@ -21,15 +21,26 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
   }
 
   Future<void> _fetchEarnings() async {
-    final walletData = await ApiService.getWallet();
-    if (mounted) {
-      setState(() {
-        if (walletData != null) {
-          _totalEarnings = (walletData['balance'] ?? 0).toDouble();
-          _transactions = walletData['withdrawals'] ?? [];
-        }
-        _isLoading = false;
-      });
+    try {
+      final walletData = await ApiService.getWallet();
+      if (mounted) {
+        setState(() {
+          if (walletData != null) {
+            final balance = walletData['balance'];
+            if (balance is num) {
+              _totalEarnings = balance.toDouble();
+            } else if (balance is String) {
+              _totalEarnings = double.tryParse(balance) ?? 0.0;
+            } else {
+              _totalEarnings = 0.0;
+            }
+            _transactions = walletData['transactions'] ?? walletData['withdrawals'] ?? [];
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -124,10 +135,11 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F7F0),
       appBar: AppBar(
-        title: const Text("My Earnings & Wallet", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+        title: const Text("My Earnings & Wallet", style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w800, fontSize: 22)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        centerTitle: false,
+        iconTheme: const IconThemeData(color: Color(0xFF2E7D32)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E7D32)))
@@ -135,68 +147,92 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
               onRefresh: _fetchEarnings,
               color: const Color(0xFF2E7D32),
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 children: [
-                  // Wallet Balance Card
+                  // Premium Wallet Balance Card
                   Container(
-                    padding: const EdgeInsets.all(25),
+                    padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF2E7D32), Color(0xFF66BB6A)],
+                        colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)], // Sleek modern green gradient
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(25),
+                      borderRadius: BorderRadius.circular(30),
                       boxShadow: [
-                        BoxShadow(color: const Color(0xFF2E7D32).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))
+                        BoxShadow(color: const Color(0xFF1B5E20).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10))
                       ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Available Balance", style: TextStyle(color: Colors.white70, fontSize: 16)),
-                        const SizedBox(height: 10),
-                        Text("RM ${_totalEarnings.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 25),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _showWithdrawalDialog,
-                                icon: const Icon(Icons.account_balance_wallet, color: Color(0xFF2E7D32)),
-                                label: const Text("Withdraw Funds", style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                            ),
+                            const Text("Available Balance", style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w500)),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                              child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+                            )
                           ],
-                        )
+                        ),
+                        const SizedBox(height: 15),
+                        Text("RM ${_totalEarnings.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                        const SizedBox(height: 30),
+                        ElevatedButton(
+                          onPressed: _showWithdrawalDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF1B5E20),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: const Text("Withdraw Funds", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ),
                       ],
                     ),
-                  ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
+                  ).animate().fadeIn(duration: 500.ms, curve: Curves.easeOut).slideY(begin: 0.05),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 35),
 
-                  // Recent Transactions
-                  const Text("Recent Withdrawals", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
+                  // Recent Transactions Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Recent Transactions", style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Color(0xFF2E7D32))),
+                      TextButton(
+                        onPressed: () {}, // Future expansion
+                        child: const Text("View All", style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w600)),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 10),
 
                   _transactions.isEmpty
                       ? Container(
-                          padding: const EdgeInsets.all(30),
+                          padding: const EdgeInsets.all(40),
+                          margin: const EdgeInsets.only(top: 10),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10)],
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.grey.shade200),
                           ),
-                          child: const Center(child: Text("No withdrawals yet.", style: TextStyle(color: Colors.grey))),
-                        )
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_long_rounded, size: 60, color: Colors.grey.shade300),
+                              const SizedBox(height: 15),
+                              const Text("No transactions yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                            ],
+                          ),
+                        ).animate().fadeIn(delay: 200.ms)
                       : Column(
                           children: _transactions.map((tx) => _transactionCard(tx)).toList(),
                         ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
+                  
+                  const SizedBox(height: 100), // Padding for bottom nav bar
                 ],
               ),
             ),
@@ -204,50 +240,84 @@ class _MentorEarningsScreenState extends State<MentorEarningsScreen> {
   }
 
   Widget _transactionCard(dynamic tx) {
-    final double amount = (tx['amount'] ?? 0).toDouble();
+    double amount = 0.0;
+    if (tx['amount'] is num) {
+      amount = tx['amount'].toDouble();
+    } else if (tx['amount'] is String) {
+      amount = double.tryParse(tx['amount']) ?? 0.0;
+    }
+    
     final String type = tx['type'] ?? 'payment';
     final String date = tx['date'] ?? 'Unknown date';
     final String menteeName = tx['mentee_name'] ?? 'Mentee';
     
     final bool isCredit = type == 'payment' || type == 'credit';
-    final Color txColor = isCredit ? const Color(0xFF2E7D32) : Colors.red;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.05), blurRadius: 10)],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: isCredit ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              isCredit ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-              color: txColor,
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
+    final Color iconColor = isCredit ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Transaction Details", style: TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isCredit ? "Payment from $menteeName" : "Withdrawal", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(date, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text("Type: ${isCredit ? 'Payment Received' : 'Withdrawal'}", style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                Text("Amount: RM ${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 8),
+                Text("Date: $date", style: const TextStyle(fontSize: 16)),
+                if (isCredit) ...[
+                  const SizedBox(height: 8),
+                  Text("From Mentee: $menteeName", style: const TextStyle(fontSize: 16)),
+                ],
               ],
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Close", style: TextStyle(color: Color(0xFF2E7D32))),
+              ),
+            ],
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          Text(
-            "${isCredit ? '+' : '-'}RM ${amount.toStringAsFixed(2)}",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: txColor),
-          ),
-        ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              child: Icon(isCredit ? Icons.arrow_downward_rounded : Icons.account_balance_rounded, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(isCredit ? "Payment from $menteeName" : "Bank Withdrawal", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF2E7D32))),
+                  const SizedBox(height: 4),
+                  Text(date, style: const TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            Text(
+              "${isCredit ? '+' : '-'}RM ${amount.toStringAsFixed(2)}",
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: isCredit ? const Color(0xFF2E7D32) : const Color(0xFFEF4444)),
+            ),
+          ],
+        ),
       ),
     );
   }

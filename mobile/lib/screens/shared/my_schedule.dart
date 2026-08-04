@@ -127,9 +127,14 @@ class _MyScheduleScreenState extends State<MyScheduleScreen> {
                     boxShadow: [BoxShadow(color: _primaryColor.withOpacity(0.05), blurRadius: 15, spreadRadius: 3)],
                   ),
                   child: TableCalendar(
-                    firstDay: DateTime.utc(2020, 1, 1),
-                    lastDay: DateTime.utc(2030, 12, 31),
+                    firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                    lastDay: DateTime.now().add(const Duration(days: 365)),
                     focusedDay: _focusedDay,
+                    calendarFormat: _isMentor ? CalendarFormat.week : CalendarFormat.month,
+                    availableCalendarFormats: const {
+                      CalendarFormat.month: 'Month',
+                      CalendarFormat.week: 'Week',
+                    },
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                     eventLoader: _getEventsForDay,
                     onDaySelected: (selectedDay, focusedDay) {
