@@ -24,7 +24,7 @@ class ToyyibPayService
         }
     }
 
-    public function createBill($title, $description, $amount, $refId, $email, $name, $phone)
+    public function createBill($title, $description, $amount, $refId, $email, $name, $phone, $source = 'web')
     {
         // Format amount to 2 decimal places (ToyyibPay expects amount in cents/sen)
         $amountInCents = intval($amount * 100);
@@ -37,7 +37,7 @@ class ToyyibPayService
             'billPriceSetting' => 1,
             'billPayorInfo' => 1,
             'billAmount' => $amountInCents,
-            'billReturnUrl' => route('api.payment.return'),
+            'billReturnUrl' => route('api.payment.return', ['source' => $source]),
             'billCallbackUrl' => route('api.payment.callback'),
             'billExternalReferenceNo' => (string)$refId,
             'billTo' => $name,

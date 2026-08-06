@@ -145,7 +145,6 @@ class PaymentController extends Controller
             ]);
 
             // 5. Create Bill with ToyyibPay
-            // Note: billName has 30 char limit
             $billCode = $this->toyyibPay->createBill(
                 "Session #" . $appointment->id,
                 "Mentorship with " . $mentorship->mentor->name . " on " . $scheduledAt->format('d M Y, h:i A'),
@@ -153,7 +152,8 @@ class PaymentController extends Controller
                 $appointment->id,
                 $user->email,
                 $user->name,
-                $user->phone ?? '0123456789'
+                $user->phone ?? '0123456789',
+                $request->input('source', 'web')
             );
 
             if ($billCode) {
@@ -345,7 +345,8 @@ class PaymentController extends Controller
                 'C-' . $enrollment->id, // Add prefix to distinguish from appointments
                 $user->email,
                 $user->name,
-                $user->phone ?? '0123456789'
+                $user->phone ?? '0123456789',
+                $request->input('source', 'web')
             );
 
             if ($billCode) {
@@ -446,6 +447,15 @@ class PaymentController extends Controller
             ];
             
             $status = $statusMap[$statusId] ?? 'unknown';
+            $source = $request->input('source', 'web');
+
+            if ($source === 'mobile') {
+                $redirectUrl = "uplifts://payment-return?payment=" . $status;
+                if ($billCode) {
+                    $redirectUrl .= "&bill=" . $billCode;
+                }
+                return redirect($redirectUrl);
+            }
             
             // Redirect to frontend
             $frontendUrl = env('FRONTEND_URL', 'https://uplifts.dev');
