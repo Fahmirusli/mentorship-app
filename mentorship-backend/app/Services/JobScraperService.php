@@ -126,7 +126,7 @@ class JobScraperService
         $apiHost = config('services.rapidapi.host', 'jsearch.p.rapidapi.com');
         $numPages = (int) config('services.rapidapi.num_pages', 3);
         $datePosted = config('services.rapidapi.date_posted', 'week');
-        $country = 'my'; // Force Malaysia to ensure we only get Malaysian jobs
+        $country = config('services.rapidapi.country', 'my'); // Default to 'my' if not set in config
         $allowedSources = config('services.rapidapi.allowed_sources', [
             'linkedin',
             'jobstreet',
@@ -156,7 +156,7 @@ class JobScraperService
 
         foreach ($queries as $query) {
             $queryParams = [
-                'query' => $query . ' in Malaysia',
+                'query' => $query,
                 'page' => 1,
                 'num_pages' => $numPages,
                 'date_posted' => $datePosted,
