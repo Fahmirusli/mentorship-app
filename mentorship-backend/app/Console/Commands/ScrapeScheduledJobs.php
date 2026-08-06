@@ -24,7 +24,9 @@ class ScrapeScheduledJobs extends Command
         $timezone = $schedule->timezone ?: 'Asia/Kuala_Lumpur';
         $now = Carbon::now($timezone);
 
-        if ($now->format('H:i') !== $schedule->run_time) {
+        $expectedRunTime = Carbon::parse($schedule->run_time)->format('H:i');
+
+        if ($now->format('H:i') !== $expectedRunTime) {
             return 0;
         }
 

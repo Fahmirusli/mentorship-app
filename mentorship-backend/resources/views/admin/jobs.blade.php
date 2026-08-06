@@ -36,7 +36,7 @@
                 @endif
             </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
             <div>
                 <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;">Next Scheduled Run</div>
                 <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: baseline; gap: 8px;">
@@ -45,19 +45,19 @@
                 </div>
             </div>
             <div>
-                <div style="font-size: 12px; color: var(--text-secondary);">Keyword</div>
+                <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;">Keyword</div>
                 <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
                     {{ $schedule?->keyword ?? 'Software Engineer' }}
                 </div>
             </div>
             <div>
-                <div style="font-size: 12px; color: var(--text-secondary);">Last Run</div>
+                <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;">Last Run</div>
                 <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
                     {{ $schedule?->last_run_at ? $schedule->last_run_at->format('M j, Y H:i') : 'Not yet' }}
                 </div>
             </div>
             <div>
-                <div style="font-size: 12px; color: var(--text-secondary);">Last Status</div>
+                <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em;">Last Status</div>
                 <div style="font-size: 18px; font-weight: 700; color: var(--text-primary);">
                     {{ $schedule?->last_run_status ?? 'N/A' }}
                 </div>

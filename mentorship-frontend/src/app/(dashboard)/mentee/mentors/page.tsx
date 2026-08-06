@@ -81,15 +81,17 @@ export default function FindMentors() {
     fetchFavorites();
   }, []);
 
-  const handleToggleFavorite = async (e: React.MouseEvent, mentorId: number) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, mentorId: number | string) => {
+    e.preventDefault();
     e.stopPropagation();
+    const id = Number(mentorId);
     try {
-      const res = await api.post('/favorites/toggle', { mentor_id: mentorId });
+      const res = await api.post('/favorites/toggle', { mentor_id: id });
       const { is_favorited } = res.data;
       setFavoriteIds(prev => {
         const newSet = new Set(prev);
-        if (is_favorited) newSet.add(mentorId);
-        else newSet.delete(mentorId);
+        if (is_favorited) newSet.add(id);
+        else newSet.delete(id);
         return newSet;
       });
     } catch (err) {
@@ -600,10 +602,16 @@ export default function FindMentors() {
                         </span>
                       )}
                       <button 
+                        type="button"
                         onClick={(e) => handleToggleFavorite(e, mentor.id)}
-                        className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition"
+                        className="p-2 bg-white/20 rounded-full hover:bg-white/30 transition relative z-20"
+                        title="Toggle Favorite"
                       >
-                        <Heart className={`w-5 h-5 ${favoriteIds.has(mentor.id) ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+                        <Heart 
+                          className="w-5 h-5 transition-colors" 
+                          fill={favoriteIds.has(Number(mentor.id)) ? 'currentColor' : 'transparent'}
+                          color={favoriteIds.has(Number(mentor.id)) ? '#ef4444' : 'white'}
+                        />
                       </button>
                     </div>
                   </div>
