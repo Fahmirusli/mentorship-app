@@ -368,7 +368,7 @@
                         <div class="notif-item">
                             <strong>Automated Scraping Finished</strong>
                             <p>Status: {{ $scrapeSchedule->last_run_status }}</p>
-                            <small>{{ \Carbon\Carbon::parse($scrapeSchedule->last_run_at)->diffForHumans() }}</small>
+                            <small>{{ \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $scrapeSchedule->last_run_at, $scrapeSchedule->timezone ?: 'Asia/Kuala_Lumpur')->diffForHumans() }}</small>
                         </div>
                     @else
                         <div class="notif-item" style="border:none; background:transparent;">
