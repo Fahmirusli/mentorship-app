@@ -93,35 +93,28 @@ class JobMatchingService
             $mappedUserSkills[] = $mapped;
         }
         
-        // 1. Build Vocabulary
-        $vocabulary = array_unique(array_merge($mappedUserSkills, $jobReqsNorm));
+        // 1. Build Vocabulary - Strictly based on Job Requirements
+        // This prevents heavily penalizing users who have many extra skills not related to the job
+        $vocabulary = array_unique($jobReqsNorm);
         
         if (empty($vocabulary)) {
             return 0;
         }
 
-        // 2. Term Frequency (TF)
+        // 2. Term Frequency (TF) - Use Boolean Frequency (1 if present, 0 if missing)
         $userTf = array_fill_keys($vocabulary, 0);
         $jobTf = array_fill_keys($vocabulary, 0);
         
-        $userTermCount = count($mappedUserSkills) ?: 1;
         foreach ($mappedUserSkills as $term) {
             if (isset($userTf[$term])) {
-                $userTf[$term]++;
+                $userTf[$term] = 1;
             }
-        }
-        foreach ($userTf as $term => $count) {
-            $userTf[$term] = $count / $userTermCount;
         }
 
-        $jobTermCount = count($jobReqsNorm) ?: 1;
         foreach ($jobReqsNorm as $term) {
             if (isset($jobTf[$term])) {
-                $jobTf[$term]++;
+                $jobTf[$term] = 1;
             }
-        }
-        foreach ($jobTf as $term => $count) {
-            $jobTf[$term] = $count / $jobTermCount;
         }
 
         // 3. Inverse Document Frequency (IDF)
