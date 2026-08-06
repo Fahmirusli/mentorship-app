@@ -66,19 +66,23 @@
     </div>
 
     @if(\Illuminate\Support\Facades\Cache::get('is_scraping'))
-        <div style="background: rgba(236, 201, 75, 0.2); color: #b7791f; padding: 15px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(236, 201, 75, 0.3); display: flex; align-items: center; gap: 10px;">
-            <svg class="h-5 w-5 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        <div style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; background: #fffbeb; color: #b7791f; padding: 16px 20px; border-radius: 12px; border: 1px solid #fce89d; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); display: flex; align-items: center; gap: 12px; max-width: 400px; font-size: 14px; line-height: 1.4;">
+            <svg style="width: 24px; height: 24px; animation: spin 1s linear infinite; flex-shrink: 0;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <strong>Scraping in Progress...</strong> The background scraper is currently pulling data. Refresh the page in a few minutes to see the total.
+            <div>
+                <strong style="display: block; font-size: 15px; margin-bottom: 2px;">Scraping in Progress...</strong> 
+                The background scraper is currently pulling data. Refresh the page in a few minutes to see the total.
+            </div>
         </div>
         <style>
             @keyframes spin { 100% { transform: rotate(360deg); } }
         </style>
     @elseif(\Illuminate\Support\Facades\Cache::has('last_scraped_total'))
-        <div style="background: rgba(72, 187, 120, 0.2); color: #48bb78; padding: 15px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(72, 187, 120, 0.3);">
-            <strong>Scraping Finished!</strong> The background task successfully added {{ \Illuminate\Support\Facades\Cache::get('last_scraped_total') }} new jobs.
+        <div style="position: fixed; bottom: 30px; right: 30px; z-index: 9999; background: #f0fff4; color: #2f855a; padding: 16px 20px; border-radius: 12px; border: 1px solid #c6f6d5; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); font-size: 14px; max-width: 400px;">
+            <strong style="display: block; font-size: 15px; margin-bottom: 2px;">Scraping Finished!</strong> 
+            The background task successfully added {{ \Illuminate\Support\Facades\Cache::get('last_scraped_total') }} new jobs.
         </div>
     @endif
 
