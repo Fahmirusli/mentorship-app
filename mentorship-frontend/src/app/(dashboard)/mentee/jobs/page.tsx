@@ -252,7 +252,7 @@ export default function JobListings() {
                               <span
                                 key={i}
                                 className={`px-2 py-1 text-xs rounded-full ${isMissing
-                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
                                     : 'bg-green-50 text-green-700 border border-green-200'
                                   }`}
                               >

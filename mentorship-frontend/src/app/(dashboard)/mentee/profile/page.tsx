@@ -367,44 +367,6 @@ export default function MenteeProfile() {
                         </div>
                     </div>
 
-                    {/* Skills */}
-                    <div className="space-y-6 mb-8 pb-8 border-b">
-                        <h2 className="text-xl font-semibold text-gray-900">Skills</h2>
-
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={newSkill}
-                                onChange={(e) => setNewSkill(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addSharedSkill()}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                                placeholder="Add a skill (e.g., React, Python)"
-                            />
-                            <button
-                                onClick={addSharedSkill}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-                            >
-                                Add
-                            </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                            {profile.skills.map((skill, index) => (
-                                <span
-                                    key={index}
-                                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm flex items-center gap-2"
-                                >
-                                    {skill}
-                                    <button
-                                        onClick={() => removeSharedSkill(skill)}
-                                        className="text-indigo-500 hover:text-indigo-700"
-                                    >
-                                        ×
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
-                    </div>
 
                     <div className="space-y-4 mb-8 pb-8 border-b">
                         <h2 className="text-xl font-semibold text-gray-900">Current Skills Detail</h2>

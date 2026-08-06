@@ -16,11 +16,6 @@ class JobMatchingService
             return [];
         }
         
-        $userSkills = $user->skills ?? [];
-        if (is_string($userSkills)) {
-            $userSkills = json_decode($userSkills, true) ?? [];
-        }
-
         $profileSkills = [];
         if ($user->menteeProfile) {
             $profileSkills = $user->menteeProfile->current_skills ?? [];
@@ -29,8 +24,8 @@ class JobMatchingService
             }
         }
         
-        // Merge both arrays to ensure all skills are captured
-        $userSkills = array_values(array_unique(array_merge($userSkills, $profileSkills)));
+        // Strictly use Current Skills Detail (Mentee Profile)
+        $userSkills = array_values(array_unique($profileSkills));
 
         if (empty($userSkills)) {
             return Job::latest()->take(50)->get();
@@ -50,13 +45,14 @@ class JobMatchingService
             }
             
             $matchScore = $this->calculateMatchScore($userSkills, $jobRequirements);
-            $skillGap = $this->calculateSkillGap($userSkills, $jobRequirements);
+            $missingSkills = $this->calculateMissingSkills($userSkills, $jobRequirements);
+            $skillGap = count($missingSkills);
             
             $recommendations[] = [
                 'job' => $job,
                 'match_score' => $matchScore,
                 'skill_gap' => $skillGap,
-                'missing_skills' => array_diff($jobRequirements, $userSkills)
+                'missing_skills' => $missingSkills
             ];
         }
         
@@ -167,10 +163,31 @@ class JobMatchingService
         return round($cosineSimilarity * 100, 2);
     }
     
-    private function calculateSkillGap($userSkills, $jobRequirements)
+    private function calculateMissingSkills($userSkills, $jobRequirements)
     {
-        // Simplified gap calc for listing
-        return count($jobRequirements) - ($this->calculateMatchScore($userSkills, $jobRequirements) / 100 * count($jobRequirements));
+        $userSkillsNorm = array_map(fn($s) => trim(strtolower($s)), $userSkills);
+        $missingSkills = [];
+
+        foreach ($jobRequirements as $req) {
+            $reqNorm = trim(strtolower($req));
+            if (in_array($reqNorm, $userSkillsNorm)) {
+                continue;
+            }
+
+            $found = false;
+            foreach ($userSkillsNorm as $uSkill) {
+                if ($uSkill === $reqNorm || ($uSkill !== '' && $reqNorm !== '' && (str_contains($uSkill, $reqNorm) || str_contains($reqNorm, $uSkill)))) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                $missingSkills[] = $req;
+            }
+        }
+        
+        return array_values(array_unique($missingSkills));
     }
     
     public function analyzeJobMatch($userId, $jobId)
@@ -182,11 +199,6 @@ class JobMatchingService
             return null;
         }
         
-        $userSkills = $user->skills ?? [];
-        if (is_string($userSkills)) {
-            $userSkills = json_decode($userSkills, true) ?? [];
-        }
-
         $profileSkills = [];
         if ($user->menteeProfile) {
             $profileSkills = $user->menteeProfile->current_skills ?? [];
@@ -195,7 +207,8 @@ class JobMatchingService
             }
         }
         
-        $userSkills = array_values(array_unique(array_merge($userSkills, $profileSkills)));
+        // Strictly use Current Skills Detail (Mentee Profile)
+        $userSkills = array_values(array_unique($profileSkills));
         
         // Get job requirements
         $jobRequirements = is_string($job->requirements) 
@@ -223,31 +236,13 @@ class JobMatchingService
 
         Log::info("Job Analysis Debug", ['user' => $userSkillsNorm, 'job' => $jobReqsNorm]);
 
+        $missingSkills = $this->calculateMissingSkills($userSkills, $jobRequirements);
+        
+        // Find matching skills by diffing jobRequirements against missingSkills
         $matchingSkills = [];
-        $missingSkills = [];
-
         foreach ($jobRequirements as $req) {
-            $reqNorm = trim(strtolower($req));
-            
-            // Check for exact match in normalized array
-            if (in_array($reqNorm, $userSkillsNorm)) {
+            if (!in_array($req, $missingSkills)) {
                 $matchingSkills[] = $req;
-                continue;
-            }
-
-            // Check for fuzzy/partial match
-            $found = false;
-            foreach ($userSkillsNorm as $uSkill) {
-                if ($uSkill === $reqNorm || 
-                    ($uSkill !== '' && $reqNorm !== '' && (str_contains($uSkill, $reqNorm) || str_contains($reqNorm, $uSkill)))) {
-                    $matchingSkills[] = $req;
-                    $found = true;
-                    break;
-                }
-            }
-
-            if (!$found) {
-                $missingSkills[] = $req;
             }
         }
         
@@ -258,7 +253,7 @@ class JobMatchingService
         return [
             'match_score' => round($matchScore, 2),
             'matching_skills' => array_values(array_unique($matchingSkills)),
-            'missing_skills' => array_values(array_unique($missingSkills)),
+            'missing_skills' => $missingSkills,
             'skill_gap' => count($missingSkills),
             'total_requirements' => count($jobRequirements),
             'user_has' => count($matchingSkills),
