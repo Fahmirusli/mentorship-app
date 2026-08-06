@@ -16,22 +16,21 @@ class JobMatchingService
             return [];
         }
         
-        // Fix: Fetch skills from User model first
         $userSkills = $user->skills ?? [];
-
-        // Handle JSON string vs Array
         if (is_string($userSkills)) {
             $userSkills = json_decode($userSkills, true) ?? [];
         }
 
-        // Fallback to Mentee Profile
-        if (empty($userSkills) && $user->menteeProfile) {
+        $profileSkills = [];
+        if ($user->menteeProfile) {
             $profileSkills = $user->menteeProfile->current_skills ?? [];
             if (is_string($profileSkills)) {
                 $profileSkills = json_decode($profileSkills, true) ?? [];
             }
-            $userSkills = $profileSkills;
         }
+        
+        // Merge both arrays to ensure all skills are captured
+        $userSkills = array_values(array_unique(array_merge($userSkills, $profileSkills)));
 
         if (empty($userSkills)) {
             return Job::latest()->take(50)->get();
@@ -183,22 +182,20 @@ class JobMatchingService
             return null;
         }
         
-        // Fix: Fetch skills from User model first (where seeded data lives)
         $userSkills = $user->skills ?? [];
-
-        // Handle JSON string vs Array (since it's cast in model, it should be array, but safe check)
         if (is_string($userSkills)) {
             $userSkills = json_decode($userSkills, true) ?? [];
         }
 
-        // Fallback to Mentee Profile if User skills are empty
-        if (empty($userSkills) && $user->menteeProfile) {
+        $profileSkills = [];
+        if ($user->menteeProfile) {
             $profileSkills = $user->menteeProfile->current_skills ?? [];
             if (is_string($profileSkills)) {
                 $profileSkills = json_decode($profileSkills, true) ?? [];
             }
-            $userSkills = $profileSkills;
         }
+        
+        $userSkills = array_values(array_unique(array_merge($userSkills, $profileSkills)));
         
         // Get job requirements
         $jobRequirements = is_string($job->requirements) 
