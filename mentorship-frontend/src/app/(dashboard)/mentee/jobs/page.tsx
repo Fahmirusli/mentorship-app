@@ -65,8 +65,15 @@ export default function JobListings() {
     return 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
-  const displayJobs = showRecommended && recommendations.length > 0 ? recommendations : filteredJobs;
+  const filteredRecommendations = recommendations.filter(item => {
+    const job = item.job || item;
+    const matchesSearch = job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      job.company?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSource = selectedSource === 'all' || job.source === selectedSource;
+    return matchesSearch && matchesSource;
+  });
 
+  const displayJobs = showRecommended && recommendations.length > 0 ? filteredRecommendations : filteredJobs;
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
