@@ -263,19 +263,17 @@ class AdminController extends Controller
                 return back()->with('error', 'Please provide a keyword or select at least one skill.');
             }
 
-            $scraperService = new \App\Services\JobScraperService();
-            $totalScraped = 0;
-            
-            // Loop through all selected keywords/skills
-            foreach ($keywords as $keyword) {
-                $result = $scraperService->scrapeAll($keyword);
-                if (isset($result['total'])) {
-                    $totalScraped += $result['total'];
-                }
-            }
+            $keywordList = implode(',', $keywords);
 
-            $keywordList = implode(', ', $keywords);
-            return back()->with('success', "Job scraping for [$keywordList] finished! Added $totalScraped new jobs.");
+            // Run asynchronously in the background using Artisan
+            $process = new \Symfony\Component\Process\Process(['php', base_path('artisan'), 'jobs:scrape', '--keyword=' . $keywordList]);
+            // Set timeout to null so it can run indefinitely
+            $process->setTimeout(null);
+            // Start asynchronously (returns immediately)
+            $process->start();
+
+            $displayKeywords = str_replace(',', ', ', $keywordList);
+            return back()->with('success', "Job scraping for [$displayKeywords] has been started in the background! It may take a few minutes to complete.");
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to start scraping: ' . $e->getMessage());
         }

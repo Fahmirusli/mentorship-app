@@ -14,10 +14,22 @@ class ScrapeJobs extends Command
     {
         $this->info('Starting job scraping...');
 
-        $keyword = $this->option('keyword');
-        $results = $scraper->scrapeAll($keyword);
+        $keywordsOption = $this->option('keyword');
+        $keywords = explode(',', $keywordsOption);
+        
+        $totalScraped = 0;
+        foreach ($keywords as $keyword) {
+            $keyword = trim($keyword);
+            if (empty($keyword)) continue;
+            
+            $this->info("Scraping for keyword: {$keyword}");
+            $results = $scraper->scrapeAll($keyword);
+            $scrapedForKeyword = $results['total'] ?? 0;
+            $totalScraped += $scrapedForKeyword;
+            $this->info("Scraped {$scrapedForKeyword} jobs for {$keyword}");
+        }
 
-        $this->info("Scraped {$results['total']} jobs");
+        $this->info("Total scraped: {$totalScraped} jobs");
         
         return 0;
     }
