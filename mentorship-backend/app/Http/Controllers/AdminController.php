@@ -265,12 +265,13 @@ class AdminController extends Controller
 
             $keywordList = implode(',', $keywords);
 
-            // Run asynchronously in the background using Artisan
-            $process = new \Symfony\Component\Process\Process(['php', base_path('artisan'), 'jobs:scrape', '--keyword=' . $keywordList]);
-            // Set timeout to null so it can run indefinitely
-            $process->setTimeout(null);
-            // Start asynchronously (returns immediately)
-            $process->start();
+            $cmd = 'php ' . escapeshellarg(base_path('artisan')) . ' jobs:scrape --keyword=' . escapeshellarg($keywordList);
+            
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                pclose(popen('start /B ' . $cmd . ' 1> NUL 2>&1', 'r'));
+            } else {
+                exec($cmd . ' > /dev/null 2>&1 &');
+            }
 
             $displayKeywords = str_replace(',', ', ', $keywordList);
             return back()->with('success', "Job scraping for [$displayKeywords] has been started in the background! It may take a few minutes to complete.");
