@@ -46,6 +46,12 @@ export default function JobListings() {
     }
   };
 
+  const handleRefresh = async () => {
+    setLoading(true);
+    await Promise.all([fetchJobs(), fetchRecommendations()]);
+    setLoading(false);
+  };
+
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -93,7 +99,7 @@ export default function JobListings() {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={fetchJobs}
+                onClick={handleRefresh}
                 className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
               >
                 <RefreshCw className="w-4 h-4" />

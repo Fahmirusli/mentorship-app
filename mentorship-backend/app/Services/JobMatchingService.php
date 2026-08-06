@@ -37,7 +37,7 @@ class JobMatchingService
             return Job::latest()->take(50)->get();
         }
         
-        $jobs = Job::all();
+        $jobs = Job::orderBy('posted_date', 'desc')->get();
         $recommendations = [];
         
         foreach ($jobs as $job) {
@@ -61,8 +61,13 @@ class JobMatchingService
             ];
         }
         
-        // Sort by match score
+        // Sort by match score, then by latest posted date
         usort($recommendations, function($a, $b) {
+            if ($a['match_score'] == $b['match_score']) {
+                $dateA = $a['job']->posted_date ? strtotime($a['job']->posted_date) : 0;
+                $dateB = $b['job']->posted_date ? strtotime($b['job']->posted_date) : 0;
+                return $dateB <=> $dateA;
+            }
             return $b['match_score'] <=> $a['match_score'];
         });
         
