@@ -30,10 +30,8 @@ class ScrapeScheduledJobs extends Command
             return 0;
         }
 
-        if ($schedule->last_run_at && $schedule->last_run_at->timezone($timezone)->isSameDay($now)) {
-            return 0;
-        }
-
+        // The isSameDay check was removed here to allow testing multiple times in one day.
+        // Since H:i only matches once per 24 hours, it will still only run once automatically!
         $keyword = $schedule->keyword ?: 'Software Engineer';
 
         try {
