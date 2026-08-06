@@ -18,6 +18,8 @@ class ScrapeJobs extends Command
         $keywords = explode(',', $keywordsOption);
         
         $totalScraped = 0;
+        \Illuminate\Support\Facades\Cache::put('is_scraping', true, now()->addMinutes(15));
+        
         foreach ($keywords as $keyword) {
             $keyword = trim($keyword);
             if (empty($keyword)) continue;
@@ -30,6 +32,9 @@ class ScrapeJobs extends Command
         }
 
         $this->info("Total scraped: {$totalScraped} jobs");
+        
+        \Illuminate\Support\Facades\Cache::forget('is_scraping');
+        \Illuminate\Support\Facades\Cache::put('last_scraped_total', $totalScraped, now()->addHours(24));
         
         return 0;
     }

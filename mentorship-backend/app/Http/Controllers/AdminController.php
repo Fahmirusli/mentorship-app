@@ -265,6 +265,9 @@ class AdminController extends Controller
 
             $keywordList = implode(',', $keywords);
 
+            \Illuminate\Support\Facades\Cache::put('is_scraping', true, now()->addMinutes(15));
+            \Illuminate\Support\Facades\Cache::forget('last_scraped_total'); // Reset last total
+
             $cmd = 'php ' . escapeshellarg(base_path('artisan')) . ' jobs:scrape --keyword=' . escapeshellarg($keywordList);
             
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {

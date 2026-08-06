@@ -46,7 +46,7 @@
             </div>
             <div>
                 <div style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px;">Keyword</div>
-                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $schedule?->keyword ?? 'Software Engineer' }}">
+                <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; min-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: capitalize;" title="{{ $schedule?->keyword ?? 'Software Engineer' }}">
                     {{ $schedule?->keyword ?? 'Software Engineer' }}
                 </div>
             </div>
@@ -64,6 +64,23 @@
             </div>
         </div>
     </div>
+
+    @if(\Illuminate\Support\Facades\Cache::get('is_scraping'))
+        <div style="background: rgba(236, 201, 75, 0.2); color: #b7791f; padding: 15px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(236, 201, 75, 0.3); display: flex; align-items: center; gap: 10px;">
+            <svg class="h-5 w-5 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style="animation: spin 1s linear infinite;">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <strong>Scraping in Progress...</strong> The background scraper is currently pulling data. Refresh the page in a few minutes to see the total.
+        </div>
+        <style>
+            @keyframes spin { 100% { transform: rotate(360deg); } }
+        </style>
+    @elseif(\Illuminate\Support\Facades\Cache::has('last_scraped_total'))
+        <div style="background: rgba(72, 187, 120, 0.2); color: #48bb78; padding: 15px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(72, 187, 120, 0.3);">
+            <strong>Scraping Finished!</strong> The background task successfully added {{ \Illuminate\Support\Facades\Cache::get('last_scraped_total') }} new jobs.
+        </div>
+    @endif
 
     @if(session('success'))
         <div style="background: rgba(72, 187, 120, 0.2); color: #48bb78; padding: 15px; border-radius: 12px; margin-bottom: 24px; border: 1px solid rgba(72, 187, 120, 0.3);">

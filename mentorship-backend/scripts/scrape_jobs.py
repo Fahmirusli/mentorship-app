@@ -84,7 +84,7 @@ def scrape_jobstreet(driver, keyword):
 
         logging.info(f"JobStreet: Found {len(articles)} potential jobs.")
 
-        for article in articles[:5]:
+        for article in articles[:20]:
             try:
                 title_elem = article.find('a', attrs={'data-automation': 'jobTitle'}) or article.find('h1')
                 if title_elem and title_elem.find('a'):
@@ -145,7 +145,7 @@ def scrape_maukerja(driver, keyword):
         
         unique_urls = set()
         for card in cards:
-            if len(jobs) >= 5:
+            if len(jobs) >= 20:
                 break
             
             try:
@@ -221,7 +221,7 @@ def scrape_linkedin(driver, keyword):
         logging.info(f"LinkedIn: Found {len(job_cards)} potential items.")
         
         for card in job_cards:
-            if len(jobs) >= 5: break
+            if len(jobs) >= 20: break
             try:
                 title = card.find(class_='base-search-card__title')
                 company = card.find(class_='base-search-card__subtitle')
