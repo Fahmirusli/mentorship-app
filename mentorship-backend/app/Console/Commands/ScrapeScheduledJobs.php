@@ -45,7 +45,9 @@ class ScrapeScheduledJobs extends Command
             $schedule->save();
         } catch (\Throwable $e) {
             $schedule->last_run_at = $now->toDateTimeString();
-            $schedule->last_run_status = 'failed';
+            // Truncate the error message so it fits in the database column
+            $errorMsg = substr($e->getMessage(), 0, 150);
+            $schedule->last_run_status = 'failed: ' . $errorMsg;
             $schedule->save();
 
             Log::error('Scheduled scrape failed: ' . $e->getMessage());
