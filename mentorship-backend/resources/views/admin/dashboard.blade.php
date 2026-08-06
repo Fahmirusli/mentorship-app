@@ -249,6 +249,97 @@
         color: var(--text-secondary);
         border: 1px solid var(--border-color);
     }
+    
+    /* Notification Bell */
+    .notification-dropdown {
+        position: relative;
+    }
+    
+    .bell-icon {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 20px;
+        cursor: pointer;
+        position: relative;
+        padding: 10px;
+        border-radius: 8px;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+    }
+    
+    .bell-icon:hover {
+        background: var(--border-color);
+    }
+    
+    .notification-dot {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 10px;
+        height: 10px;
+        background-color: #e53e3e;
+        border-radius: 50%;
+        border: 2px solid var(--card-bg);
+    }
+    
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        right: 0;
+        top: 100%;
+        width: 300px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 50;
+        margin-top: 10px;
+        padding: 10px;
+    }
+    
+    .dropdown-menu.show {
+        display: block;
+    }
+    
+    .dropdown-menu h4 {
+        margin: 0 0 10px 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 14px;
+    }
+    
+    .notif-item {
+        padding: 10px;
+        border-radius: 6px;
+        background: rgba(102, 126, 234, 0.05);
+        border-left: 4px solid #667eea;
+    }
+    
+    .notif-item strong {
+        display: block;
+        color: var(--text-primary);
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    
+    .notif-item p {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+    
+    .notif-item small {
+        display: block;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
 </style>
 
 <div class="dashboard-container">
@@ -257,7 +348,36 @@
             <h1 class="page-title">Dashboard Overview</h1>
             <p style="color: var(--text-secondary); margin-top: 5px;">Welcome back, {{ auth()->user()->name }}</p>
         </div>
-        <div style="display: flex; gap: 15px;">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div class="notification-dropdown">
+                @php 
+                    $scrapeSchedule = \App\Models\JobScrapeSchedule::first(); 
+                    $hasNotification = $scrapeSchedule && $scrapeSchedule->last_run_status && $scrapeSchedule->last_run_at;
+                @endphp
+                
+                <button class="bell-icon" onclick="document.getElementById('notif-menu').classList.toggle('show')">
+                    🔔
+                    @if($hasNotification)
+                        <span class="notification-dot"></span>
+                    @endif
+                </button>
+                
+                <div id="notif-menu" class="dropdown-menu">
+                    <h4>Notifications</h4>
+                    @if($hasNotification)
+                        <div class="notif-item">
+                            <strong>Automated Scraping Finished</strong>
+                            <p>Status: {{ $scrapeSchedule->last_run_status }}</p>
+                            <small>{{ \Carbon\Carbon::parse($scrapeSchedule->last_run_at)->diffForHumans() }}</small>
+                        </div>
+                    @else
+                        <div class="notif-item" style="border:none; background:transparent;">
+                            <p>No new notifications.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <button class="theme-toggle" onclick="toggleTheme()" id="themeIcon">
                 🌙 Dark Mode
             </button>
@@ -564,6 +684,17 @@
                     grid: { display: false },
                     ticks: { color: textColor, padding: 10 }
                 }
+            }
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdown = document.getElementById('notif-menu');
+        const bell = document.querySelector('.bell-icon');
+        if (dropdown && dropdown.classList.contains('show')) {
+            if (!dropdown.contains(event.target) && !bell.contains(event.target)) {
+                dropdown.classList.remove('show');
             }
         }
     });
