@@ -113,18 +113,18 @@ class ChatController extends Controller
         // Update conversation's last_message_at
         $conversation->update(['last_message_at' => now()]);
 
+        // Create a notification for the receiver
+        NotificationLog::notify(
+            $receiverId,
+            'message',
+            'New message from ' . $request->user()->name,
+            $request->body,
+            ['sender_id' => $senderId, 'conversation_id' => $conversation->id]
+        );
+
         try {
             // Broadcast the message event
             broadcast(new \App\Events\MessageSent($message))->toOthers();
-
-            // Create a notification for the receiver
-            NotificationLog::notify(
-                $receiverId,
-                'message',
-                'New message from ' . $request->user()->name,
-                $request->body,
-                ['sender_id' => $senderId, 'conversation_id' => $conversation->id]
-            );
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Failed to broadcast message: ' . $e->getMessage());
             // Fail silently so the sender still gets a 201 success response
