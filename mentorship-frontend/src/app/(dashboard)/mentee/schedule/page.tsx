@@ -26,6 +26,7 @@ type UiStatus = Appointment['status'];
 interface BackendAppointment {
     id: number;
     mentorship?: {
+        id?: number;
         mentor?: { id?: number; name?: string };
     };
     mentor_name?: string;

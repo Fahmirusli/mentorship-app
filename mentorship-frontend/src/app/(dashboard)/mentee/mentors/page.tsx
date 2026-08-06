@@ -26,8 +26,9 @@ interface Mentor {
     end_time: string;
     fee: number;
   } | null;
-  mentor_profile?: { hourly_rate?: number };
-  mentorProfile?: { hourly_rate?: number };
+  skills?: any[];
+  mentor_profile?: { hourly_rate?: number; expertise_areas?: string[]; job_title?: string; };
+  mentorProfile?: { hourly_rate?: number; expertise_areas?: string[]; job_title?: string; };
 }
 
 interface NearbyMentor {

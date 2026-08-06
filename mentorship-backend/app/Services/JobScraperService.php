@@ -169,8 +169,8 @@ class JobScraperService
                         $response = \Illuminate\Support\Facades\Http::withHeaders([
                                 'X-RapidAPI-Key' => $apiKey,
                                 'X-RapidAPI-Host' => $apiHost,
-                        ])->connectTimeout(10)
-                            ->timeout(20)
+                        ])->connectTimeout(20)
+                            ->timeout(60)
                             ->retry(1, 500)
                             ->get($endpoint, $queryParams);
 
