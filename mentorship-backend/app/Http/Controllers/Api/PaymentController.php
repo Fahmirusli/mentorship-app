@@ -145,11 +145,13 @@ class PaymentController extends Controller
             ]);
 
             // 5. Create Bill with ToyyibPay
+            $refId = $appointment->id . '-' . $request->input('source', 'web');
+            
             $billCode = $this->toyyibPay->createBill(
                 "Session #" . $appointment->id,
                 "Mentorship with " . $mentorship->mentor->name . " on " . $scheduledAt->format('d M Y, h:i A'),
                 $adjustedFee,
-                $appointment->id,
+                $refId,
                 $user->email,
                 $user->name,
                 $user->phone ?? '0123456789',
@@ -338,11 +340,13 @@ class PaymentController extends Controller
             ]);
 
             // Create Bill
+            $refId = 'C-' . $enrollment->id . '-' . $request->input('source', 'web');
+            
             $billCode = $this->toyyibPay->createBill(
                 "Course #" . $course->id,
                 "Enrollment for " . $course->title,
                 $course->price,
-                'C-' . $enrollment->id, // Add prefix to distinguish from appointments
+                $refId, // Add prefix to distinguish from appointments
                 $user->email,
                 $user->name,
                 $user->phone ?? '0123456789',
@@ -447,7 +451,15 @@ class PaymentController extends Controller
             ];
             
             $status = $statusMap[$statusId] ?? 'unknown';
-            $source = $request->input('source', 'web');
+            
+            // ToyyibPay sometimes strips query parameters from billReturnUrl.
+            // As a bulletproof fallback, we parse the source from the order_id (e.g. "123-mobile")
+            $source = $request->input('source');
+            if (!$source && $orderId && str_ends_with($orderId, '-mobile')) {
+                $source = 'mobile';
+            } else if (!$source) {
+                $source = 'web';
+            }
 
             if ($source === 'mobile') {
                 $redirectUrl = "uplifts://payment-return?payment=" . $status;
